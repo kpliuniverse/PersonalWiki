@@ -37,7 +37,7 @@ class App:
         text_edit = QTextEdit(editor_splitter)
         text_edit.setText("Hello World!")
         text_edit.setAcceptRichText(False)
-        text_edit.setFont(QFont("Hack", 16))
+        text_edit.setFont(QFont("Hack", 10))
         editor_splitter.addWidget(text_edit)
         
         text_view = QWebEngineView(self.root)
