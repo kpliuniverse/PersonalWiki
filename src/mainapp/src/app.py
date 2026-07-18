@@ -41,7 +41,16 @@ class App:
         editor_splitter.addWidget(text_edit)
         
         text_view = QWebEngineView(self.root)
-        text_view.load(QUrl("http://www.qt.io"))
+        text_view.setHtml("""
+            <html>
+                <head>
+
+                </head>
+            <body>
+                <p>Hello, <b>world</b></p>
+            </body>
+            </html>
+        """)
         text_view.show()
         editor_splitter.addWidget(text_view)
     def run(self):
