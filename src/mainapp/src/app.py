@@ -1,8 +1,9 @@
 
-from PyQt6.QtWidgets import QApplication, QSplitter, QWidget, QGridLayout, QTextEdit
-from PyQt6.QtWebEngineWidgets import QWebEngineView #pylint[ignore]
-from PyQt6.QtCore import QUrl
+from PyQt6.QtWidgets import QApplication, QSplitter, QWidget, QGridLayout, QTextEdit, QHBoxLayout, QPushButton
+from PyQt6.QtWebEngineWidgets import QWebEngineView 
+from PyQt6.QtCore import QSize, QUrl
 from PyQt6.QtGui import QFont, QFontDatabase
+import mistune
 
 import sys
 import pathlib as pl
@@ -16,12 +17,19 @@ class App:
 
     editor_font: QFont = QFont()
 
+
+    text_edit: QTextEdit
+    text_view: QWebEngineView
     def init_fonts(self): 
         for path in FONT_PATH.iterdir():
             id = QFontDatabase.addApplicationFont(path.as_posix())
             print(QFontDatabase.applicationFontFamilies(id))
-    def __init__(self):
 
+    def on_compile(self):
+        out = str(mistune.html(self.text_edit.toPlainText()))
+        self.text_view.setHtml(out) 
+    def __init__(self):
+        
         self.app = QApplication(sys.argv)
         self.init_fonts()
 
@@ -30,29 +38,30 @@ class App:
         self.root.setLayout(self.root_layout)
         self.root.setGeometry(200, 200, 1200, 800)
         self.root.setWindowTitle("PersonalWiki")
+        ribbon = QWidget(self.root)
+        self.root_layout.addWidget(ribbon, 0, 0)
+        ribbon_layout = QHBoxLayout()
+        ribbon.setLayout(ribbon_layout)
+        
+        compile_button = QPushButton(parent=ribbon, text="Compile")
+        ribbon_layout.addWidget(compile_button)
+        compile_button.clicked.connect(self.on_compile)
 
         editor_splitter: QSplitter = QSplitter(parent=self.root)
-        self.root_layout.addWidget(editor_splitter, 0, 0)
+        self.root_layout.addWidget(editor_splitter, 1, 0, 8, 1)
 
-        text_edit = QTextEdit(editor_splitter)
-        text_edit.setText("Hello World!")
-        text_edit.setAcceptRichText(False)
-        text_edit.setFont(QFont("Hack", 10))
-        editor_splitter.addWidget(text_edit)
+        self.text_edit = QTextEdit(editor_splitter)
+        self.text_edit.setAcceptRichText(False)
+        self.text_edit.setFont(QFont("Hack", 10, weight=6))
+        editor_splitter.addWidget(self.text_edit)
         
-        text_view = QWebEngineView(self.root)
-        text_view.setHtml("""
-            <html>
-                <head>
+        self.text_view = QWebEngineView(self.root)
+        self.text_view.show()
+        editor_splitter.addWidget(self.text_view)
 
-                </head>
-            <body>
-                <p>Hello, <b>world</b></p>
-            </body>
-            </html>
-        """)
-        text_view.show()
-        editor_splitter.addWidget(text_view)
+        self.text_view.setMinimumWidth(256)
+        editor_splitter.setHandleWidth(16)
+        editor_splitter.setSizes([200, 80])
     def run(self):
         self.root.show()
         sys.exit(self.app.exec())
