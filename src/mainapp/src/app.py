@@ -25,8 +25,6 @@ class App:
     def init_fonts(self): 
         for path in FONT_PATH.iterdir():
             id = QFontDatabase.addApplicationFont(path.as_posix())
-            print(QFontDatabase.applicationFontFamilies(id))
-
     
     def render(self):
         out = str(mistune.html(self.text_edit.toPlainText()))
