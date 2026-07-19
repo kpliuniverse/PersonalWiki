@@ -2,11 +2,13 @@ from PyQt6.QtWidgets import (
     QGridLayout, 
     QMainWindow, 
     QSplitter, 
-    QTextEdit, 
-    QWidget
+    QTextEdit,
+    QTreeView, 
+    QWidget,    
 )
+
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtGui import QAction, QFont
+from PyQt6.QtGui import QAction, QFileSystemModel, QFont
 import mistune
 
 from src.components.mainribbon import MainRibbon
@@ -14,13 +16,13 @@ from src.components.mainribbon import MainRibbon
 
 
 class MainWindow(QMainWindow):
-    widget: QMainWindow
-    root_layout: QGridLayout
-    text_edit: QTextEdit
-    text_view: QWebEngineView
+
+    __root_layout: QGridLayout
+    __text_edit: QTextEdit
+    __file_tree: QTreeView
 
     def render_markdown(self):
-        out = str(mistune.html(self.text_edit.toPlainText()))
+        out = str(mistune.html(self.__text_edit.toPlainText()))
         self.text_view.setHtml(out)
 
     def init_menu_bar(self):
@@ -43,6 +45,8 @@ class MainWindow(QMainWindow):
             action.triggered.connect(action_entry[1])
             file_menu.addAction(action)
 
+
+
     def __init__(self):
         super().__init__()
 
@@ -51,32 +55,38 @@ class MainWindow(QMainWindow):
 
         self.init_menu_bar()
         self.root = QWidget()
-        self.root_layout: QGridLayout = QGridLayout()
-        self.root.setLayout(self.root_layout)
+        self.__root_layout: QGridLayout = QGridLayout()
+        self.root.setLayout(self.__root_layout)
                 
         ribbon = MainRibbon(parent=self.root)
-        self.root_layout.addWidget(ribbon)
+        self.__root_layout.addWidget(ribbon)
         ribbon.render_button.clicked.connect(self.render_markdown)
 
         editor_splitter: QSplitter = QSplitter(parent=self.root)
-        self.root_layout.addWidget(editor_splitter, 1, 0, 8, 1)
+        self.__root_layout.addWidget(editor_splitter, 1, 0, 8, 1)
 
-        self.text_edit = QTextEdit(editor_splitter)
-        self.text_edit.setAcceptRichText(False)
-        self.text_edit.setFont(QFont("Hack", 10, weight=6))
-        editor_splitter.addWidget(self.text_edit)
+        self.__file_tree = QTreeView(editor_splitter)
+        editor_splitter.addWidget(self.__file_tree)
+
+        self.__text_edit = QTextEdit(editor_splitter)
+        self.__text_edit.setAcceptRichText(False)
+        self.__text_edit.setFont(QFont("Hack", 10, weight=6))
+        editor_splitter.addWidget(self.__text_edit)
         
         self.text_view = QWebEngineView(self.root)
         self.text_view.show()
         editor_splitter.addWidget(self.text_view)
 
-        self.text_view.setMinimumWidth(256)
         editor_splitter.setHandleWidth(16)
-        editor_splitter.setSizes([200, 80])
+        editor_splitter.setSizes([80, 200, 80])
 
         self.setCentralWidget(self.root)
 
-
+    def refresh_file_tree(self, model: QFileSystemModel):
+        self.__file_tree.setModel(model)
+        self.__file_tree.setRootIndex(model.index(model.rootPath()))
+        
     def save_file(self):
         print("Save file")
+
 

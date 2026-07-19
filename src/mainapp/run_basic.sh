@@ -1,0 +1,1 @@
+uv run main.py tests/wikis/basic/basic.pwi
