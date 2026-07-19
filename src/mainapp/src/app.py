@@ -28,7 +28,7 @@ class App:
             print(QFontDatabase.applicationFontFamilies(id))
 
     
-    def compile(self):
+    def render(self):
         out = str(mistune.html(self.text_edit.toPlainText()))
         self.text_view.setHtml(out)
     
@@ -45,7 +45,7 @@ class App:
         
         ribbon = MainRibbon(parent=self.root)
         self.root_layout.addWidget(ribbon)
-        ribbon.render_button.clicked.connect(self.compile)
+        ribbon.render_button.clicked.connect(self.render)
 
         editor_splitter: QSplitter = QSplitter(parent=self.root)
         self.root_layout.addWidget(editor_splitter, 1, 0, 8, 1)
