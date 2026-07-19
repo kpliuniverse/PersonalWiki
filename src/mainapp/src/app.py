@@ -8,6 +8,8 @@ import mistune
 import sys
 import pathlib as pl
 
+from src.components.mainribbon import MainRibbon
+
 
 FONT_PATH = pl.Path("assets/fonts")
 class App:
@@ -25,9 +27,11 @@ class App:
             id = QFontDatabase.addApplicationFont(path.as_posix())
             print(QFontDatabase.applicationFontFamilies(id))
 
-    def on_compile(self):
+    
+    def compile(self):
         out = str(mistune.html(self.text_edit.toPlainText()))
-        self.text_view.setHtml(out) 
+        self.text_view.setHtml(out)
+    
     def __init__(self):
         
         self.app = QApplication(sys.argv)
@@ -37,15 +41,11 @@ class App:
         self.root_layout: QGridLayout = QGridLayout()
         self.root.setLayout(self.root_layout)
         self.root.setGeometry(200, 200, 1200, 800)
-        self.root.setWindowTitle("PersonalWiki")
-        ribbon = QWidget(self.root)
-        self.root_layout.addWidget(ribbon, 0, 0)
-        ribbon_layout = QHBoxLayout()
-        ribbon.setLayout(ribbon_layout)
+        self.root.setWindowTitle("&PersonalWiki")
         
-        compile_button = QPushButton(parent=ribbon, text="Compile")
-        ribbon_layout.addWidget(compile_button)
-        compile_button.clicked.connect(self.on_compile)
+        ribbon = MainRibbon(parent=self.root)
+        self.root_layout.addWidget(ribbon)
+        ribbon.compile_button.clicked.connect(self.compile)
 
         editor_splitter: QSplitter = QSplitter(parent=self.root)
         self.root_layout.addWidget(editor_splitter, 1, 0, 8, 1)
