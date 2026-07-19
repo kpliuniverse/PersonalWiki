@@ -7,6 +7,7 @@ import mistune
 
 import sys
 import pathlib as pl
+import logging
 
 from src.components.mainribbon import MainRibbon
 
@@ -24,8 +25,8 @@ class App:
     text_view: QWebEngineView
     def init_fonts(self): 
         for path in FONT_PATH.iterdir():
-            id = QFontDatabase.addApplicationFont(path.as_posix())
-    
+            QFontDatabase.addApplicationFont(path.as_posix())
+            logging.info(f"Loaded font file: {path.as_posix()}")   
     def render(self):
         out = str(mistune.html(self.text_edit.toPlainText()))
         self.text_view.setHtml(out)
