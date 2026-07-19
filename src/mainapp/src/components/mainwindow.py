@@ -13,6 +13,7 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtGui import QAction, QFileSystemModel, QFont
 import mistune
 
+from src.states.appstate import AppState
 from src.components.mainribbon import MainRibbon
 
 
@@ -23,6 +24,7 @@ class MainWindow(QMainWindow):
     __root_layout: QGridLayout
     __text_edit: QTextEdit
     __project_tree: QTreeView
+    __app_state: AppState
 
     def render_markdown(self):
         out = str(mistune.html(self.__text_edit.toPlainText()))
@@ -39,7 +41,7 @@ class MainWindow(QMainWindow):
 
         actions = [
   #          ("Load", self.load_file),
-            ("Save", self.save_file),
+            ("Save", self.save_cur_file),
   #          ("Save as", self.save_as_file)
         ]
 
@@ -88,12 +90,14 @@ class MainWindow(QMainWindow):
     def refresh_file_tree(self, model: QFileSystemModel):
         self.__project_tree.setModel(model)
         self.__project_tree.setRootIndex(model.index(model.rootPath()))
-        
-    def save_file(self):
-        print("Save file")
 
+    def set_app_state(self, app_state: AppState):
+        self.__app_state = app_state
 
-    def load_file(self, cur_file: pathlib.Path):
-        with open(cur_file) as file:
+    def save_cur_file(self):
+        with open(self.__app_state.cur_file, "w") as file:
+            file.write(self.__text_edit.toPlainText())
+    def load_cur_file(self):
+        with open(self.__app_state.cur_file) as file:
             self.__text_edit.setText(file.read())
         self.render_markdown()
