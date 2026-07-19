@@ -1,68 +1,44 @@
+from PyQt6.QtWidgets import (
+    QApplication,
+)
 
-from PyQt6.QtWidgets import QApplication, QSplitter, QWidget, QGridLayout, QTextEdit, QHBoxLayout, QPushButton
-from PyQt6.QtWebEngineWidgets import QWebEngineView 
-from PyQt6.QtCore import QSize, QUrl
-from PyQt6.QtGui import QFont, QFontDatabase
-import mistune
-
+from PyQt6.QtGui import QFontDatabase
 import sys
 import pathlib as pl
 import logging
 
-from src.components.mainribbon import MainRibbon
+from src.components.mainwindow import MainWindow
 
 
 FONT_PATH = pl.Path("assets/fonts")
 class App:
     app: QApplication
-    widget: QWidget
-    root_layout: QGridLayout
-
-    editor_font: QFont = QFont()
-
-
-    text_edit: QTextEdit
-    text_view: QWebEngineView
+    main_window: MainWindow
     def init_fonts(self): 
         for path in FONT_PATH.iterdir():
             QFontDatabase.addApplicationFont(path.as_posix())
-            logging.info(f"Loaded font file: {path.as_posix()}")   
-    def render(self):
-        out = str(mistune.html(self.text_edit.toPlainText()))
-        self.text_view.setHtml(out)
+            logging.info(f"Added font file: {path.as_posix()}")   
     
+
+    # def init_menu_bar(self):
+    #     menu_bar = self.root.menuBar()
+    #     if menu_bar is None:
+    #         raise Exception("Cannot fetch menu_bar of MainWindow, or is otherwise None")
+    #     file_menu = menu_bar.addMenu("File")
+    #     if file_menu is None:
+    #         raise Exception("Cannot fetch menu_bar of FileMenu, or is otherwise None")
+    #     file_menu.addAction(text="Load")
+    #     file_menu.addAction(text="Save")
+    #     file_menu.addAction(text="Save as")
+
     def __init__(self):
-        
         self.app = QApplication(sys.argv)
         self.init_fonts()
 
-        self.root = QWidget()
-        self.root_layout: QGridLayout = QGridLayout()
-        self.root.setLayout(self.root_layout)
-        self.root.setGeometry(200, 200, 1200, 800)
-        self.root.setWindowTitle("PersonalWiki")
-        
-        ribbon = MainRibbon(parent=self.root)
-        self.root_layout.addWidget(ribbon)
-        ribbon.render_button.clicked.connect(self.render)
+        self.main_window = MainWindow()
 
-        editor_splitter: QSplitter = QSplitter(parent=self.root)
-        self.root_layout.addWidget(editor_splitter, 1, 0, 8, 1)
-
-        self.text_edit = QTextEdit(editor_splitter)
-        self.text_edit.setAcceptRichText(False)
-        self.text_edit.setFont(QFont("Hack", 10, weight=6))
-        editor_splitter.addWidget(self.text_edit)
-        
-        self.text_view = QWebEngineView(self.root)
-        self.text_view.show()
-        editor_splitter.addWidget(self.text_view)
-
-        self.text_view.setMinimumWidth(256)
-        editor_splitter.setHandleWidth(16)
-        editor_splitter.setSizes([200, 80])
     def run(self):
-        self.root.show()
+        self.main_window.show()
         sys.exit(self.app.exec())
 
     
