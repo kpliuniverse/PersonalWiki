@@ -20,17 +20,6 @@ class App:
             logging.info(f"Added font file: {path.as_posix()}")   
     
 
-    # def init_menu_bar(self):
-    #     menu_bar = self.root.menuBar()
-    #     if menu_bar is None:
-    #         raise Exception("Cannot fetch menu_bar of MainWindow, or is otherwise None")
-    #     file_menu = menu_bar.addMenu("File")
-    #     if file_menu is None:
-    #         raise Exception("Cannot fetch menu_bar of FileMenu, or is otherwise None")
-    #     file_menu.addAction(text="Load")
-    #     file_menu.addAction(text="Save")
-    #     file_menu.addAction(text="Save as")
-
     def __init__(self):
         self.app = QApplication(sys.argv)
         self.init_fonts()

@@ -23,12 +23,26 @@ class MainWindow(QMainWindow):
         out = str(mistune.html(self.text_edit.toPlainText()))
         self.text_view.setHtml(out)
 
+
+    def init_menu_bar(self):
+        menu_bar = self.menuBar()
+        if menu_bar is None:
+            raise Exception("Cannot fetch menu_bar of MainWindow, or is otherwise None")
+        file_menu = menu_bar.addMenu("File")
+        if file_menu is None:
+            raise Exception("Cannot fetch menu_bar of FileMenu, or is otherwise None")
+        file_menu.addAction("Load")
+        file_menu.addAction("Save")
+        file_menu.addAction("Save as")
+
+
     def __init__(self):
         super().__init__()
 
         self.setGeometry(200, 200, 1200, 800)
         self.setWindowTitle("PersonalWiki")        
 
+        self.init_menu_bar()
         self.root = QWidget()
         self.root_layout: QGridLayout = QGridLayout()
         self.root.setLayout(self.root_layout)
