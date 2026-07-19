@@ -41,7 +41,7 @@ class App:
         self.root_layout: QGridLayout = QGridLayout()
         self.root.setLayout(self.root_layout)
         self.root.setGeometry(200, 200, 1200, 800)
-        self.root.setWindowTitle("&PersonalWiki")
+        self.root.setWindowTitle("PersonalWiki")
         
         ribbon = MainRibbon(parent=self.root)
         self.root_layout.addWidget(ribbon)
