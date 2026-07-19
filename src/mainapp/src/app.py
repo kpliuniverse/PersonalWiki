@@ -45,7 +45,7 @@ class App:
         
         ribbon = MainRibbon(parent=self.root)
         self.root_layout.addWidget(ribbon)
-        ribbon.compile_button.clicked.connect(self.compile)
+        ribbon.render_button.clicked.connect(self.compile)
 
         editor_splitter: QSplitter = QSplitter(parent=self.root)
         self.root_layout.addWidget(editor_splitter, 1, 0, 8, 1)
