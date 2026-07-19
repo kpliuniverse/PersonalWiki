@@ -1,3 +1,5 @@
+import pathlib
+
 from PyQt6.QtWidgets import (
     QGridLayout, 
     QMainWindow, 
@@ -15,11 +17,12 @@ from src.components.mainribbon import MainRibbon
 
 
 
+
 class MainWindow(QMainWindow):
 
     __root_layout: QGridLayout
     __text_edit: QTextEdit
-    __file_tree: QTreeView
+    __project_tree: QTreeView
 
     def render_markdown(self):
         out = str(mistune.html(self.__text_edit.toPlainText()))
@@ -65,8 +68,8 @@ class MainWindow(QMainWindow):
         editor_splitter: QSplitter = QSplitter(parent=self.root)
         self.__root_layout.addWidget(editor_splitter, 1, 0, 8, 1)
 
-        self.__file_tree = QTreeView(editor_splitter)
-        editor_splitter.addWidget(self.__file_tree)
+        self.__project_tree = QTreeView(editor_splitter)
+        editor_splitter.addWidget(self.__project_tree)
 
         self.__text_edit = QTextEdit(editor_splitter)
         self.__text_edit.setAcceptRichText(False)
@@ -83,10 +86,14 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.root)
 
     def refresh_file_tree(self, model: QFileSystemModel):
-        self.__file_tree.setModel(model)
-        self.__file_tree.setRootIndex(model.index(model.rootPath()))
+        self.__project_tree.setModel(model)
+        self.__project_tree.setRootIndex(model.index(model.rootPath()))
         
     def save_file(self):
         print("Save file")
 
 
+    def load_file(self, cur_file: pathlib.Path):
+        with open(cur_file) as file:
+            self.__text_edit.setText(file.read())
+        self.render_markdown()
