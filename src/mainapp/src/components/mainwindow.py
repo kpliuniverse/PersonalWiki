@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
     QWidget
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QAction, QFont
 import mistune
 
 from src.components.mainribbon import MainRibbon
@@ -23,18 +23,25 @@ class MainWindow(QMainWindow):
         out = str(mistune.html(self.text_edit.toPlainText()))
         self.text_view.setHtml(out)
 
-
     def init_menu_bar(self):
         menu_bar = self.menuBar()
         if menu_bar is None:
             raise Exception("Cannot fetch menu_bar of MainWindow, or is otherwise None")
         file_menu = menu_bar.addMenu("File")
         if file_menu is None:
-            raise Exception("Cannot fetch menu_bar of FileMenu, or is otherwise None")
-        file_menu.addAction("Load")
-        file_menu.addAction("Save")
-        file_menu.addAction("Save as")
+            raise Exception("Cannot fetch file_menu of menu_bar, or is otherwise None")
+        
 
+        actions = [
+  #          ("Load", self.load_file),
+            ("Save", self.save_file),
+  #          ("Save as", self.save_as_file)
+        ]
+
+        for action_entry in actions:
+            action = QAction(action_entry[0], self)
+            action.triggered.connect(action_entry[1])
+            file_menu.addAction(action)
 
     def __init__(self):
         super().__init__()
@@ -68,3 +75,8 @@ class MainWindow(QMainWindow):
         editor_splitter.setSizes([200, 80])
 
         self.setCentralWidget(self.root)
+
+
+    def save_file(self):
+        print("Save file")
+
