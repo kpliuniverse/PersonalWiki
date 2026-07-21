@@ -8,5 +8,5 @@ class ProjectItem(QStandardItem):
         super().__init__()
         self.setEditable(False)
         self.setText(path.name)
-        self.setData(path, Qt.ItemDataRole.UserRole)
+        self.setData(path, Qt.ItemDataRole.UserRole + 1)
     

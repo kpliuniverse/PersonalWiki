@@ -1,4 +1,5 @@
 from collections import deque
+import json
 import logging
 import pathlib
 from typing import Deque, Dict, List
@@ -14,9 +15,10 @@ from PyQt6.QtWidgets import (
 
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtGui import QAction, QFileSystemModel, QFont, QStandardItem, QStandardItemModel
-from PyQt6.QtCore import QModelIndex, Qt
+from PyQt6.QtCore import QModelIndex, QTimer, Qt
 import mistune
 
+from src.initcontext import InitContext
 from src.states.appstate import AppState
 from src.components.mainribbon import MainRibbon
 from src.itemmodels.projectitem import ProjectItem
@@ -28,6 +30,7 @@ class MainWindow(QMainWindow):
     __text_view: QWebEngineView
     __project_tree: QTreeView
     __app_state: AppState
+    __save_timer: QTimer
 
     def render_markdown(self):
         self.__text_view.setHtml("Loading...")
@@ -54,15 +57,20 @@ class MainWindow(QMainWindow):
             action = QAction(action_entry[0], self)
             action.triggered.connect(action_entry[1])
             file_menu.addAction(action)
-            
+        
     def on_double_clicked(self, val: QModelIndex):
-        print(val.data(Qt.ItemDataRole.UserRole))
-            
-    def __init__(self):
+        item_path = pathlib.Path(val.data(Qt.ItemDataRole.UserRole + 1))
+        if item_path.is_file():
+            self.load_file(item_path)
+
+    def __init__(self, initcontext: InitContext):
         super().__init__()
 
         self.setGeometry(200, 200, 1200, 800)
         self.setWindowTitle("PersonalWiki")        
+
+        self.__app_state = AppState()
+        self.__app_state.cur_wiki = initcontext.wiki
 
         self.init_menu_bar()
         self.root = QWidget()
@@ -83,6 +91,8 @@ class MainWindow(QMainWindow):
         self.__text_edit = QTextEdit(editor_splitter)
         self.__text_edit.setAcceptRichText(False)
         self.__text_edit.setFont(QFont("Hack", 10, weight=6))
+        self.__text_edit.setAcceptDrops(False)
+        self.__text_edit.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
         editor_splitter.addWidget(self.__text_edit)
         
         self.__text_view = QWebEngineView(self.root)
@@ -90,9 +100,18 @@ class MainWindow(QMainWindow):
         editor_splitter.addWidget(self.__text_view)
 
         editor_splitter.setHandleWidth(16)
-        editor_splitter.setSizes([80, 200, 80])
+        editor_splitter.setSizes([80, 100, 100])
 
         self.setCentralWidget(self.root)
+
+        self.__save_timer = QTimer()
+        self.__save_timer.setInterval(5000)
+        self.__save_timer.timeout.connect(self.save_cur_file)
+        self.__save_timer.start()
+        
+        with open(self.__app_state.cur_wiki.parent / ".pw" / "session.json") as session_file:
+            session_json = json.load(session_file)
+            self.load_file(self.__app_state.cur_wiki.parent / "proper" / session_json["currentFile"])
 
     def refresh_project_tree(self):
         item_system_model = QStandardItemModel()
@@ -123,14 +142,16 @@ class MainWindow(QMainWindow):
             self.__project_tree.setModel(item_system_model)
         
 
-    def set_app_state(self, app_state: AppState):
-        self.__app_state = app_state
 
     def save_cur_file(self):
         with open(self.__app_state.cur_file, "w") as file:
             file.write(self.__text_edit.toPlainText())
 
-    def load_cur_file(self):
+    def load_file(self, cur_file: pathlib.Path):
+        self.__app_state.cur_file = cur_file
         with open(self.__app_state.cur_file) as file:
             self.__text_edit.setText(file.read())
         self.render_markdown()
+
+    def get_app_state(self):
+        return self.__app_state
