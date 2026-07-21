@@ -1,4 +1,5 @@
 from collections import deque
+import logging
 import pathlib
 from typing import Deque, Dict, List
 
@@ -29,18 +30,20 @@ class MainWindow(QMainWindow):
     __app_state: AppState
 
     def render_markdown(self):
+        self.__text_view.setHtml("Loading...")
         out = str(mistune.html(self.__text_edit.toPlainText()))
         self.__text_view.setHtml(out)
 
     def init_menu_bar(self):
         menu_bar = self.menuBar()
         if menu_bar is None:
-            raise Exception("Cannot fetch menu_bar of MainWindow, or is otherwise None")
+            logging.error("Cannot fetch menu_bar of MainWindow, or is otherwise None")
+            return
         file_menu = menu_bar.addMenu("File")
         if file_menu is None:
-            raise Exception("Cannot fetch file_menu of menu_bar, or is otherwise None")
+            logging.error("Cannot fetch file_menu of menu_bar, or is otherwise None")
+            return
         
-
         actions = [
   #          ("Load", self.load_file),
             ("Save", self.save_cur_file),
@@ -51,7 +54,7 @@ class MainWindow(QMainWindow):
             action = QAction(action_entry[0], self)
             action.triggered.connect(action_entry[1])
             file_menu.addAction(action)
-
+            
     def on_double_clicked(self, val: QModelIndex):
         print(val.data(Qt.ItemDataRole.UserRole))
             

@@ -1,1 +1,1 @@
-uv run main.py tests/wikis/basic/basic.pwi
+uv run main.py end-tests/wikis/basic/basic.pwi
