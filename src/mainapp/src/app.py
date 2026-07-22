@@ -33,8 +33,6 @@ class App:
             wiki=pathlib.Path(self.app.arguments()[1])
         ))
                 
-        #TODO: Use custom projectitemmodel
-        self.main_window.refresh_project_tree()
 
            
         

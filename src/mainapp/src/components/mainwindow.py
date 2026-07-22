@@ -1,4 +1,5 @@
 from collections import deque
+import datetime
 import json
 import logging
 import pathlib
@@ -14,7 +15,7 @@ from PyQt6.QtWidgets import (
 )
 
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtGui import QAction, QFileSystemModel, QFont, QStandardItem, QStandardItemModel
+from PyQt6.QtGui import QAction, QFileSystemModel, QFont, QKeySequence, QShortcut, QStandardItem, QStandardItemModel
 from PyQt6.QtCore import QModelIndex, QTimer, Qt
 import mistune
 
@@ -31,13 +32,18 @@ class MainWindow(QMainWindow):
     __project_tree: QTreeView
     __app_state: AppState
     __save_timer: QTimer
-
-    def render_markdown(self):
+    
+    # TODO: Serparate this
+    def __render_markdown(self):
         self.__text_view.setHtml("Loading...")
         out = str(mistune.html(self.__text_edit.toPlainText()))
         self.__text_view.setHtml(out)
 
-    def init_menu_bar(self):
+    def __on_render_button(self):
+        self.__save_cur_file()
+        self.__render_markdown()
+
+    def __init_menu_bar(self):
         menu_bar = self.menuBar()
         if menu_bar is None:
             logging.error("Cannot fetch menu_bar of MainWindow, or is otherwise None")
@@ -48,9 +54,7 @@ class MainWindow(QMainWindow):
             return
         
         actions = [
-  #          ("Load", self.load_file),
-            ("Save", self.save_cur_file),
-  #          ("Save as", self.save_as_file)
+            ("Save", self.__save_cur_file),
         ]
 
         for action_entry in actions:
@@ -58,10 +62,10 @@ class MainWindow(QMainWindow):
             action.triggered.connect(action_entry[1])
             file_menu.addAction(action)
         
-    def on_double_clicked(self, val: QModelIndex):
+    def __on_project_item_double_clicked(self, val: QModelIndex):
         item_path = pathlib.Path(val.data(Qt.ItemDataRole.UserRole + 1))
         if item_path.is_file():
-            self.load_file(item_path)
+            self.__load_file(item_path)
 
     def __init__(self, initcontext: InitContext):
         super().__init__()
@@ -72,20 +76,20 @@ class MainWindow(QMainWindow):
         self.__app_state = AppState()
         self.__app_state.cur_wiki = initcontext.wiki
 
-        self.init_menu_bar()
+        self.__init_menu_bar()
         self.root = QWidget()
         self.__root_layout: QGridLayout = QGridLayout()
         self.root.setLayout(self.__root_layout)
                 
         ribbon = MainRibbon(parent=self.root)
         self.__root_layout.addWidget(ribbon)
-        ribbon.render_button.clicked.connect(self.render_markdown)
+        ribbon.render_button.clicked.connect(self.__on_render_button)
 
         editor_splitter: QSplitter = QSplitter(parent=self.root)
         self.__root_layout.addWidget(editor_splitter, 1, 0, 8, 1)
 
         self.__project_tree = QTreeView(editor_splitter)
-        self.__project_tree.doubleClicked.connect(self.on_double_clicked)
+        self.__project_tree.doubleClicked.connect(self.__on_project_item_double_clicked)
         editor_splitter.addWidget(self.__project_tree)
 
         self.__text_edit = QTextEdit(editor_splitter)
@@ -105,15 +109,18 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.root)
 
         self.__save_timer = QTimer()
-        self.__save_timer.setInterval(5000)
-        self.__save_timer.timeout.connect(self.save_cur_file)
+        self.__save_timer.setInterval(1000 * 60 * 5) #every five minutes
+        self.__save_timer.timeout.connect(self.__save_cur_file)
         self.__save_timer.start()
-        
+        save_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
+        save_shortcut.activated.connect(self.__save_cur_file)
         with open(self.__app_state.cur_wiki.parent / ".pw" / "session.json") as session_file:
             session_json = json.load(session_file)
-            self.load_file(self.__app_state.cur_wiki.parent / "proper" / session_json["currentFile"])
+            self.__load_file(self.__app_state.cur_wiki.parent / "proper" / session_json["currentFile"])
 
-    def refresh_project_tree(self):
+        self.__refresh_project_tree()
+
+    def __refresh_project_tree(self):
         item_system_model = QStandardItemModel()
         root_node = item_system_model.invisibleRootItem()
         if root_node is None:
@@ -141,17 +148,24 @@ class MainWindow(QMainWindow):
 
             self.__project_tree.setModel(item_system_model)
         
-
-
-    def save_cur_file(self):
+    def __update_status_bar(self, message: str, timeout_msec: int | None =None):
+        if (status_bar := self.statusBar()) is not None:
+            if timeout_msec is None:
+                status_bar.showMessage(message)
+            else:
+                status_bar.showMessage(message, timeout_msec)  
+        else:
+            logging.error("Error loading status bar")
+    
+    def __save_cur_file(self):
         with open(self.__app_state.cur_file, "w") as file:
             file.write(self.__text_edit.toPlainText())
+        time = datetime.time.isoformat(datetime.datetime.today().time(), "seconds")
+        self.__update_status_bar(f"Saved {self.__app_state.cur_file} at {time}", 5000)
 
-    def load_file(self, cur_file: pathlib.Path):
+    def __load_file(self, cur_file: pathlib.Path):
         self.__app_state.cur_file = cur_file
         with open(self.__app_state.cur_file) as file:
             self.__text_edit.setText(file.read())
-        self.render_markdown()
-
-    def get_app_state(self):
-        return self.__app_state
+        self.__render_markdown()
+        self.__save_timer.start()
