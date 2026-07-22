@@ -17,12 +17,14 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtGui import QAction, QFont, QKeySequence, QShortcut, QStandardItem, QStandardItemModel
 from PyQt6.QtCore import QModelIndex, QTimer, Qt
+from PyQt6.QtWebEngineCore import QWebEnginePage, QWebEngineProfile
 
-from src.helpers import markdownparser
+from src.parser import markdownparser
 from src.initcontext import InitContext
 from src.states.appstate import AppState
 from src.components.mainribbon import MainRibbon
 from src.itemmodels.projectitem import ProjectItem
+from src.networking.interceptor import Interceptor
 
 class MainWindow(QMainWindow):
 
@@ -99,6 +101,11 @@ class MainWindow(QMainWindow):
         editor_splitter.addWidget(self.__text_edit)
         
         self.__text_view = QWebEngineView(self.root)
+        self.profile = QWebEngineProfile()
+        self.profile.setUrlRequestInterceptor(Interceptor(self.__text_view))
+        
+        webpage = QWebEnginePage(self.profile, self.__text_view)
+        self.__text_view.setPage(webpage)
         self.__text_view.show()
         editor_splitter.addWidget(self.__text_view)
 
