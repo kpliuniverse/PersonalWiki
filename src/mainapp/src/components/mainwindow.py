@@ -15,10 +15,10 @@ from PyQt6.QtWidgets import (
 )
 
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtGui import QAction, QFileSystemModel, QFont, QKeySequence, QShortcut, QStandardItem, QStandardItemModel
+from PyQt6.QtGui import QAction, QFont, QKeySequence, QShortcut, QStandardItem, QStandardItemModel
 from PyQt6.QtCore import QModelIndex, QTimer, Qt
-import mistune
 
+from src.helpers import markdownparser
 from src.initcontext import InitContext
 from src.states.appstate import AppState
 from src.components.mainribbon import MainRibbon
@@ -35,10 +35,9 @@ class MainWindow(QMainWindow):
     
     # TODO: Serparate this
     def __render_markdown(self):
-        self.__text_view.setHtml("Loading...")
-        out = str(mistune.html(self.__text_edit.toPlainText()))
-        self.__text_view.setHtml(out)
-
+        self.__text_view.setHtml("Loading...")        
+        self.__text_view.setHtml(markdownparser.parse_markdown(self.__text_edit.toPlainText()))
+    
     def __on_render_button(self):
         self.__save_cur_file()
         self.__render_markdown()
