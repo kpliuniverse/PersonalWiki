@@ -1,2 +1,2 @@
 cd src/mainapp
-uv run main.py
+sh run_basic.sh

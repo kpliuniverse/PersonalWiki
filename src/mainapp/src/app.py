@@ -34,8 +34,6 @@ class App:
         ))
                 
 
-           
-        
     def run(self):
         self.main_window.show()
         sys.exit(self.app.exec())    
