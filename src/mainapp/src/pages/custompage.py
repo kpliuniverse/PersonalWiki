@@ -7,4 +7,5 @@ class CustomPage(QWebEnginePage):
 
     @override
     def acceptNavigationRequest(self, url: QUrl, type: QWebEnginePage.NavigationType, isMainFrame: bool) -> bool:
+        #TODO: Intercept when clicking on an external link
         return url.scheme() == "data"
