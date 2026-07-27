@@ -9,22 +9,20 @@ from PyQt6.QtWidgets import (
     QGridLayout, 
     QMainWindow, 
     QSplitter, 
-    QTextEdit,
-    QTreeView, 
+    QTextEdit, 
     QWidget,    
 )
 
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtGui import QAction, QFont, QKeySequence, QShortcut, QStandardItem, QStandardItemModel
+from PyQt6.QtGui import QAction, QFont, QKeySequence, QShortcut
 from PyQt6.QtCore import QModelIndex, QTimer, Qt
-from PyQt6.QtWebEngineCore import QWebEnginePage, QWebEngineProfile
+from PyQt6.QtWebEngineCore import QWebEngineProfile
 
 from src.pages.custompage import CustomPage
 from src.parser import markdownparser
 from src.initcontext import InitContext
 from src.states.appstate import AppState
 from src.components.mainribbon import MainRibbon
-from src.itemmodels.projectitem import ProjectItem
 from src.components.projecttree import ProjectTree
 
 class MainWindow(QMainWindow):
@@ -91,7 +89,7 @@ class MainWindow(QMainWindow):
         self.__root_layout.addWidget(editor_splitter, 1, 0, 8, 1)
 
         self.__project_tree = ProjectTree(editor_splitter)
-        self.__project_tree.doubleClicked.connect(self.__on_project_item_double_clicked)
+        self.__project_tree.file_double_clicked.connect(self.__on_project_item_double_clicked)
         editor_splitter.addWidget(self.__project_tree)
 
         self.__text_edit = QTextEdit(editor_splitter)
@@ -123,7 +121,7 @@ class MainWindow(QMainWindow):
         with open(self.__app_state.cur_wiki.parent / ".pw" / "session.json") as session_file:
             session_json = json.load(session_file)
             self.__load_file(self.__app_state.cur_wiki.parent / "proper" / session_json["currentFile"])
-
+        
         self.__refresh_project_tree()
 
     def __refresh_project_tree(self):  
