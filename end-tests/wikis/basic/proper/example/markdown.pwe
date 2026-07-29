@@ -45,7 +45,7 @@ You may be using [Markdown Live Preview](https://markdownlivepreview.com/).
 
 ## Blockquotes
 
-> Quotes don't work because of HTML escape
+> Quotes now work
 >
 >> Markdown is often used to format readme files, for writing messages in online discussion forums, and to create rich text using a plain text editor.
 
