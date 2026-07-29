@@ -1,8 +1,7 @@
-import html
-
-import mistune
 
 
+
+from mistune import create_markdown
 def parse_markdown(md: str):
     ##TODO: deal with external links
-    return str(mistune.html(html.escape(md)))
+    return create_markdown(escape=True,plugins=["strikethrough", "footnotes", "table"])(md)
