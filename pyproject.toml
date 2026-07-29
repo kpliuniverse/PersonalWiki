@@ -1,5 +1,5 @@
 [project]
-name = "mainapp"
+name = "personalwiki"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -8,4 +8,9 @@ dependencies = [
     "mistune>=3.3.3",
     "pyqt6>=6.11.0",
     "pyqt6-webengine>=6.11.0",
+    "pytest>=9.1.1",
 ]
+
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
