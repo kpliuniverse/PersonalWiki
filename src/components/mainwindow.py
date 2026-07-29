@@ -37,7 +37,7 @@ class MainWindow(QMainWindow):
     # TODO: Serparate this
     def __render_markdown(self):
         self.__text_view.setHtml("Loading...")        
-        self.__text_view.setHtml(markdownparser.parse_markdown(self.__text_edit.toPlainText()))
+        self.__text_view.setHtml(markdownparser.parse_chunk(self.__text_edit.toPlainText()))
     
     def __on_render_button(self):
         self.__save_cur_file()

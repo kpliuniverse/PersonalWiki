@@ -1,12 +1,16 @@
 import html
 
-from src.parser.markdownparser import parse_markdown
+from ..src.parser.markdownparser import parse_chunk
 
 def test_escape():
-    strings = [
+
+    TESTS = [
         "<b></b>",
-        "<script>alert(\"You've been hacked!\")</script>",
-        "R&B"
+        "\"You're a freak. A daughter of a tyrant\", they said.",
+        "<script>alert(\"Hax0rd\")</script>",
     ]
-    for string in strings:
-        assert parse_markdown(string) == html.escape(string)
+
+    for md in TESTS:
+        chunk = parse_chunk(md)
+        assert isinstance(chunk, str)
+        assert chunk.strip() == f"<p>{html.escape(md)}</p>"
