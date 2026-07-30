@@ -2,7 +2,9 @@ from collections import deque
 from dataclasses import dataclass
 from enum import Enum
 import logging
+import os
 import pathlib
+import shutil
 from typing import Deque, Dict, Optional
 
 from PyQt6.QtCore import QModelIndex, Qt
@@ -41,7 +43,7 @@ class ProjectTree(QWidget):
         self.__add_edit_buttons()
         self.__tree = QTreeView(self)
         self.__root_layout.addWidget(self.__tree)
-        self.__tree.clicked.connect(self.on_select)
+        self.__tree.clicked.connect(self.__on_select)
         self.file_clicked = self.__tree.clicked
         self.file_double_clicked = self.__tree.doubleClicked
 
@@ -60,13 +62,14 @@ class ProjectTree(QWidget):
         new_btn.setMenu(self.__new_menu())
         toolbar.addWidget(new_btn)
         del_btn = QPushButton(parent=toolbar, text="Delete")
+        del_btn.clicked.connect(self.__delete_item)
         toolbar.addWidget(del_btn)
         self.__root_layout.addWidget(toolbar)
 
-    def on_select(self, val: QModelIndex):
+    def __on_select(self, val: QModelIndex):
         self.__cur_selected_item = pathlib.Path(val.data(Qt.ItemDataRole.UserRole + 1))
 
-    def create_new_item(self, item: ItemCreationResult):
+    def __create_new_item(self, item: ItemCreationResult):
         if item.typ == ItemType["FOLDER"]:
             item.path.mkdir()
         else:
@@ -76,13 +79,23 @@ class ProjectTree(QWidget):
         if self.__working_directory:
             self.reload(self.__working_directory)
 
-    
+    def __delete_item(self):
+        if not self.__cur_selected_item:
+            return
+        if self.__cur_selected_item.is_dir():
+            shutil.rmtree(self.__cur_selected_item)
+            #os.rmdir(self.__cur_selected_item)
+        if self.__cur_selected_item.is_file():
+            os.remove(self.__cur_selected_item)
+        if self.__working_directory:
+            self.reload(self.__working_directory)
+            
     def on_new_item(self, item_type: ItemType):
         if (self.__working_directory == None):
             raise GUIException("on_new_item() called without working directory")
         parent_path = self.__working_directory if not self.__cur_selected_item else self.__cur_selected_item.parent
         dialog = ItemNameDialog(self, item_type, parent_path)
-        dialog.on_path_selected.connect(self.create_new_item)
+        dialog.on_path_selected.connect(self.__create_new_item)
         dialog.exec()
         
 
