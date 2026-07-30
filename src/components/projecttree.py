@@ -52,8 +52,8 @@ class ProjectTree(QWidget):
 
     def __new_menu(self):
         new_menu = QMenu()
-        new_menu.addAction("File", lambda: self.on_new_item(ItemType["PWE"]))
-        new_menu.addAction("Folder", lambda: self.on_new_item(ItemType["FOLDER"]))
+        new_menu.addAction("File", lambda: self.__on_new_item(ItemType["PWE"]))
+        new_menu.addAction("Folder", lambda: self.__on_new_item(ItemType["FOLDER"]))
         return new_menu
 
     def __add_edit_buttons(self):
@@ -89,17 +89,22 @@ class ProjectTree(QWidget):
             os.remove(self.__cur_selected_item)
         if self.__working_directory:
             self.reload(self.__working_directory)
-            
-    def on_new_item(self, item_type: ItemType):
-        if (self.__working_directory == None):
+    
+    def __on_new_item(self, item_type: ItemType):
+        if self.__working_directory is None:
             raise GUIException("on_new_item() called without working directory")
-        parent_path = self.__working_directory if not self.__cur_selected_item else self.__cur_selected_item.parent
-        dialog = ItemNameDialog(self, item_type, parent_path)
+
+        if not self.__cur_selected_item:
+            dir_to_create = self.__working_directory
+        elif self.__cur_selected_item.is_dir():
+            dir_to_create = self.__cur_selected_item
+        else:
+            dir_to_create = self.__cur_selected_item.parent
+
+        dialog = ItemNameDialog(self, item_type, dir_to_create)
         dialog.on_path_selected.connect(self.__create_new_item)
         dialog.exec()
         
-
-
     def reload(self, path: pathlib.Path):
         self.__working_directory = path
         item_system_model = QStandardItemModel()
