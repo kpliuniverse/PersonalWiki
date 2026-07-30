@@ -1,0 +1,2 @@
+class GUIException(Exception):
+    pass

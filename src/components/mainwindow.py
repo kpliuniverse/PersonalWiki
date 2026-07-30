@@ -18,6 +18,7 @@ from PyQt6.QtGui import QAction, QFont, QKeySequence, QShortcut
 from PyQt6.QtCore import QModelIndex, QTimer, Qt
 from PyQt6.QtWebEngineCore import QWebEngineProfile
 
+from src.exceptions import GUIException
 from src.pages.custompage import CustomPage
 from src.parser import markdownparser
 from src.initcontext import InitContext
@@ -33,7 +34,7 @@ class MainWindow(QMainWindow):
     __project_tree:  ProjectTree
     __app_state: AppState
     __save_timer: QTimer
-    
+
     # TODO: Serparate this
     def __render_markdown(self):
         self.__text_view.setHtml("Loading...")        
@@ -46,11 +47,11 @@ class MainWindow(QMainWindow):
     def __init_menu_bar(self):
         menu_bar = self.menuBar()
         if menu_bar is None:
-            logging.error("Cannot fetch menu_bar of MainWindow, or is otherwise None")
+            raise GUIException("Cannot fetch menu_bar of MainWindow, or is otherwise None")
             return
         file_menu = menu_bar.addMenu("File")
         if file_menu is None:
-            logging.error("Cannot fetch file_menu of menu_bar, or is otherwise None")
+            raise GUIException("Cannot fetch file_menu of menu_bar, or is otherwise None")
             return
         
         actions = [
@@ -136,7 +137,7 @@ class MainWindow(QMainWindow):
             else:
                 status_bar.showMessage(message, timeout_msec)  
         else:
-            logging.error("Error loading status bar")
+            raise Exception("Error loading status bar")
     
     def __save_cur_file(self):
         with open(self.__app_state.cur_file, "w") as file:
