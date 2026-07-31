@@ -20,7 +20,6 @@ from PyQt6.QtWebEngineCore import QWebEngineProfile
 
 from src.exceptions import GUIException
 from src.pages.custompage import CustomPage
-from src.parser import markdownparser
 from src.initcontext import InitContext
 from src.states.appstate import AppState
 from src.components.mainribbon import MainRibbon
@@ -54,10 +53,10 @@ class MainWindow(QMainWindow):
         renderer_worker.finished.connect(self.__text_view.setHtml)
         renderer_worker.finished.connect(self.__rendering_thread.quit)
         self.__rendering_thread.finished.connect(renderer_worker.deleteLater)
-        self.__rendering_thread.finished.connect(self.cleanup_thread)
+        self.__rendering_thread.finished.connect(self.__cleanup_thread)
         self.__rendering_thread.start()
 
-    def cleanup_thread(self):
+    def __cleanup_thread(self):
         if self.__rendering_thread:
             self.__rendering_thread.deleteLater()
             self.__rendering_thread = None

@@ -1,6 +1,5 @@
 
 import logging
-import time
 
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 
