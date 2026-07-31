@@ -27,6 +27,7 @@ from src.items.items import ItemCreationResult, ItemType
 class TreeType(Enum):
     DIR = 0
     FULL = 1
+
 @dataclass(frozen=True)
 class ProjectTreeArgs:
     tree_type: TreeType
@@ -62,7 +63,7 @@ class ProjectTree(QWidget):
         new_btn.setMenu(self.__new_menu())
         toolbar.addWidget(new_btn)
         del_btn = QPushButton(parent=toolbar, text="Delete")
-        del_btn.clicked.connect(self.__delete_item)
+        del_btn.clicked.connect(self.__on_delete_item)
         toolbar.addWidget(del_btn)
         self.__root_layout.addWidget(toolbar)
 
@@ -73,23 +74,30 @@ class ProjectTree(QWidget):
         if item.typ == ItemType["FOLDER"]:
             item.path.mkdir()
         else:
-            with open(item.path, "x") as _:
+            with open(item.path, "x", encoding="utf-8") as _:
                 pass
 
         if self.__working_directory:
-            self.reload(self.__working_directory)
+            self.load(self.__working_directory)
 
-    def __delete_item(self):
-        if not self.__cur_selected_item:
-            return
-        if self.__cur_selected_item.is_dir():
-            shutil.rmtree(self.__cur_selected_item)
+    def __delete_item(self, item: pathlib.Path):
+        if item.is_dir():
+            shutil.rmtree(item)
             #os.rmdir(self.__cur_selected_item)
-        if self.__cur_selected_item.is_file():
-            os.remove(self.__cur_selected_item)
-        if self.__working_directory:
-            self.reload(self.__working_directory)
-    
+        if item.is_file():
+            os.remove(item)
+
+
+    def __on_delete_item(self):
+        if (model := self.__tree.model()):
+            for index in self.__tree.selectedIndexes():
+                selected_item: pathlib.Path = index.data(Qt.ItemDataRole.UserRole + 1)
+                if not selected_item or not isinstance(selected_item, pathlib.Path):
+                    logging.error("Selected item is None or not pathlib.Path type=%s", type(selected_item))
+                    continue
+                self.__delete_item(selected_item)
+                model.removeRow(index.row(), index.parent())
+
     def __on_new_item(self, item_type: ItemType):
         if self.__working_directory is None:
             raise GUIException("on_new_item() called without working directory")
@@ -104,8 +112,12 @@ class ProjectTree(QWidget):
         dialog = ItemNameDialog(self, item_type, dir_to_create)
         dialog.on_path_selected.connect(self.__create_new_item)
         dialog.exec()
-        
-    def reload(self, path: pathlib.Path):
+
+    def load(self, path: pathlib.Path):
+        """
+            Loads the widget with a specific path
+        """
+
         self.__working_directory = path
         item_system_model = QStandardItemModel()
         root_node = item_system_model.invisibleRootItem()
@@ -122,7 +134,6 @@ class ProjectTree(QWidget):
                 if path.is_junction() and path.is_symlink():
                     continue
                 project_item = ProjectItem(path)
-
                 if path.is_dir():
                     subdirs.append(path)
                     dir_to_item[path.as_posix()] = project_item

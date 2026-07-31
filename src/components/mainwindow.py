@@ -127,7 +127,7 @@ class MainWindow(QMainWindow):
 
     def __refresh_project_tree(self):  
         proper_path = (self.__app_state.cur_wiki.parent / "proper")
-        self.__project_tree.reload(proper_path)
+        self.__project_tree.load(proper_path)
 
         
     def __update_status_bar(self, message: str, timeout_msec: int | None =None):
