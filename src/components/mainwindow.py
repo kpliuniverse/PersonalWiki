@@ -1,10 +1,8 @@
-from collections import deque
 import datetime
 import json
-import logging
 import pathlib
-from typing import Deque, Dict, List
 
+from PyQt6 import QtCore
 from PyQt6.QtWidgets import (
     QGridLayout, 
     QMainWindow, 
@@ -15,7 +13,7 @@ from PyQt6.QtWidgets import (
 
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtGui import QAction, QFont, QKeySequence, QShortcut
-from PyQt6.QtCore import QModelIndex, QTimer, Qt
+from PyQt6.QtCore import QModelIndex, QTimer, Qt, pyqtSlot
 from PyQt6.QtWebEngineCore import QWebEngineProfile
 
 from src.exceptions import GUIException
@@ -35,9 +33,8 @@ class MainWindow(QMainWindow):
     __app_state: AppState
     __save_timer: QTimer
 
-    # TODO: Serparate this
+    @pyqtSlot()
     def __render_markdown(self):
-        self.__text_view.setHtml("Loading...")        
         self.__text_view.setHtml(markdownparser.parse_chunk(self.__text_edit.toPlainText()))
     
     def __on_render_button(self):
