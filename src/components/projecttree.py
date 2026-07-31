@@ -32,10 +32,13 @@ class TreeType(Enum):
 class ProjectTreeArgs:
     tree_type: TreeType
 
+
+
 class ProjectTree(QWidget):
     __tree: QTreeView
     __root_layout = QVBoxLayout()
-    __cur_selected_item: Optional[pathlib.Path] = None
+    __index_dict: Dict[str, QStandardItem] = dict()
+    __cur_selected_path: Optional[pathlib.Path] = None
     __working_directory: Optional[pathlib.Path] = None
 
     def __init__(self, parent: QWidget):
@@ -68,7 +71,9 @@ class ProjectTree(QWidget):
         self.__root_layout.addWidget(toolbar)
 
     def __on_select(self, val: QModelIndex):
-        self.__cur_selected_item = pathlib.Path(val.data(Qt.ItemDataRole.UserRole + 1))
+        self.__cur_selected_item = val
+        self.__cur_selected_path = pathlib.Path(self.__cur_selected_item.data(Qt.ItemDataRole.UserRole + 1))
+
 
     def __create_new_item(self, item: ItemCreationResult):
         if item.typ == ItemType["FOLDER"]:
@@ -76,10 +81,9 @@ class ProjectTree(QWidget):
         else:
             with open(item.path, "x", encoding="utf-8") as _:
                 pass
-
-        if self.__working_directory:
-            self.load(self.__working_directory)
-
+        project_item = ProjectItem(item.path)
+        self.__index_dict[item.path.parent.as_posix()].appendRow(project_item)
+        self.__index_dict[item.path.as_posix()] = project_item
     def __delete_item(self, item: pathlib.Path):
         if item.is_dir():
             shutil.rmtree(item)
@@ -97,28 +101,27 @@ class ProjectTree(QWidget):
                     continue
                 self.__delete_item(selected_item)
                 model.removeRow(index.row(), index.parent())
-
+                self.__index_dict.pop(selected_item.as_posix())
     def __on_new_item(self, item_type: ItemType):
         if self.__working_directory is None:
             raise GUIException("on_new_item() called without working directory")
 
-        if not self.__cur_selected_item:
+        if not self.__cur_selected_path:
             dir_to_create = self.__working_directory
-        elif self.__cur_selected_item.is_dir():
-            dir_to_create = self.__cur_selected_item
+        elif self.__cur_selected_path.is_dir():
+            dir_to_create = self.__cur_selected_path
         else:
-            dir_to_create = self.__cur_selected_item.parent
+            dir_to_create = self.__cur_selected_path.parent
 
         dialog = ItemNameDialog(self, item_type, dir_to_create)
         dialog.on_path_selected.connect(self.__create_new_item)
         dialog.exec()
 
-    def load(self, path: pathlib.Path):
+    def load(self, directory: pathlib.Path):
         """
             Loads the widget with a specific path
         """
-
-        self.__working_directory = path
+        self.__working_directory = directory
         item_system_model = QStandardItemModel()
         root_node = item_system_model.invisibleRootItem()
         if root_node is None:
@@ -126,9 +129,9 @@ class ProjectTree(QWidget):
         root_node.setText("Aaargh")
         dir_to_item: Dict[str, QStandardItem] = dict()
         item_system_model.setHorizontalHeaderLabels([])
-        subdirs: Deque[pathlib.Path] = deque([path])
-        dir_to_item[path.as_posix()] = root_node
-        while (len(subdirs) > 0):
+        subdirs: Deque[pathlib.Path] = deque([directory])
+        dir_to_item[directory.as_posix()] = root_node
+        while len(subdirs) > 0:
             subdir = subdirs.popleft()
             for path in subdir.iterdir():
                 if path.is_junction() and path.is_symlink():
@@ -142,4 +145,16 @@ class ProjectTree(QWidget):
                 if path.is_file():
                     dir_to_item[subdir.as_posix()].appendRow(project_item)
 
-            self.__tree.setModel(item_system_model)       
+        self.__tree.setModel(item_system_model)  
+
+        self.__index_dict.clear()
+        self.__index_dict[directory.as_posix()] = root_node
+        items: deque[QStandardItem] = deque([root_node])
+        
+        while len(items) > 0:
+            item = items.popleft()
+            for row in range(item.rowCount()):
+                if child := item.child(row, 0):
+                    data: pathlib.Path = child.data(Qt.ItemDataRole.UserRole + 1)
+                    self.__index_dict[data.as_posix()] = child
+                    items.append(child)

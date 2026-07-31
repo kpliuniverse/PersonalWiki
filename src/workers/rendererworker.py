@@ -16,7 +16,6 @@ class RendererWorker(QObject):
     @pyqtSlot(str)    
     def render_pwe(self, pwe: str):
         logging.debug("Rendering")
-        print(pwe.replace("\n", ""))
         parsed = markdownparser.parse_chunk(pwe)
         self.finished.emit(parsed)
         markdownparser.parse_chunk(pwe)

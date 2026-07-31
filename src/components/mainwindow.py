@@ -45,7 +45,6 @@ class MainWindow(QMainWindow):
         if self.__rendering_thread.isRunning():
             self.__rendering_thread.requestInterruption()
         pwe_string = self.__text_edit.toPlainText()
-        print(f"pwe_string={pwe_string.replace("\n", "")}")
         logging.debug("Preparing to render...")
         renderer_worker = RendererWorker()
         renderer_worker.moveToThread(self.__rendering_thread)
