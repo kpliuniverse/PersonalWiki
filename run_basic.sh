@@ -1,1 +1,2 @@
-uv run main.py end-tests/wikis/basic/basic.pwi
+sh ./setuptests.sh
+uv run main.py testenv/wikis/basic/basic.pwi
