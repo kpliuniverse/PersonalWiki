@@ -27,7 +27,7 @@ class ProjectExplorer(QWidget):
     def __init__(self, parent: QWidget):
         super().__init__(parent)
         self.setLayout(self.__root_layout)
-        self.__add_edit_buttons()
+        self.__root_layout.addWidget(self.__edit_toolbar())
         self.__project_tree = ProjectTree(self)
         self.__root_layout.addWidget(self.__project_tree)
         self.file_clicked = self.__project_tree.file_clicked
@@ -39,7 +39,7 @@ class ProjectExplorer(QWidget):
         new_menu.addAction("Folder", lambda: self.__on_new_item(ItemType["FOLDER"]))
         return new_menu
 
-    def __add_edit_buttons(self):
+    def __edit_toolbar(self):
         toolbar = QToolBar(self)
         new_btn = QPushButton(parent=toolbar, text="New")
         new_btn.setMenu(self.__new_menu())
@@ -47,7 +47,7 @@ class ProjectExplorer(QWidget):
         del_btn = QPushButton(parent=toolbar, text="Delete")
         del_btn.clicked.connect(self.__on_delete_item)
         toolbar.addWidget(del_btn)
-        self.__root_layout.addWidget(toolbar)
+        return toolbar
 
     def __create_new_item(self, item: ItemCreationResult):
         if item.typ == ItemType["FOLDER"]:
