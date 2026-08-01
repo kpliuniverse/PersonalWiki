@@ -20,6 +20,8 @@ from src.components.projecttree import ProjectTree, ProjectTreeArgs, TreeType
 from src.exceptions import GUIException
 from src.items.items import ItemCreationResult, ItemType
 
+
+
 class ProjectExplorer(QWidget):
     __project_tree: ProjectTree
     __root_layout = QVBoxLayout()
@@ -32,8 +34,11 @@ class ProjectExplorer(QWidget):
             tree_type=TreeType["FULL"]
         ))
         self.__root_layout.addWidget(self.__project_tree)
+
+        # self.__project_tree.file_clicked.connect(self.validate_btns)
         self.file_clicked = self.__project_tree.file_clicked
         self.file_double_clicked = self.__project_tree.file_double_clicked
+        # self.validate_btns()
 
     def __new_menu(self):
         new_menu = QMenu()
@@ -48,8 +53,8 @@ class ProjectExplorer(QWidget):
         new_btn.setMenu(self.__new_menu())
         toolbar.addWidget(new_btn)
 
-        # move_btn = QPushButton(parent=toolbar, text="Move")
-        # move_btn = 
+        move_btn = QPushButton(parent=toolbar, text="Move")
+        toolbar.addWidget(move_btn)
 
         del_btn = QPushButton(parent=toolbar, text="Delete")
         del_btn.clicked.connect(self.__on_delete_item)
