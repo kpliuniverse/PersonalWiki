@@ -18,12 +18,12 @@ from PyQt6.QtGui import QAction, QFont, QKeySequence, QShortcut
 from PyQt6.QtCore import Q_ARG, QMetaObject, QModelIndex, QObject, QTimer, Qt, pyqtSignal, pyqtSlot, QThread
 from PyQt6.QtWebEngineCore import QWebEngineProfile
 
+from src.components.projectexplorer import ProjectExplorer
 from src.exceptions import GUIException
 from src.pages.custompage import CustomPage
 from src.initcontext import InitContext
 from src.states.appstate import AppState
 from src.components.mainribbon import MainRibbon
-from src.components.projecttree import ProjectTree
 from src.workers.rendererworker import RendererWorker
 
 class MainWindow(QMainWindow):
@@ -31,63 +31,11 @@ class MainWindow(QMainWindow):
     __root_layout: QGridLayout
     __text_edit: QTextEdit
     __text_view: QWebEngineView
-    __project_tree:  ProjectTree
+    __project_explorer: ProjectExplorer
     __app_state: AppState
     __save_timer: QTimer
 
     __rendering_thread: Optional[QThread] = None
-        
-    @pyqtSlot()
-    def __render_markdown(self):
-        if self.__rendering_thread is None:
-            self.__rendering_thread = QThread()
-        self.__text_view.setHtml("Loading...")
-        if self.__rendering_thread.isRunning():
-            self.__rendering_thread.requestInterruption()
-        pwe_string = self.__text_edit.toPlainText()
-        logging.debug("Preparing to render...")
-        renderer_worker = RendererWorker()
-        renderer_worker.moveToThread(self.__rendering_thread)
-        self.__rendering_thread.started.connect(lambda: QMetaObject.invokeMethod(renderer_worker, "render_pwe",Qt.ConnectionType.QueuedConnection, Q_ARG(str, pwe_string)))
-        renderer_worker.finished.connect(self.__text_view.setHtml)
-        renderer_worker.finished.connect(self.__rendering_thread.quit)
-        self.__rendering_thread.finished.connect(renderer_worker.deleteLater)
-        self.__rendering_thread.finished.connect(self.__cleanup_thread)
-        self.__rendering_thread.start()
-
-    def __cleanup_thread(self):
-        if self.__rendering_thread:
-            self.__rendering_thread.deleteLater()
-            self.__rendering_thread = None
-
-    def __on_render_button(self):
-        self.__save_cur_file()
-        self.__render_markdown()
-
-    def __init_menu_bar(self):
-        
-        menu_bar = self.menuBar()
-        if menu_bar is None:
-            raise GUIException("Cannot fetch menu_bar of MainWindow, or is otherwise None")
-            return
-        file_menu = menu_bar.addMenu("File")
-        if file_menu is None:
-            raise GUIException("Cannot fetch file_menu of menu_bar, or is otherwise None")
-            return
-        
-        actions = [
-            ("Save", self.__save_cur_file),
-        ]
-
-        for action_entry in actions:
-            action = QAction(action_entry[0], self)
-            action.triggered.connect(action_entry[1])
-            file_menu.addAction(action)
-        
-    def __on_project_item_double_clicked(self, val: QModelIndex):
-        item_path = pathlib.Path(val.data(Qt.ItemDataRole.UserRole + 1))
-        if item_path.is_file():
-            self.__load_file(item_path)
 
     def __init__(self, initcontext: InitContext):
         super().__init__()
@@ -110,9 +58,9 @@ class MainWindow(QMainWindow):
         editor_splitter: QSplitter = QSplitter(parent=self.root)
         self.__root_layout.addWidget(editor_splitter, 1, 0, 8, 1)
 
-        self.__project_tree = ProjectTree(editor_splitter)
-        self.__project_tree.file_double_clicked.connect(self.__on_project_item_double_clicked)
-        editor_splitter.addWidget(self.__project_tree)
+        self.__project_explorer = ProjectExplorer(editor_splitter)
+        self.__project_explorer.file_double_clicked.connect(self.__on_project_item_double_clicked)
+        editor_splitter.addWidget(self.__project_explorer)
 
         self.__text_edit = QTextEdit(editor_splitter)
         self.__text_edit.setAcceptRichText(False)
@@ -146,9 +94,62 @@ class MainWindow(QMainWindow):
         
         self.__refresh_project_tree()
 
+
+    @pyqtSlot()
+    def __render_markdown(self):
+        if self.__rendering_thread is None:
+            self.__rendering_thread = QThread()
+        self.__text_view.setHtml("Loading...")
+        if self.__rendering_thread.isRunning():
+            self.__rendering_thread.requestInterruption()
+        pwe_string = self.__text_edit.toPlainText()
+        logging.debug("Preparing to render...")
+        renderer_worker = RendererWorker()
+        renderer_worker.moveToThread(self.__rendering_thread)
+        self.__rendering_thread.started.connect(lambda: QMetaObject.invokeMethod(renderer_worker, "render_pwe",Qt.ConnectionType.QueuedConnection, Q_ARG(str, pwe_string)))
+        renderer_worker.finished.connect(self.__text_view.setHtml)
+        renderer_worker.finished.connect(self.__rendering_thread.quit)
+        self.__rendering_thread.finished.connect(renderer_worker.deleteLater)
+        self.__rendering_thread.finished.connect(self.__cleanup_thread)
+        self.__rendering_thread.start()
+
+    def __cleanup_thread(self):
+        if self.__rendering_thread:
+            self.__rendering_thread.deleteLater()
+            self.__rendering_thread = None
+
+    def __on_render_button(self):
+        self.__save_cur_file()
+        self.__render_markdown()
+
+    def __init_menu_bar(self):
+        
+        menu_bar = self.menuBar()
+        if menu_bar is None:
+            raise GUIException("Cannot fetch menu_bar of MainWindow, or is otherwise None")
+            
+        file_menu = menu_bar.addMenu("File")
+        if file_menu is None:
+            raise GUIException("Cannot fetch file_menu of menu_bar, or is otherwise None")
+            
+        
+        actions = [
+            ("Save", self.__save_cur_file),
+        ]
+
+        for action_entry in actions:
+            action = QAction(action_entry[0], self)
+            action.triggered.connect(action_entry[1])
+            file_menu.addAction(action)
+        
+    def __on_project_item_double_clicked(self, val: QModelIndex):
+        item_path = pathlib.Path(val.data(Qt.ItemDataRole.UserRole + 1))
+        if item_path.is_file():
+            self.__load_file(item_path)
+
     def __refresh_project_tree(self):  
         proper_path = (self.__app_state.cur_wiki.parent / "proper")
-        self.__project_tree.load(proper_path)
+        self.__project_explorer.load(proper_path)
 
         
     def __update_status_bar(self, message: str, timeout_msec: int | None =None):
@@ -158,7 +159,7 @@ class MainWindow(QMainWindow):
             else:
                 status_bar.showMessage(message, timeout_msec)  
         else:
-            raise Exception("Error loading status bar")
+            raise GUIException("Error loading status bar")
     
     def __save_cur_file(self):
         with open(self.__app_state.cur_file, "w") as file:

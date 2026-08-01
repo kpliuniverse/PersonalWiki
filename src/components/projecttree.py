@@ -7,7 +7,7 @@ import pathlib
 import shutil
 from typing import Deque, Dict, Optional
 
-from PyQt6.QtCore import QModelIndex, Qt
+from PyQt6.QtCore import QModelIndex, Qt 
 from PyQt6.QtGui import QStandardItem, QStandardItemModel
 from PyQt6.QtWidgets import (
     QMenu,
@@ -38,84 +38,64 @@ class ProjectTree(QWidget):
     __tree: QTreeView
     __root_layout = QVBoxLayout()
     __index_dict: Dict[str, QStandardItem] = dict()
+    __cur_selected_item: Optional[QModelIndex] = None
     __cur_selected_path: Optional[pathlib.Path] = None
     __working_directory: Optional[pathlib.Path] = None
 
     def __init__(self, parent: QWidget):
         super().__init__(parent)
         self.setLayout(self.__root_layout)
-        self.__add_edit_buttons()
+        # self.__add_edit_buttons()
         self.__tree = QTreeView(self)
         self.__root_layout.addWidget(self.__tree)
         self.__tree.clicked.connect(self.__on_select)
         self.file_clicked = self.__tree.clicked
         self.file_double_clicked = self.__tree.doubleClicked
-
         self.__tree.setHeaderHidden(True)
-
-
-    def __new_menu(self):
-        new_menu = QMenu()
-        new_menu.addAction("File", lambda: self.__on_new_item(ItemType["PWE"]))
-        new_menu.addAction("Folder", lambda: self.__on_new_item(ItemType["FOLDER"]))
-        return new_menu
-
-    def __add_edit_buttons(self):
-        toolbar = QToolBar(self)
-        new_btn = QPushButton(parent=toolbar, text="New")
-        new_btn.setMenu(self.__new_menu())
-        toolbar.addWidget(new_btn)
-        del_btn = QPushButton(parent=toolbar, text="Delete")
-        del_btn.clicked.connect(self.__on_delete_item)
-        toolbar.addWidget(del_btn)
-        self.__root_layout.addWidget(toolbar)
 
     def __on_select(self, val: QModelIndex):
         self.__cur_selected_item = val
         self.__cur_selected_path = pathlib.Path(self.__cur_selected_item.data(Qt.ItemDataRole.UserRole + 1))
 
+    def get_cur_selected_path(self):    
+        return self.__cur_selected_path
 
-    def __create_new_item(self, item: ItemCreationResult):
-        if item.typ == ItemType["FOLDER"]:
-            item.path.mkdir()
-        else:
-            with open(item.path, "x", encoding="utf-8") as _:
-                pass
-        project_item = ProjectItem(item.path)
-        self.__index_dict[item.path.parent.as_posix()].appendRow(project_item)
-        self.__index_dict[item.path.as_posix()] = project_item
-    def __delete_item(self, item: pathlib.Path):
-        if item.is_dir():
-            shutil.rmtree(item)
-            #os.rmdir(self.__cur_selected_item)
-        if item.is_file():
-            os.remove(item)
+    def delete_item(self, path: pathlib.Path):
+        """
+            Remove a path from the project tree. Note that it doesn't actuall delete the item in filesystem
+        """
+        if model := self.__tree.model():
+            item = self.__index_dict[path.as_posix()]
+            index = item.index()
 
+            items: deque[QStandardItem] = deque([item])
+        
+            while len(items) > 0:
+                item = items.popleft()
+                cur_path: pathlib.Path = item.data(Qt.ItemDataRole.UserRole + 1)
+                self.__index_dict.pop(cur_path.as_posix())
+                for row in range(item.rowCount()):
+                    if child := item.child(row, 0):
+                        items.append(child)
+        
+            model.removeRow(index.row(), index.parent())
 
-    def __on_delete_item(self):
-        if (model := self.__tree.model()):
-            for index in self.__tree.selectedIndexes():
-                selected_item: pathlib.Path = index.data(Qt.ItemDataRole.UserRole + 1)
-                if not selected_item or not isinstance(selected_item, pathlib.Path):
-                    logging.error("Selected item is None or not pathlib.Path type=%s", type(selected_item))
-                    continue
-                self.__delete_item(selected_item)
-                model.removeRow(index.row(), index.parent())
-                self.__index_dict.pop(selected_item.as_posix())
-    def __on_new_item(self, item_type: ItemType):
-        if self.__working_directory is None:
-            raise GUIException("on_new_item() called without working directory")
+    def get_selected_indexes(self):
+        return self.__tree.selectedIndexes()
 
-        if not self.__cur_selected_path:
-            dir_to_create = self.__working_directory
-        elif self.__cur_selected_path.is_dir():
-            dir_to_create = self.__cur_selected_path
-        else:
-            dir_to_create = self.__cur_selected_path.parent
-
-        dialog = ItemNameDialog(self, item_type, dir_to_create)
-        dialog.on_path_selected.connect(self.__create_new_item)
-        dialog.exec()
+    def get_working_directory(self):
+        return self.__working_directory
+    
+    def add_path(self, path: pathlib.Path):
+        """
+            Add a path to the project tree. Note that it doesn't actually create the item in the filesystem.
+        """
+        project_item = ProjectItem(path)
+        try:
+            self.__index_dict[path.parent.as_posix()].appendRow(project_item)
+            self.__index_dict[path.as_posix()] = project_item
+        except KeyError as exc:
+            raise ValueError(f"It seems like {path} is not related to wordir {self.__working_directory}") from exc
 
     def load(self, directory: pathlib.Path):
         """
