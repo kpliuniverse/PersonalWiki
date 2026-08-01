@@ -1,11 +1,9 @@
-from collections import deque
 from dataclasses import dataclass
 from enum import Enum
 import logging
 import os
 import pathlib
 import shutil
-from typing import Deque, Dict, Optional
 
 from PyQt6.QtCore import QModelIndex, Qt 
 from PyQt6.QtGui import QStandardItem, QStandardItemModel
@@ -22,17 +20,7 @@ from PyQt6.QtWidgets import (
 from src.components.dialogs.itemnamedialog import ItemNameDialog
 from src.components.projecttree import ProjectTree
 from src.exceptions import GUIException
-from src.itemmodels.projectitem import ProjectItem
 from src.items.items import ItemCreationResult, ItemType
-
-class TreeType(Enum):
-    DIR = 0
-    FULL = 1
-
-@dataclass(frozen=True)
-class ProjectTreeArgs:
-    tree_type: TreeType
-
 
 class ProjectExplorer(QWidget):
     __project_tree: ProjectTree

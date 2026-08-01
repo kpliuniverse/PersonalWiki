@@ -1,10 +1,7 @@
 from collections import deque
 from dataclasses import dataclass
 from enum import Enum
-import logging
-import os
 import pathlib
-import shutil
 from typing import Deque, Dict, Optional
 
 from PyQt6.QtCore import QModelIndex, Qt 
@@ -19,10 +16,8 @@ from PyQt6.QtWidgets import (
     QPushButton
 )
 
-from src.components.dialogs.itemnamedialog import ItemNameDialog
 from src.exceptions import GUIException
 from src.itemmodels.projectitem import ProjectItem
-from src.items.items import ItemCreationResult, ItemType
 
 class TreeType(Enum):
     DIR = 0
