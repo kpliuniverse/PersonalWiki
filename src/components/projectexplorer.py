@@ -46,12 +46,12 @@ class ProjectExplorer(QWidget):
         ))
         self.__root_layout.addWidget(self.__project_tree)
 
-        self.__project_tree.file_clicked.connect(self.validate_btns)
+        self.__project_tree.file_clicked.connect(self.__validate_btns)
         self.file_clicked = self.__project_tree.file_clicked
         self.file_double_clicked = self.__project_tree.file_double_clicked
-        self.validate_btns()
+        self.__validate_btns()
 
-    def validate_btns(self):
+    def __validate_btns(self):
         has_selection = len(self.__project_tree.get_selected_indexes()) > 0
         self.__toolbar.move_btn.setDisabled(not has_selection)
         self.__toolbar.del_btn.setDisabled(not has_selection)
