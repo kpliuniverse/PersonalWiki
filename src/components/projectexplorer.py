@@ -21,7 +21,17 @@ from src.exceptions import GUIException
 from src.items.items import ItemCreationResult, ItemType
 
 
+class ToolBar(QToolBar):
+    def __init__(self, parent: QWidget):
+        super().__init__(parent)
+        self.new_btn = QPushButton(parent=self, text="New")
+        self.addWidget(self.new_btn)
 
+        self.move_btn = QPushButton(parent=self, text="Move")
+        self.addWidget(self.move_btn)
+
+        self.del_btn = QPushButton(parent=self, text="Delete")
+        self.addWidget(self.del_btn)
 class ProjectExplorer(QWidget):
     __project_tree: ProjectTree
     __root_layout = QVBoxLayout()
@@ -29,16 +39,22 @@ class ProjectExplorer(QWidget):
     def __init__(self, parent: QWidget):
         super().__init__(parent)
         self.setLayout(self.__root_layout)
-        self.__root_layout.addWidget(self.__edit_toolbar())
+        self.__toolbar = self.__edit_toolbar()
+        self.__root_layout.addWidget(self.__toolbar)
         self.__project_tree = ProjectTree(self, ProjectTreeArgs(
             tree_type=TreeType["FULL"]
         ))
         self.__root_layout.addWidget(self.__project_tree)
 
-        # self.__project_tree.file_clicked.connect(self.validate_btns)
+        self.__project_tree.file_clicked.connect(self.validate_btns)
         self.file_clicked = self.__project_tree.file_clicked
         self.file_double_clicked = self.__project_tree.file_double_clicked
-        # self.validate_btns()
+        self.validate_btns()
+
+    def validate_btns(self):
+        has_selection = len(self.__project_tree.get_selected_indexes()) > 0
+        self.__toolbar.move_btn.setDisabled(not has_selection)
+        self.__toolbar.del_btn.setDisabled(not has_selection)
 
     def __new_menu(self):
         new_menu = QMenu()
@@ -47,18 +63,11 @@ class ProjectExplorer(QWidget):
         return new_menu
 
     def __edit_toolbar(self):
-        toolbar = QToolBar(self)
+        toolbar = ToolBar(self)
 
-        new_btn = QPushButton(parent=toolbar, text="New")
-        new_btn.setMenu(self.__new_menu())
-        toolbar.addWidget(new_btn)
+        toolbar.new_btn.setMenu(self.__new_menu())
+        toolbar.del_btn.clicked.connect(self.__on_delete_item)
 
-        move_btn = QPushButton(parent=toolbar, text="Move")
-        toolbar.addWidget(move_btn)
-
-        del_btn = QPushButton(parent=toolbar, text="Delete")
-        del_btn.clicked.connect(self.__on_delete_item)
-        toolbar.addWidget(del_btn)
         return toolbar
 
     def __create_new_item(self, item: ItemCreationResult):
