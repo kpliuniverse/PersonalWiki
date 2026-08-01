@@ -37,7 +37,8 @@ class ProjectTree(QWidget):
     __cur_selected_path: Optional[pathlib.Path] = None
     __working_directory: Optional[pathlib.Path] = None
 
-    def __init__(self, parent: QWidget):
+    def __init__(self, parent: QWidget, tree_args: ProjectTreeArgs):
+        self.__args = tree_args
         super().__init__(parent)
         self.setLayout(self.__root_layout)
         # self.__add_edit_buttons()
@@ -117,7 +118,7 @@ class ProjectTree(QWidget):
                     dir_to_item[path.as_posix()] = project_item
                     dir_to_item[subdir.as_posix()].appendRow(project_item)
 
-                if path.is_file():
+                if path.is_file() and self.__args.tree_type == TreeType["FULL"]:
                     dir_to_item[subdir.as_posix()].appendRow(project_item)
 
         self.__tree.setModel(item_system_model)  

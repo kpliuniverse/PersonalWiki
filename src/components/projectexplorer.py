@@ -16,7 +16,7 @@ from PyQt6.QtWidgets import (
 )
 
 from src.components.dialogs.itemnamedialog import ItemNameDialog
-from src.components.projecttree import ProjectTree
+from src.components.projecttree import ProjectTree, ProjectTreeArgs, TreeType
 from src.exceptions import GUIException
 from src.items.items import ItemCreationResult, ItemType
 
@@ -28,7 +28,9 @@ class ProjectExplorer(QWidget):
         super().__init__(parent)
         self.setLayout(self.__root_layout)
         self.__root_layout.addWidget(self.__edit_toolbar())
-        self.__project_tree = ProjectTree(self)
+        self.__project_tree = ProjectTree(self, ProjectTreeArgs(
+            tree_type=TreeType["FULL"]
+        ))
         self.__root_layout.addWidget(self.__project_tree)
         self.file_clicked = self.__project_tree.file_clicked
         self.file_double_clicked = self.__project_tree.file_double_clicked
@@ -41,9 +43,14 @@ class ProjectExplorer(QWidget):
 
     def __edit_toolbar(self):
         toolbar = QToolBar(self)
+
         new_btn = QPushButton(parent=toolbar, text="New")
         new_btn.setMenu(self.__new_menu())
         toolbar.addWidget(new_btn)
+
+        # move_btn = QPushButton(parent=toolbar, text="Move")
+        # move_btn = 
+
         del_btn = QPushButton(parent=toolbar, text="Delete")
         del_btn.clicked.connect(self.__on_delete_item)
         toolbar.addWidget(del_btn)
