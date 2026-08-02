@@ -28,5 +28,5 @@ class ItemMoveDialog(QDialog):
         dir_chooser_layout = QHBoxLayout()
         dir_chooser.setLayout(dir_chooser_layout)
 
-        location_text = "at "
+        location_text = "a"
         return dir_chooser

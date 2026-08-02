@@ -11,6 +11,7 @@ from PyQt6.QtCore import QTimer, Qt, pyqtSignal
 from src.exceptions import GUIException
 from src.items.items import ItemType, ItemCreationResult
 from src.utils.filevalidity import valid_wiki_name
+from src.utils.pathutils import gen_path_string
 
 class ItemNameDialog(QDialog):
 
@@ -56,11 +57,7 @@ class ItemNameDialog(QDialog):
         QTimer.singleShot(10, Qt.TimerType.PreciseTimer, self.__update_item_label)
         
     def __update_item_label(self):
-        if (self.__working_directory == self.__wiki_directory):
-            location_text = "/"
-        else:
-            location_text = f"at /{(self.__working_directory.relative_to(self.__wiki_directory)).as_posix()}"
-    
+        location_text = f"at {gen_path_string(self.__working_directory, self.__wiki_directory)}"
         metrics = QFontMetrics(self.__location_label.font())
         elided_text = metrics.elidedText(location_text, Qt.TextElideMode.ElideMiddle, self.__location_label.width()     )
         self.__location_label.setText(elided_text)
