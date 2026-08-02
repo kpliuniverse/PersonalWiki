@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import (
     QPushButton
 )
 
+from src.components.dialogs.itemmovedialog import ItemMoveDialog
 from src.components.dialogs.itemnamedialog import ItemNameDialog
 from src.components.projecttree import ProjectTree, ProjectTreeArgs, TreeType
 from src.exceptions import GUIException
@@ -62,11 +63,34 @@ class ProjectExplorer(QWidget):
         new_menu.addAction("Folder", lambda: self.__on_new_item(ItemType["FOLDER"]))
         return new_menu
 
+    def __get_workdir(self):
+        workdir = self.__project_tree.get_working_directory()
+
+        if workdir is None:
+            raise GUIException("on_new_item() called without working directory")
+
+        return workdir
+            
+    def __on_move_item(self):
+        workdir = self.__get_workdir()
+
+        selected_items = []
+        for index in self.__project_tree.get_selected_indexes():
+            selected_item: pathlib.Path = index.data(Qt.ItemDataRole.UserRole + 1)
+            if not selected_item or not isinstance(selected_item, pathlib.Path):
+                logging.error("Selected item is None or not pathlib.Path type=%s", type(selected_item))
+                continue
+            selected_items.append(selected_item)
+
+        dialog = ItemMoveDialog(self, selected_items, workdir)
+        dialog.exec()
+
     def __edit_toolbar(self):
         toolbar = ToolBar(self)
 
         toolbar.new_btn.setMenu(self.__new_menu())
         toolbar.del_btn.clicked.connect(self.__on_delete_item)
+        toolbar.move_btn.clicked.connect(self.__on_move_item)
 
         return toolbar
 
@@ -97,10 +121,7 @@ class ProjectExplorer(QWidget):
             self.__project_tree.delete_item(selected_item)
             
     def __on_new_item(self, item_type: ItemType):
-        workdir = self.__project_tree.get_working_directory()
-
-        if workdir is None:
-            raise GUIException("on_new_item() called without working directory")
+        workdir = self.__get_workdir()
         selected_path = self.__project_tree.get_cur_selected_path()
         if not selected_path:
             dir_to_create = workdir

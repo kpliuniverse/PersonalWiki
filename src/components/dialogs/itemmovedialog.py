@@ -1,14 +1,53 @@
 import pathlib
-from typing import List
+from typing import List, Optional
 
-from PyQt6.QtWidgets import QDialog, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
+from PyQt6.QtCore import QTimer, Qt
+from PyQt6.QtGui import QFontMetrics
 
 from src.exceptions import GUIException
+from src.utils.pathutils import gen_path_string
 
+
+class DirPreview(QWidget):
+    def __init__(self, parent: QWidget, wiki_dir: pathlib.Path):
+        super().__init__(parent=parent)
+        self.setFixedSize(400, 200)
+
+        dir_chooser_layout = QHBoxLayout()
+        self.setLayout(dir_chooser_layout)
+
+        self.__location_label = QLabel(parent=self)
+        dir_chooser_layout.addWidget(self.__location_label)
+
+        browse_button = QPushButton(parent=self, text="Browse")
+        dir_chooser_layout.addWidget(browse_button)
+
+        QTimer.singleShot(10, lambda: self.__location_label.setText)
+        self.__wiki_directory = wiki_dir
+        self.__chosen_path: Optional[pathlib.Path] = None
+        self.__update_label()
+        
+    def __update_label(self):
+        if self.__chosen_path is None:
+            self.__location_label.setText("(no chosen path)")
+            return
+        location_text = f"at {gen_path_string(self.__chosen_path, self.__wiki_directory)}"
+        metrics = QFontMetrics(self.__location_label.font())
+        elided_text = metrics.elidedText(location_text, Qt.TextElideMode.ElideMiddle, self.__location_label.width())
+        self.__location_label.setText(elided_text)
+
+    def __on_chosen(self, chosen_path: pathlib.Path):
+        self.__chosen_path = chosen_path
+        self.__update_label() 
+
+    def get_chosen_file(self):
+        return self.__chosen_path
+        
 class ItemMoveDialog(QDialog):
 
     def __init__ (self, parent: QWidget, items: List[pathlib.Path], wiki_directory: pathlib.Path):
-
+        super().__init__(parent=parent)
         for i, item in enumerate(items):
             if not item.is_relative_to(wiki_directory):
                 raise GUIException(f"item {item} (index #{i}) is not related to wiki_directory {wiki_directory}")
@@ -22,11 +61,7 @@ class ItemMoveDialog(QDialog):
         label = QLabel(parent=self, text=label_text)
         layout.addWidget(label)
 
+        dir_preview = DirPreview(self, wiki_directory)
+        layout.addWidget(dir_preview)
 
-    def __dir_chooser(self):
-        dir_chooser = QWidget()
-        dir_chooser_layout = QHBoxLayout()
-        dir_chooser.setLayout(dir_chooser_layout)
-
-        location_text = "a"
-        return dir_chooser
+        self.__wiki_directory = wiki_directory
