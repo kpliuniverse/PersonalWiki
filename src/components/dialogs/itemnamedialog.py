@@ -5,8 +5,10 @@ from typing import Callable, override
 from PyQt6 import QtCore
 from PyQt6.QtWidgets import QDialog, QLabel, QLineEdit, QPushButton, QWidget, QVBoxLayout
 from PyQt6.QtGui import QFontMetrics
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import QTimer, Qt, pyqtSignal
 
+
+from src.exceptions import GUIException
 from src.items.items import ItemType, ItemCreationResult
 from src.utils.filevalidity import valid_wiki_name
 
@@ -15,7 +17,11 @@ class ItemNameDialog(QDialog):
     on_path_selected: pyqtSignal = pyqtSignal(ItemCreationResult)
 
     
-    def __init__(self, parent: QWidget, item_type: ItemType, directory: pathlib.Path):
+    def __init__(self, parent: QWidget, item_type: ItemType, directory: pathlib.Path, wiki_directory: pathlib.Path):
+
+        if not directory.is_relative_to(wiki_directory):
+            raise GUIException(f"Directory {directory} is not related to wiki_directory {wiki_directory}")
+        
         self.__working_directory = directory
 
         super().__init__(parent)
@@ -33,10 +39,6 @@ class ItemNameDialog(QDialog):
         self.__location_label = QLabel(parent=self, text="")
         layout.addWidget(self.__location_label)
         #self.__location_label.setStyleSheet("QLabel {border: 5px solid}")
-        location_text = f"at {directory.as_posix()}"
-        metrics = QFontMetrics(self.__location_label.font())
-        elided_text = metrics.elidedText(location_text, Qt.TextElideMode.ElideMiddle, self.__location_label.width() + 128)
-        self.__location_label.setText(elided_text)
 
         self.__error_label = QLabel(parent=self, text="")
         layout.addWidget(self.__error_label)
@@ -45,11 +47,25 @@ class ItemNameDialog(QDialog):
         layout.addWidget(self.__button)
         self.__button.clicked.connect(self.accept)
 
-        self.accepted.connect(self.on_accept)
+        self.accepted.connect(self.__on_accept)
 
         self.__item_type = item_type
+        self.__wiki_directory = wiki_directory
 
-    def on_accept(self):
+        # Width of self.__location_label is inaccurate when retrieved in __init__, it must be running on the app for it to be accurate
+        QTimer.singleShot(10, Qt.TimerType.PreciseTimer, self.__update_item_label)
+        
+    def __update_item_label(self):
+        if (self.__working_directory == self.__wiki_directory):
+            location_text = "/"
+        else:
+            location_text = f"at /{(self.__working_directory.relative_to(self.__wiki_directory)).as_posix()}"
+    
+        metrics = QFontMetrics(self.__location_label.font())
+        elided_text = metrics.elidedText(location_text, Qt.TextElideMode.ElideMiddle, self.__location_label.width()     )
+        self.__location_label.setText(elided_text)
+
+    def __on_accept(self):
         self.on_path_selected.emit(ItemCreationResult(
                 path=self.gen_resultatnt_path(),
                 typ=self.__item_type

@@ -93,7 +93,7 @@ class MainWindow(QMainWindow):
             self.__load_file(self.__app_state.cur_wiki.parent / "proper" / session_json["currentFile"])
         
         self.__refresh_project_tree()
-
+        
 
     @pyqtSlot()
     def __render_markdown(self):

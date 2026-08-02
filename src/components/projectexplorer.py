@@ -88,7 +88,6 @@ class ProjectExplorer(QWidget):
             os.remove(item)
 
     def __on_delete_item(self):
-
         for index in self.__project_tree.get_selected_indexes():
             selected_item: pathlib.Path = index.data(Qt.ItemDataRole.UserRole + 1)
             if not selected_item or not isinstance(selected_item, pathlib.Path):
@@ -110,7 +109,7 @@ class ProjectExplorer(QWidget):
         else:
             dir_to_create = selected_path.parent
 
-        dialog = ItemNameDialog(self, item_type, dir_to_create)
+        dialog = ItemNameDialog(self, item_type, dir_to_create, workdir)
         dialog.on_path_selected.connect(self.__create_new_item)
         dialog.exec()
 
