@@ -1,7 +1,7 @@
 import pathlib
 from typing import List, Optional
 
-from PyQt6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QDialog, QDialogButtonBox, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 from PyQt6.QtCore import QTimer, Qt
 from PyQt6.QtGui import QFontMetrics
 
@@ -12,7 +12,6 @@ from src.utils.pathutils import gen_path_string
 class DirPreview(QWidget):
     def __init__(self, parent: QWidget, wiki_dir: pathlib.Path):
         super().__init__(parent=parent)
-        self.setFixedSize(400, 200)
 
         dir_chooser_layout = QHBoxLayout()
         self.setLayout(dir_chooser_layout)
@@ -39,7 +38,7 @@ class DirPreview(QWidget):
 
     def __on_chosen(self, chosen_path: pathlib.Path):
         self.__chosen_path = chosen_path
-        self.__update_label() 
+        self.__update_label()
 
     def get_chosen_file(self):
         return self.__chosen_path
@@ -65,3 +64,9 @@ class ItemMoveDialog(QDialog):
         layout.addWidget(dir_preview)
 
         self.__wiki_directory = wiki_directory
+
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, Qt.Orientation.Horizontal, self)
+        button_box.rejected.connect(self.accept)
+        button_box.rejected.connect(self.reject)
+        layout.addWidget(button_box)
+        
