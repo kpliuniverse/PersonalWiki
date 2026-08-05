@@ -17,7 +17,7 @@ class CustomHTMLRenderer(BaseRenderer):
 
     _escape: bool
     _allow_harmful_protocols: Optional[Union[bool, Iterable[str]]]
-    NAME: ClassVar[Literal["html"]] = "html"
+
     SAFE_PROTOCOLS: ClassVar[Tuple[str, ...]] = (
         "http:",
         "https:",
@@ -27,6 +27,7 @@ class CustomHTMLRenderer(BaseRenderer):
         "ftps:",
         "irc:",
         "ircs:",
+        "wiki:"
     )
     GOOD_DATA_PROTOCOLS: ClassVar[Tuple[str, ...]] = (
         "data:image/gif;",

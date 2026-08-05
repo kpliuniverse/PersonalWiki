@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import QDialog, QDialogButtonBox, QHBoxLayout, QLabel, QPus
 from PyQt6.QtCore import QTimer, Qt
 from PyQt6.QtGui import QFontMetrics
 
+from src.components.dialogs.projectdialog import ProjectDialog, ProjectDialogArgs
 from src.exceptions import GUIException
 from src.utils.pathutils import gen_path_string
 
@@ -20,6 +21,7 @@ class DirPreview(QWidget):
         dir_chooser_layout.addWidget(self.__location_label)
 
         browse_button = QPushButton(parent=self, text="Browse")
+        browse_button.clicked.connect(self.__on_browse)
         dir_chooser_layout.addWidget(browse_button)
 
         QTimer.singleShot(10, lambda: self.__location_label.setText)
@@ -42,6 +44,12 @@ class DirPreview(QWidget):
 
     def get_chosen_file(self):
         return self.__chosen_path
+    
+    def __on_browse(self):
+        ProjectDialog(self, self.__wiki_directory, ProjectDialogArgs(
+            dir_only=True
+        )).exec()
+
         
 class ItemMoveDialog(QDialog):
 
@@ -69,4 +77,3 @@ class ItemMoveDialog(QDialog):
         button_box.rejected.connect(self.accept)
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
-        

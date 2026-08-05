@@ -17,7 +17,7 @@ from PyQt6.QtWidgets import (
 
 from src.components.dialogs.itemmovedialog import ItemMoveDialog
 from src.components.dialogs.itemnamedialog import ItemNameDialog
-from src.components.projecttree import ProjectTree, ProjectTreeArgs, TreeType
+from src.components.projecttree import ProjectTree, ProjectTreeArgs
 from src.exceptions import GUIException
 from src.items.items import ItemCreationResult, ItemType
 
@@ -34,16 +34,15 @@ class ToolBar(QToolBar):
         self.del_btn = QPushButton(parent=self, text="Delete")
         self.addWidget(self.del_btn)
 class ProjectExplorer(QWidget):
-    __project_tree: ProjectTree
-    __root_layout = QVBoxLayout()
 
     def __init__(self, parent: QWidget):
         super().__init__(parent)
+        self.__root_layout = QVBoxLayout()
         self.setLayout(self.__root_layout)
         self.__toolbar = self.__edit_toolbar()
         self.__root_layout.addWidget(self.__toolbar)
         self.__project_tree = ProjectTree(self, ProjectTreeArgs(
-            tree_type=TreeType["FULL"]
+            dir_only=False
         ))
         self.__root_layout.addWidget(self.__project_tree)
 

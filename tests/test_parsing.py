@@ -1,6 +1,6 @@
 import html
 
-from ..src.parser.markdownparser import parse_chunk
+from src.parser.markdownparser import parse_chunk
 
 def test_escape():
 

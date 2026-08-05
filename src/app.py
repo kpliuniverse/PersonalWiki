@@ -18,8 +18,6 @@ FONT_PATH = pathlib.Path("assets/fonts")
 
 
 class App:
-    app: QApplication
-    main_window: MainWindow
 
     def init_fonts(self): 
         for path in FONT_PATH.iterdir():

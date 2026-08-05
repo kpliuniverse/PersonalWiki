@@ -19,27 +19,21 @@ from PyQt6.QtWidgets import (
 from src.exceptions import GUIException
 from src.itemmodels.projectitem import ProjectItem
 
-class TreeType(Enum):
-    DIR = 0
-    FULL = 1
 
 @dataclass(frozen=True)
 class ProjectTreeArgs:
-    tree_type: TreeType
-
-
+    dir_only: bool = False
 
 class ProjectTree(QWidget):
     __tree: QTreeView
-    __root_layout = QVBoxLayout()
-    __index_dict: Dict[str, QStandardItem] = dict()
-    __cur_selected_item: Optional[QModelIndex] = None
-    __cur_selected_path: Optional[pathlib.Path] = None
-    __working_directory: Optional[pathlib.Path] = None
+
 
     def __init__(self, parent: QWidget, tree_args: ProjectTreeArgs):
         self.__args = tree_args
-        super().__init__(parent)
+        self.__root_layout = QVBoxLayout()
+        self.__index_dict: Dict[str, QStandardItem] = dict()
+
+        super().__init__(parent=parent)
         self.setLayout(self.__root_layout)
         # self.__add_edit_buttons()
         self.__tree = QTreeView(self)
@@ -49,12 +43,17 @@ class ProjectTree(QWidget):
         self.file_double_clicked = self.__tree.doubleClicked
         self.__tree.setHeaderHidden(True)
 
+        self.__cur_selected_item: Optional[QModelIndex] = None
+        self.__cur_selected_path: Optional[pathlib.Path] = None
+        self.__working_directory: Optional[pathlib.Path] = None
+
     def __on_select(self, val: QModelIndex):
         self.__cur_selected_item = val
         self.__cur_selected_path = pathlib.Path(self.__cur_selected_item.data(Qt.ItemDataRole.UserRole + 1))
 
     def get_cur_selected_path(self):    
         return self.__cur_selected_path
+
 
     def delete_item(self, path: pathlib.Path):
         """
@@ -118,7 +117,7 @@ class ProjectTree(QWidget):
                     dir_to_item[path.as_posix()] = project_item
                     dir_to_item[subdir.as_posix()].appendRow(project_item)
 
-                if path.is_file() and self.__args.tree_type == TreeType["FULL"]:
+                if path.is_file() and not self.__args.dir_only:
                     dir_to_item[subdir.as_posix()].appendRow(project_item)
 
         self.__tree.setModel(item_system_model)  

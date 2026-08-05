@@ -28,18 +28,11 @@ from src.workers.rendererworker import RendererWorker
 
 class MainWindow(QMainWindow):
 
-    __root_layout: QGridLayout
-    __text_edit: QTextEdit
-    __text_view: QWebEngineView
-    __project_explorer: ProjectExplorer
-    __app_state: AppState
-    __save_timer: QTimer
 
-    __rendering_thread: Optional[QThread] = None
 
     def __init__(self, initcontext: InitContext):
         super().__init__()
-
+        self.__rendering_thread: Optional[QThread] = None
         self.setGeometry(200, 200, 1200, 800)
         self.setWindowTitle("PersonalWiki")        
 
