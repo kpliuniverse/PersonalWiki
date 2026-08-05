@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import logging
+import os
 import pathlib
 import shutil
 from typing import List, Optional
@@ -124,10 +125,18 @@ class ItemMoveDialog(QDialog):
             if (p := item.parent) == chosen_dir:
                 logging.warning("File %s is already contained in directory %s, skipping...", p, chosen_dir)
                 continue
-            paths_removed.append(item)
-
-            dest = shutil.move(item, chosen_dir)
-            paths_created.append(pathlib.Path(dest))
+            
+            if item.is_dir():
+                for (root,dirs,files) in os.walk(item,topdown=False):
+                    pl_root = pathlib.Path(root)
+                    paths_removed.extend((pl_root / f for f in files))
+                    paths_removed.append(pl_root)
+                    if pl_root != item:
+                        paths_created.append(chosen_dir / pl_root.relative_to(item))
+                        paths_created.extend((chosen_dir / pl_root.relative_to(item) / files for f in files ))
+            if item.is_file():
+                paths_removed.append(item)
+                paths_created.append(chosen_dir / item.name)
 
         self.items_moved.emit(MoveInfo(
             paths_created=paths_created,
