@@ -46,9 +46,10 @@ class DirPreview(QWidget):
         return self.__chosen_path
     
     def __on_browse(self):
-        ProjectDialog(self, self.__wiki_directory, ProjectDialogArgs(
+        dialog = ProjectDialog(self, self.__wiki_directory, ProjectDialogArgs(
             dir_only=True
-        )).exec()
+        ))
+        dialog.exec()
 
         
 class ItemMoveDialog(QDialog):
