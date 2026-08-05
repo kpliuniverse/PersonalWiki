@@ -12,7 +12,7 @@ class RendererWorker(QObject):
     """
     
     finished: pyqtSignal = pyqtSignal(str)
-
+    
     @pyqtSlot(str)    
     def render_pwe(self, pwe: str):
         logging.debug("Rendering")

@@ -23,7 +23,7 @@ from src.itemmodels.projectitem import ProjectItem
 @dataclass(frozen=True)
 class ProjectTreeArgs:
     dir_only: bool = False
-
+    add_root_as_folder: bool = False
 class ProjectTree(QWidget):
     __tree: QTreeView
 
@@ -39,7 +39,7 @@ class ProjectTree(QWidget):
         self.__tree = QTreeView(self)
         self.__root_layout.addWidget(self.__tree)
         self.__tree.clicked.connect(self.__on_select)
-        self.file_clicked = self.__tree.clicked
+        self.item_clicked = self.__tree.clicked
         self.file_double_clicked = self.__tree.doubleClicked
         self.__tree.setHeaderHidden(True)
 
@@ -101,7 +101,6 @@ class ProjectTree(QWidget):
         root_node = item_system_model.invisibleRootItem()
         if root_node is None:
             raise GUIException("Failed fetching root node")
-        root_node.setText("Aaargh")
         dir_to_item: Dict[str, QStandardItem] = dict()
         item_system_model.setHorizontalHeaderLabels([])
         subdirs: Deque[pathlib.Path] = deque([directory])
@@ -120,7 +119,10 @@ class ProjectTree(QWidget):
                 if path.is_file() and not self.__args.dir_only:
                     dir_to_item[subdir.as_posix()].appendRow(project_item)
 
-        self.__tree.setModel(item_system_model)  
+        self.__tree.setModel(item_system_model)
+
+        if self.__args.add_root_as_folder:
+            root_node.appendRow(ProjectItem(pathlib.Path(directory), name="(root)"))
 
         self.__index_dict.clear()
         self.__index_dict[directory.as_posix()] = root_node

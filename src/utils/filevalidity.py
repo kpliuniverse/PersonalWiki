@@ -12,7 +12,7 @@ WINDOWS_RESERVED_NAMES = {
 def valid_wiki_name(filename: str):
     filename_stripped = filename.strip()
     return all([
-        filename_stripped != "",
+        filename_stripped not in ["", ".", "..", "(root)"],
         re.search("[\\\\/&?!<>:\"|?* ]", filename_stripped) is None,
         filename_stripped.split(".")[0] not in WINDOWS_RESERVED_NAMES
     ])

@@ -15,7 +15,7 @@ from PyQt6.QtWidgets import (
     QPushButton
 )
 
-from src.components.dialogs.itemmovedialog import ItemMoveDialog
+from src.components.dialogs.itemmovedialog import ItemMoveDialog, MoveInfo
 from src.components.dialogs.itemnamedialog import ItemNameDialog
 from src.components.projecttree import ProjectTree, ProjectTreeArgs
 from src.exceptions import GUIException
@@ -46,8 +46,8 @@ class ProjectExplorer(QWidget):
         ))
         self.__root_layout.addWidget(self.__project_tree)
 
-        self.__project_tree.file_clicked.connect(self.__validate_btns)
-        self.file_clicked = self.__project_tree.file_clicked
+        self.__project_tree.item_clicked.connect(self.__validate_btns)
+        self.file_clicked = self.__project_tree.item_clicked
         self.file_double_clicked = self.__project_tree.file_double_clicked
         self.__validate_btns()
 
@@ -69,7 +69,15 @@ class ProjectExplorer(QWidget):
             raise GUIException("on_new_item() called without working directory")
 
         return workdir
-            
+
+
+    def __update(self, move_info: MoveInfo):
+        for path in move_info.paths_created:
+            self.__project_tree.add_path(path)
+
+        for path2 in move_info.paths_deleted:
+            self.__project_tree.delete_item(path2)
+
     def __on_move_item(self):
         workdir = self.__get_workdir()
 
@@ -82,6 +90,7 @@ class ProjectExplorer(QWidget):
             selected_items.append(selected_item)
 
         dialog = ItemMoveDialog(self, selected_items, workdir)
+        dialog.items_moved.connect(self.__update)
         dialog.exec()
 
     def __edit_toolbar(self):
@@ -138,3 +147,6 @@ class ProjectExplorer(QWidget):
             Loads the widget with a specific path
         """
         self.__project_tree.load(directory)
+
+    def refresh(self):
+        self.__project_tree.load(self.__get_workdir())
