@@ -89,8 +89,9 @@ class CustomQTreeView(QTreeView):
         logging.debug("Dragged %s to %s", dragged_path, target_path)
         self.drag_drop_item.emit(DragDropInfo(dragged_path, target_path))
 
+        # Let the ProjectTree take care of the rendering, as using e.accept() results in bugs over extraneous deleted files
         e.ignore()
-        #super().dropEvent(e)
+        
 
 
 class ProjectTree(QWidget):
