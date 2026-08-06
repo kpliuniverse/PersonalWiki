@@ -95,9 +95,6 @@ class CustomQTreeView(QTreeView):
 
         self.drag_drop_item.emit(DragDropInfo(dragged_path, target_path))
 
-        
-
-
 class ProjectTree(QWidget):
     __tree: QTreeView
 
