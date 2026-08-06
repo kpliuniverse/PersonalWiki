@@ -178,6 +178,7 @@ class ProjectTree(QWidget):
         """
             Loads the widget with a specific path
         """
+        # TODO: separate file scanning logic
         self.__working_directory = directory
         item_system_model = QStandardItemModel()
         root_node = item_system_model.invisibleRootItem()
