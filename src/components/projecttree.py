@@ -75,6 +75,11 @@ class CustomQTreeView(QTreeView):
             logging.info("dragged_indexes is None")
             return
         assert model == src.model()
+
+        if len(dragged_indexes) > 1:
+            logging.info("Cancelling due to multiple destinations")
+            return
+        
         dragged_item = model.itemFromIndex(dragged_indexes[0])
         if dragged_item is None:
             logging.warning("dragged_item is None")
