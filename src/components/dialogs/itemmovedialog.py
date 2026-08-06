@@ -18,7 +18,8 @@ from src.utils.pathutils import gen_path_string
 class MoveInfo:
     paths_deleted: List[pathlib.Path]
     paths_created: List[pathlib.Path]
-
+    src_items: List[pathlib.Path]
+    dest: pathlib.Path
 class DirPreview(QWidget):
 
     file_selected: pyqtSignal = pyqtSignal()
@@ -127,18 +128,22 @@ class ItemMoveDialog(QDialog):
                 continue
             
             if item.is_dir():
-                for (root,dirs,files) in os.walk(item,topdown=False):
+                for (root,_,files) in os.walk(item, topdown=False):
                     pl_root = pathlib.Path(root)
                     paths_removed.extend((pl_root / f for f in files))
                     paths_removed.append(pl_root)
-                    if pl_root != item:
-                        paths_created.append(chosen_dir / pl_root.relative_to(item))
-                        paths_created.extend((chosen_dir / pl_root.relative_to(item) / files for f in files ))
+
+                for (root,_,files) in os.walk(item, topdown=True):       
+                    pl_root = pathlib.Path(root)       
+                    paths_created.append(chosen_dir / pl_root.relative_to(item.parent))
+                    paths_created.extend((chosen_dir / pl_root.relative_to(item.parent) / f for f in files ))
             if item.is_file():
                 paths_removed.append(item)
                 paths_created.append(chosen_dir / item.name)
 
         self.items_moved.emit(MoveInfo(
             paths_created=paths_created,
-            paths_deleted=paths_removed
+            paths_deleted=paths_removed,
+            src_items=self.__items,
+            dest=chosen_dir
         ))

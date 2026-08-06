@@ -90,7 +90,7 @@ class ProjectTree(QWidget):
             self.__index_dict[path.parent.as_posix()].appendRow(project_item)
             self.__index_dict[path.as_posix()] = project_item
         except KeyError as exc:
-            raise ValueError(f"It seems like {path} is not related to wordir {self.__working_directory}") from exc
+            raise GUIException(f"It seems like parent of '{path}' ({path.parent}) doesn't exist") from exc
 
     def load(self, directory: pathlib.Path):
         """

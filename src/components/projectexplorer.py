@@ -70,13 +70,16 @@ class ProjectExplorer(QWidget):
 
         return workdir
 
-
-    def __update(self, move_info: MoveInfo):
+    def __on_move_accepted(self, move_info: MoveInfo):
+        for item in move_info.src_items:
+            shutil.move(item, move_info.dest)
+            
         for path in move_info.paths_created:
             self.__project_tree.add_path(path)
 
         for path2 in move_info.paths_deleted:
             self.__project_tree.delete_item(path2)
+
 
     def __on_move_item(self):
         workdir = self.__get_workdir()
@@ -90,7 +93,7 @@ class ProjectExplorer(QWidget):
             selected_items.append(selected_item)
 
         dialog = ItemMoveDialog(self, selected_items, workdir)
-        dialog.items_moved.connect(self.__update)
+        dialog.items_moved.connect(self.__on_move_accepted)
         dialog.exec()
 
     def __edit_toolbar(self):

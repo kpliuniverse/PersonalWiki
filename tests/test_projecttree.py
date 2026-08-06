@@ -1,8 +1,15 @@
-from ..src.components.projecttree import ProjectTree, ProjectTreeArgs
+import pathlib
+import tempfile
+
+import pytest
+from pytestqt.qtbot import QtBot
+
+from src.exceptions import GUIException
+from src.components.projecttree import ProjectTree, ProjectTreeArgs
+
 from PyQt6.QtWidgets import QDialog, QHBoxLayout, QMainWindow, QWidget
 
-
-def test_parenting_bug(qtbot):
+def test_parenting_bug(qtbot: QtBot):
     main_window = QMainWindow()
 
     parent1 = QWidget(main_window)
@@ -19,3 +26,15 @@ def test_parenting_bug(qtbot):
     layout.addWidget(projtree2)
     assert projtree2.parent() == parent2
     assert projtree1.parent() == parent1
+
+
+def test_add_path(qtbot: QtBot, tmp_path: pathlib.Path): 
+    main_window = QMainWindow()
+    tree = ProjectTree(parent=main_window, tree_args=ProjectTreeArgs(
+        dir_only=False
+    ))
+    tree.load(tmp_path)
+    tree.add_path(tmp_path / "a")
+    tree.add_path(tmp_path / "a" / "b")
+    with pytest.raises(GUIException) as e_info:
+        tree.add_path(tmp_path / "c" / "d")
