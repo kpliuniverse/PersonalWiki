@@ -87,7 +87,7 @@ class CustomQTreeView(QTreeView):
             return
         logging.debug("Dragged %s to %s", dragged_path, target_path)
 
-        # Let the ProjectTree take care of the rendering, as using e.accept() results in bugs over removing unrelated items
+        # Let the ProjectTree take care of the rendering, as using e.accept() / calling super().dropEvent() results in bugs over removing unrelated items
         e.ignore()
 
         self.drag_drop_item.emit(DragDropInfo(dragged_path, target_path))
