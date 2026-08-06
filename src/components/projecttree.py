@@ -1,12 +1,14 @@
 from collections import deque
 from dataclasses import dataclass
 from enum import Enum
+import logging
 import pathlib
-from typing import Deque, Dict, Optional
+from typing import Deque, Dict, NamedTuple, Optional, override
 
-from PyQt6.QtCore import QModelIndex, Qt 
-from PyQt6.QtGui import QStandardItem, QStandardItemModel
+from PyQt6.QtCore import QModelIndex, Qt, pyqtSignal 
+from PyQt6.QtGui import QDropEvent, QStandardItem, QStandardItemModel
 from PyQt6.QtWidgets import (
+    QAbstractItemView,
     QMenu,
     QTreeView, 
     QWidget, 
@@ -19,14 +21,80 @@ from PyQt6.QtWidgets import (
 from src.exceptions import GUIException
 from src.itemmodels.projectitem import ProjectItem
 
+class DragDropInfo(NamedTuple):
+    src: pathlib.Path
+    dst: pathlib.Path
 
 @dataclass(frozen=True)
 class ProjectTreeArgs:
     dir_only: bool = False
     add_root_as_folder: bool = False
+
+class CustomQTreeView(QTreeView):
+    drag_drop_item = pyqtSignal(DragDropInfo)
+    @override
+    def dropEvent(self, e: Optional[QDropEvent]):
+
+        src: CustomQTreeView = e.source() # type: ignore
+
+        if src is None:
+            logging.warning("Source is None.")
+            return
+
+        if src != self:
+            logging.info("Drop not coming from itself")
+            return
+
+        if e is None:
+            logging.info("e is None")
+            return
+        # e.accept()
+        
+        # Find the item under the drop position
+        target_index = self.indexAt(e.position().toPoint())
+
+        if not target_index.isValid():
+            logging.info("Target index is not valid")
+            return
+        model: Optional[QStandardItemModel] = self.model() # type: ignore
+        if model is None:
+            logging.warning("This QTree has not been assigned any model.")
+            return
+        target_item = model.itemFromIndex(target_index)
+        if target_item is None:
+            logging.warning("Item returned None.")
+            return
+        target_path: pathlib.Path = target_item.data(Qt.ItemDataRole.UserRole + 1)
+
+        if target_path.is_file():
+            target_path = target_path.parent
+
+        
+
+        dragged_indexes = src.selectedIndexes()
+        if not dragged_indexes:
+            logging.info("dragged_indexes is None")
+            return
+        assert model == src.model()
+        dragged_item = model.itemFromIndex(dragged_indexes[0])
+        if dragged_item is None:
+            logging.warning("dragged_item is None")
+            return
+        dragged_path: pathlib.Path = dragged_item.data(Qt.ItemDataRole.UserRole + 1)
+
+        if dragged_path.parent == target_path:
+            logging.info("parent of dragged_path is the same as target_path")
+            e.ignore()
+            return
+        logging.debug("Dragged %s to %s", dragged_path, target_path)
+        self.drag_drop_item.emit(DragDropInfo(dragged_path, target_path))
+
+        e.ignore()
+        #super().dropEvent(e)
+
+
 class ProjectTree(QWidget):
     __tree: QTreeView
-
 
     def __init__(self, parent: QWidget, tree_args: ProjectTreeArgs):
         self.__args = tree_args
@@ -36,17 +104,22 @@ class ProjectTree(QWidget):
         super().__init__(parent=parent)
         self.setLayout(self.__root_layout)
         # self.__add_edit_buttons()
-        self.__tree = QTreeView(self)
+        self.__tree = CustomQTreeView(self)
         self.__root_layout.addWidget(self.__tree)
         self.__tree.clicked.connect(self.__on_select)
         self.item_clicked = self.__tree.clicked
         self.file_double_clicked = self.__tree.doubleClicked
+        self.drag_drop_item = self.__tree.drag_drop_item
         self.__tree.setHeaderHidden(True)
 
         self.__cur_selected_item: Optional[QModelIndex] = None
         self.__cur_selected_path: Optional[pathlib.Path] = None
         self.__working_directory: Optional[pathlib.Path] = None
 
+        self.__tree.setDragEnabled(True)
+        if v := self.__tree.viewport():
+            v.setAcceptDrops(True)
+        self.__tree.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
     def __on_select(self, val: QModelIndex):
         self.__cur_selected_item = val
         self.__cur_selected_path = pathlib.Path(self.__cur_selected_item.data(Qt.ItemDataRole.UserRole + 1))
@@ -59,6 +132,8 @@ class ProjectTree(QWidget):
         """
             Remove a path from the project tree. Note that it doesn't actuall delete the item in filesystem
         """
+
+        logging.debug("Removed tree entry for %s", path)
         if model := self.__tree.model():
             item = self.__index_dict[path.as_posix()]
             index = item.index()
@@ -69,6 +144,7 @@ class ProjectTree(QWidget):
                 item = items.popleft()
                 cur_path: pathlib.Path = item.data(Qt.ItemDataRole.UserRole + 1)
                 self.__index_dict.pop(cur_path.as_posix())
+                logging.debug("Popped %s", cur_path)
                 for row in range(item.rowCount()):
                     if child := item.child(row, 0):
                         items.append(child)
@@ -85,6 +161,7 @@ class ProjectTree(QWidget):
         """
             Add a path to the project tree. Note that it doesn't actually create the item in the filesystem.
         """
+        logging.debug("Added tree entry for %s", path)
         project_item = ProjectItem(path)
         try:
             self.__index_dict[path.parent.as_posix()].appendRow(project_item)

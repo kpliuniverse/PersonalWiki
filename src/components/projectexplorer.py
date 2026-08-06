@@ -15,9 +15,10 @@ from PyQt6.QtWidgets import (
     QPushButton
 )
 
-from src.components.dialogs.itemmovedialog import ItemMoveDialog, MoveInfo
+from src.components.dialogs.itemmovedialog import ItemMoveDialog
+from src.utils.moveinfo import MoveInfo
 from src.components.dialogs.itemnamedialog import ItemNameDialog
-from src.components.projecttree import ProjectTree, ProjectTreeArgs
+from src.components.projecttree import DragDropInfo, ProjectTree, ProjectTreeArgs
 from src.exceptions import GUIException
 from src.items.items import ItemCreationResult, ItemType
 
@@ -45,8 +46,8 @@ class ProjectExplorer(QWidget):
             dir_only=False
         ))
         self.__root_layout.addWidget(self.__project_tree)
-
         self.__project_tree.item_clicked.connect(self.__validate_btns)
+        self.__project_tree.drag_drop_item.connect(self.__on_drag_drop_item)
         self.file_clicked = self.__project_tree.item_clicked
         self.file_double_clicked = self.__project_tree.file_double_clicked
         self.__validate_btns()
@@ -70,17 +71,29 @@ class ProjectExplorer(QWidget):
 
         return workdir
 
-    def __on_move_accepted(self, move_info: MoveInfo):
-        for item in move_info.src_items:
-            shutil.move(item, move_info.dest)
-            
-        for path in move_info.paths_created:
-            self.__project_tree.add_path(path)
+    def __move_item(self, move_info: MoveInfo):
+    
 
+        for item in move_info.src_items:
+            try:
+                shutil.move(item, move_info.dest)
+
+            except shutil.Error as e:
+                logging.info("Move cancelled due to: %s", e)
+                return
+        
         for path2 in move_info.paths_deleted:
             self.__project_tree.delete_item(path2)
 
+        for path in move_info.paths_created:
+            self.__project_tree.add_path(path)
 
+    def __on_drag_drop_item(self, info: DragDropInfo):
+        self.__move_item(MoveInfo.gen_move_info(
+            [info.src],
+            info.dst
+        ))
+    
     def __on_move_item(self):
         workdir = self.__get_workdir()
 
@@ -93,7 +106,7 @@ class ProjectExplorer(QWidget):
             selected_items.append(selected_item)
 
         dialog = ItemMoveDialog(self, selected_items, workdir)
-        dialog.items_moved.connect(self.__on_move_accepted)
+        dialog.items_moved.connect(self.__move_item)
         dialog.exec()
 
     def __edit_toolbar(self):

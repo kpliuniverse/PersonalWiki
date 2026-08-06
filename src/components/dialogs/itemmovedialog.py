@@ -11,15 +11,12 @@ from PyQt6.QtGui import QFontMetrics
 
 from src.components.dialogs.projectdialog import ProjectDialog, ProjectDialogArgs
 from src.exceptions import GUIException
+from src.utils.moveinfo import MoveInfo
 from src.utils.pathutils import gen_path_string
 
 
-@dataclass(frozen=True)
-class MoveInfo:
-    paths_deleted: List[pathlib.Path]
-    paths_created: List[pathlib.Path]
-    src_items: List[pathlib.Path]
-    dest: pathlib.Path
+
+        
 class DirPreview(QWidget):
 
     file_selected: pyqtSignal = pyqtSignal()
@@ -118,32 +115,4 @@ class ItemMoveDialog(QDialog):
         if chosen_dir is None:
             logging.warning("No directory selected, ignoring move request.")
             return
-
-        paths_created: List[pathlib.Path] = []
-        paths_removed: List[pathlib.Path] = []
-
-        for item in self.__items:
-            if (p := item.parent) == chosen_dir:
-                logging.warning("File %s is already contained in directory %s, skipping...", p, chosen_dir)
-                continue
-            
-            if item.is_dir():
-                for (root,_,files) in os.walk(item, topdown=False):
-                    pl_root = pathlib.Path(root)
-                    paths_removed.extend((pl_root / f for f in files))
-                    paths_removed.append(pl_root)
-
-                for (root,_,files) in os.walk(item, topdown=True):       
-                    pl_root = pathlib.Path(root)       
-                    paths_created.append(chosen_dir / pl_root.relative_to(item.parent))
-                    paths_created.extend((chosen_dir / pl_root.relative_to(item.parent) / f for f in files ))
-            if item.is_file():
-                paths_removed.append(item)
-                paths_created.append(chosen_dir / item.name)
-
-        self.items_moved.emit(MoveInfo(
-            paths_created=paths_created,
-            paths_deleted=paths_removed,
-            src_items=self.__items,
-            dest=chosen_dir
-        ))
+        self.items_moved.emit(MoveInfo.gen_move_info(self.__items, chosen_dir))
