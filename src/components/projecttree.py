@@ -66,9 +66,7 @@ class CustomQTreeView(QTreeView):
         target_path: pathlib.Path = target_item.data(Qt.ItemDataRole.UserRole + 1)
 
         if target_path.is_file():
-            target_path = target_path.parent
-
-        
+            target_path = target_path.parent        
 
         dragged_indexes = src.selectedIndexes()
         if not dragged_indexes:
