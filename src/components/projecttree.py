@@ -50,7 +50,6 @@ class CustomQTreeView(QTreeView):
             return
         # e.accept()
         
-        # Find the item under the drop position
         target_index = self.indexAt(e.position().toPoint())
 
         if not target_index.isValid():
