@@ -1,6 +1,4 @@
 from collections import deque
-from dataclasses import dataclass
-from enum import Enum
 import logging
 import pathlib
 from typing import Deque, Dict, NamedTuple, Optional, override
@@ -10,13 +8,9 @@ from PyQt6.QtCore import QModelIndex, Qt, pyqtSignal
 from PyQt6.QtGui import QDropEvent, QStandardItem, QStandardItemModel
 from PyQt6.QtWidgets import (
     QAbstractItemView,
-    QMenu,
     QTreeView, 
     QWidget, 
     QVBoxLayout, 
-    QToolBar, 
-    QHBoxLayout,
-    QPushButton
 )
 
 from src.exceptions import GUIException
@@ -94,7 +88,6 @@ class CustomQTreeView(QTreeView):
                 logging.warning("dragged_item is None")
                 return
             dragged_path: pathlib.Path = dragged_item.data(Qt.ItemDataRole.UserRole + 1)
-            dragged_path_abs = self.work_dir / dragged_path
             if dragged_path.parent == target_path:
                 logging.info("parent of dragged_path is the same as target_path")
                 e.ignore()

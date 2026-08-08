@@ -1,24 +1,16 @@
 import logging
-import os
 import pathlib
-import shutil
-from typing import List
-
-from PyQt6.QtCore import QModelIndex, Qt, pyqtSignal 
-from PyQt6.QtGui import QStandardItem, QStandardItemModel
+from PyQt6.QtCore import Qt, pyqtSignal 
 from PyQt6.QtWidgets import (
     QMenu,
-    QTreeView, 
     QWidget, 
     QVBoxLayout, 
     QToolBar, 
-    QHBoxLayout,
     QPushButton
 )
 
 from src.ui.components.dialogs.item_move_dialog import ItemMoveDialog
 from src.ui.components.dialogs.item_rename_dialog import ItemRenameDialog, RenameInfo
-from src.utils.item_actions import Action, MoveAction, CopyAction, NewItemAction, DeleteAction
 from src.utils.move_info import MoveInfo
 from src.ui.components.dialogs.item_name_dialog import ItemNameDialog
 from src.ui.components.project_tree import DragDropInfo, ProjectTree, ProjectTreeArgs
