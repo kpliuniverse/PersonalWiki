@@ -134,8 +134,10 @@ class MainWindow(QMainWindow):
             file_menu.addAction(action)
         
     def __on_project_item_double_clicked(self, val: QModelIndex):
-        item_path: pathlib.Path = self.__app_state.cur_wiki.get_wiki_dir_path() / val.data(Qt.ItemDataRole.UserRole + 1)
-        if item_path.is_file():
+        item_path: pathlib.Path = val.data(Qt.ItemDataRole.UserRole + 1)
+        item_path_abs = self.__app_state.cur_wiki.get_wiki_proper_path() / item_path
+        logging.debug("Item double clicked to %s", item_path)
+        if item_path_abs.is_file():
             self.__app_state.cur_wiki.set_cur_item(item_path)
             self.__load_cur_item()
 

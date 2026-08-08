@@ -1,10 +1,9 @@
 import html
-
-from mistune import create_markdown
 from typing import Any, ClassVar, Dict, Iterable, Optional, Tuple, Union, Literal
 from urllib.parse import unquote
+
+from mistune import create_markdown
 from mistune.core import BaseRenderer, BlockState
-from mistune.util import escape as base_escape_text
 from mistune.util import safe_entity, striptags
 
 
@@ -17,7 +16,7 @@ class CustomHTMLRenderer(BaseRenderer):
 
     _escape: bool
     _allow_harmful_protocols: Optional[Union[bool, Iterable[str]]]
-
+    NAME: ClassVar[Literal["html"]] = "html"
     SAFE_PROTOCOLS: ClassVar[Tuple[str, ...]] = (
         "http:",
         "https:",
