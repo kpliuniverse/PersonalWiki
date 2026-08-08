@@ -1,8 +1,9 @@
 
-from dataclasses import dataclass
 import pathlib
 
+from attrs import define
 
-@dataclass(frozen=True)
+
+@define(frozen=True)
 class InitContext:
     wiki: pathlib.Path

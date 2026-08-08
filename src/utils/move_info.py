@@ -1,10 +1,11 @@
-from dataclasses import dataclass
 import logging
 import os
 import pathlib
 from typing import List
 
-@dataclass(frozen=True)
+from attrs import define
+
+@define(frozen=True)
 class MoveInfo:
     paths_deleted: List[pathlib.Path]
     paths_created: List[pathlib.Path]

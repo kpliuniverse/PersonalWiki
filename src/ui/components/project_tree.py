@@ -5,6 +5,7 @@ import logging
 import pathlib
 from typing import Deque, Dict, NamedTuple, Optional, override
 
+from attrs import define
 from PyQt6.QtCore import QModelIndex, Qt, pyqtSignal 
 from PyQt6.QtGui import QDropEvent, QStandardItem, QStandardItemModel
 from PyQt6.QtWidgets import (
@@ -25,7 +26,7 @@ class DragDropInfo(NamedTuple):
     src: pathlib.Path
     dst: pathlib.Path
 
-@dataclass(frozen=True)
+@define(frozen=True)
 class ProjectTreeArgs:
     dir_only: bool = False
     add_root_as_folder: bool = False
