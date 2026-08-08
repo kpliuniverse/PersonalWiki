@@ -34,7 +34,7 @@ def test_add_path(qtbot: QtBot, tmp_path: pathlib.Path):
         dir_only=False
     ))
     tree.load(tmp_path)
-    tree.add_path(tmp_path / "a")
-    tree.add_path(tmp_path / "a" / "b")
+    tree.add_item(tmp_path / "a")
+    tree.add_item(tmp_path / "a" / "b")
     with pytest.raises(GUIException) as e_info:
-        tree.add_path(tmp_path / "c" / "d")
+        tree.add_item(tmp_path / "c" / "d")

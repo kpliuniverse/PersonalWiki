@@ -171,7 +171,7 @@ class ProjectTree(QWidget):
     def get_working_directory(self):
         return self.__working_directory
     
-    def add_path(self, path: pathlib.Path):
+    def add_item(self, path: pathlib.Path):
         """
             Add a path to the project tree. Note that it doesn't actually create the item in the filesystem.
         """

@@ -13,7 +13,7 @@ class ItemMoveDialog(QDialog):
 
     items_moved: pyqtSignal = pyqtSignal(MoveInfo)
 
-    def __init__ (self, parent: QWidget, items: List[pathlib.Path], wiki_directory: pathlib.Path):
+    def __init__ (self, parent: QWidget, items: List[pathlib.Path], wiki_proper_directory: pathlib.Path):
         super().__init__(parent=parent)
 
         if not items:
@@ -26,11 +26,11 @@ class ItemMoveDialog(QDialog):
         label = QLabel(parent=self, text=label_text)
         layout.addWidget(label)
 
-        self.__dir_preview = DirPreview(self, wiki_directory)
+        self.__dir_preview = DirPreview(self, wiki_proper_directory)
         self.__dir_preview.file_selected.connect(self.__validate_buttons)
         layout.addWidget(self.__dir_preview)
 
-        self.__wiki_directory = wiki_directory
+        self.__wiki_directory = wiki_proper_directory
 
         self.__button_box = QDialogButtonBox(Qt.Orientation.Horizontal, self)
         self.__move_btn = QPushButton(parent=self.__button_box, text="Move")

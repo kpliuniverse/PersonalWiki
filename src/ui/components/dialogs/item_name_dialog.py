@@ -13,15 +13,12 @@ from src.utils.file_validity import valid_wiki_name
 
 class ItemNameDialog(QDialog):
 
-    on_path_selected: pyqtSignal = pyqtSignal(ItemCreationResult)
+    on_name_selected: pyqtSignal = pyqtSignal(ItemCreationResult)
 
     
-    def __init__(self, parent: QWidget, item_type: ItemType, directory: pathlib.Path, wiki_directory: pathlib.Path):
-        logging.debug(f"{directory=}")
+    def __init__(self, parent: QWidget, item_type: ItemType, directory: pathlib.Path, wiki_proper_directory: pathlib.Path):
+        logging.debug("directory=%s, wiki_proper=%s", directory, wiki_proper_directory)
 
-        if not directory.is_relative_to(wiki_directory):
-            raise GUIException(f"Directory {directory} is not related to wiki_directory {wiki_directory}")
-        
         self.__working_directory = directory
 
         super().__init__(parent)
@@ -37,7 +34,7 @@ class ItemNameDialog(QDialog):
         self.__line_edit.textChanged.connect(self.__validate)
         layout.addWidget(self.__line_edit)
 
-        self.__dir_preview = DirPreview(self, wiki_directory, pre_chosen_dir=directory.relative_to(wiki_directory))
+        self.__dir_preview = DirPreview(self, wiki_proper_directory, pre_chosen_dir=directory)
         self.__dir_preview.file_selected.connect(self.__on_select)
         layout.addWidget(self.__dir_preview)
         
@@ -51,13 +48,13 @@ class ItemNameDialog(QDialog):
         self.accepted.connect(self.__on_accept)
 
         self.__item_type = item_type
-        self.__wiki_directory = wiki_directory
-
+        self.__wiki_directory = wiki_proper_directory
+        self.__validate()
         # Width of self.__location_label is inaccurate when retrieved in __init__, it must be running on the app for it to be accurate
         # QTimer.singleShot(10, Qt.TimerType.PreciseTimer, self.__update_item_label)
         
     def __on_accept(self):
-        self.on_path_selected.emit(ItemCreationResult(
+        self.on_name_selected.emit(ItemCreationResult(
                 path=self.gen_resultatnt_path(),
                 typ=self.__item_type
             )
@@ -74,7 +71,7 @@ class ItemNameDialog(QDialog):
         ending = ""
         if self.__item_type == ItemType["PWE"]:
             ending = ".pwe"
-        return (self.__working_directory / f"{txt_stripped}{ending}").relative_to(self.__wiki_directory)
+        return self.__working_directory / f"{txt_stripped}{ending}"
 
     def __validate(self):
         valid = True

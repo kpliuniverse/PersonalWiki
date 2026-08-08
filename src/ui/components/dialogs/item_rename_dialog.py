@@ -1,26 +1,37 @@
+from dataclasses import dataclass
+import logging
 import pathlib
+from typing import Callable, override
 
+from PyQt6 import QtCore
 from PyQt6.QtWidgets import QDialog, QLabel, QLineEdit, QPushButton, QWidget, QVBoxLayout
 from PyQt6.QtGui import QFontMetrics
 from PyQt6.QtCore import QTimer, Qt, pyqtSignal
+from attrs import define
 
 
 from src.exceptions import GUIException
 from src.items.items import ItemType, ItemCreationResult
-from src.ui.components.dir_preview import DirPreview
 from src.utils.file_validity import valid_wiki_name
+from src.utils.path_utils import gen_path_string
+
+
+@define(frozen=True)
+class RenameInfo:
+    file: pathlib.Path
+    new_name: str
+
+    def full_new_name(self):
+        return self.file.with_name(self.new_name)
 
 class ItemRenameDialog(QDialog):
 
-    on_path_selected: pyqtSignal = pyqtSignal(ItemCreationResult)
+    on_name_selected: pyqtSignal = pyqtSignal(RenameInfo)
 
     
-    def __init__(self, parent: QWidget, item_type: ItemType, directory: pathlib.Path, wiki_directory: pathlib.Path):
-
-        if not directory.is_relative_to(wiki_directory):
-            raise GUIException(f"Directory {directory} is not related to wiki_directory {wiki_directory}")
+    def __init__(self, parent: QWidget,  item: pathlib.Path, wiki_proper_directory: pathlib.Path):
         
-        self.__working_directory = directory
+        self.__working_item = item
 
         super().__init__(parent)
 
@@ -30,15 +41,15 @@ class ItemRenameDialog(QDialog):
         label = QLabel(parent=self, text="Enter your item/folder name")
         layout.addWidget(label)
 
-
         self.__line_edit = QLineEdit(self)
+        self.__line_edit.setText(item.with_suffix("").name)
         self.__line_edit.textChanged.connect(self.__validate)
         layout.addWidget(self.__line_edit)
 
-        self.__dir_preview = DirPreview(self, wiki_directory)
-        self.__dir_preview.file_selected.connect(self.__on_select)
-        layout.addWidget(self.__dir_preview)
-        
+        self.__location_label = QLabel(parent=self, text="")
+        layout.addWidget(self.__location_label)
+        #self.__location_label.setStyleSheet("QLabel {border: 5px solid}")
+
         self.__error_label = QLabel(parent=self, text="")
         layout.addWidget(self.__error_label)
         
@@ -47,32 +58,31 @@ class ItemRenameDialog(QDialog):
         self.__button.clicked.connect(self.accept)
 
         self.accepted.connect(self.__on_accept)
-
-        self.__item_type = item_type
-        self.__wiki_directory = wiki_directory
+        
+        self.__wiki_directory = wiki_proper_directory
 
         # Width of self.__location_label is inaccurate when retrieved in __init__, it must be running on the app for it to be accurate
-        # QTimer.singleShot(10, Qt.TimerType.PreciseTimer, self.__update_item_label)
+        QTimer.singleShot(10, Qt.TimerType.PreciseTimer, self.__update_item_label)
+        self.__validate()
         
+    def __update_item_label(self):
+        location_text = f"at {self.__working_item}"
+        metrics = QFontMetrics(self.__location_label.font())
+        elided_text = metrics.elidedText(location_text, Qt.TextElideMode.ElideMiddle, self.__location_label.width())
+        self.__location_label.setText(elided_text)
+
     def __on_accept(self):
-        self.on_path_selected.emit(ItemCreationResult(
-                path=self.gen_resultatnt_path(),
-                typ=self.__item_type
+        self.on_name_selected.emit(RenameInfo(
+                file=self.__working_item,
+                new_name=self.gen_resultatnt_path().name
             )
         )
-
-    def __on_select(self):
-        if chosen_dir := self.__dir_preview.get_chosen_dir():
-            self.__working_directory = self.__wiki_directory / chosen_dir
-        self.__validate()
 
     def gen_resultatnt_path(self):
         line_edit_txt = self.__line_edit.text()
         txt_stripped = line_edit_txt.strip()
-        ending = ""
-        if self.__item_type == ItemType["PWE"]:
-            ending = ".pwe"
-        return (self.__working_directory / f"{txt_stripped}{ending}").relative_to(self.__wiki_directory)
+        ending = self.__working_item.suffix
+        return self.__working_item.with_name(f"{txt_stripped}{ending}")
 
     def __validate(self):
         valid = True
@@ -81,8 +91,9 @@ class ItemRenameDialog(QDialog):
         if not valid_wiki_name(line_edit_txt):
             valid = False
             error_msg = "Not a valid item name."
-
-        if self.gen_resultatnt_path().exists():
+        cur_path = self.__wiki_directory / self.gen_resultatnt_path()
+        logging.debug("cur_path=%s", cur_path)
+        if cur_path.exists():
             valid = False
             error_msg = f"Item/folder already exists"
 

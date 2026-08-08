@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import (
 )
 
 from src.ui.components.dialogs.item_move_dialog import ItemMoveDialog
+from src.ui.components.dialogs.item_rename_dialog import ItemRenameDialog, RenameInfo
 from src.utils.item_actions import Action, MoveAction, CopyAction, NewItemAction, DeleteAction
 from src.utils.move_info import MoveInfo
 from src.ui.components.dialogs.item_name_dialog import ItemNameDialog
@@ -36,6 +37,10 @@ class ToolBar(QToolBar):
 
         self.del_btn = QPushButton(parent=self, text="Delete")
         self.addWidget(self.del_btn)
+
+        self.rename_btn = QPushButton(parent=self, text="Rename")
+        self.addWidget(self.rename_btn)
+
 class ProjectExplorer(QWidget):
     """
         signals:
@@ -61,9 +66,11 @@ class ProjectExplorer(QWidget):
         self.__validate_btns()
 
     def __validate_btns(self):
-        has_selection = len(self.__project_tree.get_selected_indexes()) > 0
+        indexes_len = len(self.__project_tree.get_selected_indexes())
+        has_selection = indexes_len > 0
         self.__toolbar.move_btn.setDisabled(not has_selection)
         self.__toolbar.del_btn.setDisabled(not has_selection)
+        self.__toolbar.rename_btn.setDisabled(not indexes_len == 1)
 
     def __new_menu(self):
         new_menu = QMenu()
@@ -89,7 +96,7 @@ class ProjectExplorer(QWidget):
             self.__project_tree.delete_item(path2)
 
         for path in move_info.paths_created:
-            self.__project_tree.add_path(path)
+            self.__project_tree.add_item(path)
 
     def __on_drag_drop_item(self, info: DragDropInfo):
         self.__move_item(MoveInfo.gen_move_info(
@@ -103,7 +110,7 @@ class ProjectExplorer(QWidget):
         selected_items = []
         for index in self.__project_tree.get_selected_indexes():
             selected_item: pathlib.Path = index.data(Qt.ItemDataRole.UserRole + 1)
-            if not selected_item or not isinstance(selected_item, pathlib.Path):
+            if isinstance(selected_item, pathlib.Path):
                 logging.error("Selected item is None or not pathlib.Path type=%s", type(selected_item))
                 continue
             selected_items.append(selected_item)
@@ -112,18 +119,34 @@ class ProjectExplorer(QWidget):
         dialog.items_moved.connect(self.__move_item)
         dialog.exec()
 
+    def __rename_item(self, info: RenameInfo):
+        self.item_operation_requested.emit([MoveAction(info.file, info.full_new_name())])
+
+        self.__project_tree.delete_item(info.file)
+        self.__project_tree.add_item(info.full_new_name())
+        
+    def __on_rename_btn(self):
+        if len((index := self.__project_tree.get_selected_indexes())) > 1:
+            # TODO: MessageBox that displays 'You can't rename files'
+            return
+        selected_item: pathlib.Path = index[0].data(Qt.ItemDataRole.UserRole + 1)
+        assert isinstance(selected_item, pathlib.Path)
+        dialog = ItemRenameDialog(self, selected_item, self.__get_workdir())
+        dialog.on_name_selected.connect(self.__rename_item)
+        dialog.exec()
+
     def __edit_toolbar(self):
         toolbar = ToolBar(self)
 
         toolbar.new_btn.setMenu(self.__new_menu())
         toolbar.del_btn.clicked.connect(self.__on_delete_btn)
         toolbar.move_btn.clicked.connect(self.__on_move_btn)
-
+        toolbar.rename_btn.clicked.connect(self.__on_rename_btn)
         return toolbar
 
     def __create_new_item(self, item: ItemCreationResult):
         self.item_operation_requested.emit([NewItemAction(item.path, item.typ == ItemType["FOLDER"])])
-        self.__project_tree.add_path(item.path)
+        self.__project_tree.add_item(item.path)
         # self.__index_dict[item.path.parent.as_posix()].appendRow(project_item)
         # self.__index_dict[item.path.as_posix()] = project_item
 
@@ -144,17 +167,17 @@ class ProjectExplorer(QWidget):
         selected_path = self.__project_tree.get_cur_selected_path()
         
         if not selected_path:
-            dir_to_create = workdir
+            dir_to_create = workdir.relative_to(workdir)
         else:
-            selected_path = workdir / selected_path
-            if selected_path.is_dir():
+            abs_path = workdir / selected_path
+            if abs_path.is_dir():
                 dir_to_create = selected_path
             else:
                 dir_to_create = selected_path.parent
 
         
         dialog = ItemNameDialog(self, item_type, dir_to_create, workdir)
-        dialog.on_path_selected.connect(self.__create_new_item)
+        dialog.on_name_selected.connect(self.__create_new_item)
         dialog.exec()
 
     def load(self, directory: pathlib.Path):
