@@ -1,16 +1,15 @@
 import datetime
-import json
 import logging
 import pathlib
 from typing import Optional
 
 from PyQt6 import QtCore
 from PyQt6.QtWidgets import (
-    QGridLayout, 
-    QMainWindow, 
-    QSplitter, 
-    QTextEdit, 
-    QWidget,    
+    QGridLayout,
+    QMainWindow,
+    QSplitter,
+    QTextEdit,
+    QWidget,
 )
 
 from PyQt6.QtWebEngineWidgets import QWebEngineView

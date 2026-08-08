@@ -16,8 +16,6 @@ def parse_chunk(md: str):
     plugins: List[Callable[[Markdown]]] = [
         table,
         footnotes,
-        
-        
     ]
     md_instance = create_markdown(
         renderer=CustomHTMLRenderer(),

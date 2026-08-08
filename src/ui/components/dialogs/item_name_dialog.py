@@ -10,6 +10,7 @@ from PyQt6.QtCore import QTimer, Qt, pyqtSignal
 
 from src.exceptions import GUIException
 from src.items.items import ItemType, ItemCreationResult
+from src.ui.components.dir_preview import DirPreview
 from src.utils.file_validity import valid_wiki_name
 from src.utils.path_utils import gen_path_string
 
@@ -33,14 +34,15 @@ class ItemNameDialog(QDialog):
         label = QLabel(parent=self, text=f"Enter your item/folder name")
         layout.addWidget(label)
 
+
         self.__line_edit = QLineEdit(self)
-        self.__line_edit.textChanged.connect
+        self.__line_edit.textChanged.connect(self.__validate)
         layout.addWidget(self.__line_edit)
 
-        self.__location_label = QLabel(parent=self, text="")
-        layout.addWidget(self.__location_label)
-        #self.__location_label.setStyleSheet("QLabel {border: 5px solid}")
-
+        self.__dir_preview = DirPreview(self, wiki_directory)
+        self.__dir_preview.file_selected.connect(self.__on_select)
+        layout.addWidget(self.__dir_preview)
+        
         self.__error_label = QLabel(parent=self, text="")
         layout.addWidget(self.__error_label)
         
@@ -54,20 +56,19 @@ class ItemNameDialog(QDialog):
         self.__wiki_directory = wiki_directory
 
         # Width of self.__location_label is inaccurate when retrieved in __init__, it must be running on the app for it to be accurate
-        QTimer.singleShot(10, Qt.TimerType.PreciseTimer, self.__update_item_label)
+        # QTimer.singleShot(10, Qt.TimerType.PreciseTimer, self.__update_item_label)
         
-    def __update_item_label(self):
-        location_text = f"at {gen_path_string(self.__working_directory, self.__wiki_directory)}"
-        metrics = QFontMetrics(self.__location_label.font())
-        elided_text = metrics.elidedText(location_text, Qt.TextElideMode.ElideMiddle, self.__location_label.width()     )
-        self.__location_label.setText(elided_text)
-
     def __on_accept(self):
         self.on_path_selected.emit(ItemCreationResult(
                 path=self.gen_resultatnt_path(),
                 typ=self.__item_type
             )
         )
+
+    def __on_select(self):
+        if chosen_dir := self.__dir_preview.get_chosen_dir():
+            self.__working_directory = self.__wiki_directory / chosen_dir
+        self.__validate()
 
     def gen_resultatnt_path(self):
         line_edit_txt = self.__line_edit.text()

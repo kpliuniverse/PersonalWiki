@@ -2,7 +2,15 @@ from enum import Enum
 import pathlib
 from typing import Optional
 
-from PyQt6.QtWidgets import QDialog, QDialogButtonBox, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import (
+    QDialog, 
+    QDialogButtonBox, 
+    QHBoxLayout, 
+    QLabel, 
+    QPushButton, 
+    QVBoxLayout, 
+    QWidget
+)
 from PyQt6.QtCore import Qt, pyqtSignal
 from attrs import define
 
@@ -12,6 +20,7 @@ from src.ui.components.project_tree import ProjectTree, ProjectTreeArgs
 class ProjectDialogArgs:
     dir_only: bool = False
     add_root_as_folder: bool = False
+
 
 class ProjectDialog(QDialog):
 
