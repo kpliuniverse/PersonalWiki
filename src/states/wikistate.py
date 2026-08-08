@@ -1,16 +1,17 @@
 
 
+from dataclasses import dataclass
 import pathlib
 
 from attrs import define, field, setters
 
 
-@define(slots=True)
+@dataclass(slots=True)
 class Session:
     cur_item: pathlib.Path
 
 
-@define(slots=True)
+@dataclass(slots=True)
 class Settings:
     """
         Contains the settings for the p
