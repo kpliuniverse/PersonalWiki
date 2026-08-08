@@ -1,8 +1,6 @@
-from dataclasses import dataclass
+import logging
 import pathlib
-from typing import Callable, override
 
-from PyQt6 import QtCore
 from PyQt6.QtWidgets import QDialog, QLabel, QLineEdit, QPushButton, QWidget, QVBoxLayout
 from PyQt6.QtGui import QFontMetrics
 from PyQt6.QtCore import QTimer, Qt, pyqtSignal
@@ -12,7 +10,6 @@ from src.exceptions import GUIException
 from src.items.items import ItemType, ItemCreationResult
 from src.ui.components.dir_preview import DirPreview
 from src.utils.file_validity import valid_wiki_name
-from src.utils.path_utils import gen_path_string
 
 class ItemNameDialog(QDialog):
 
@@ -20,6 +17,7 @@ class ItemNameDialog(QDialog):
 
     
     def __init__(self, parent: QWidget, item_type: ItemType, directory: pathlib.Path, wiki_directory: pathlib.Path):
+        logging.debug(f"{directory=}")
 
         if not directory.is_relative_to(wiki_directory):
             raise GUIException(f"Directory {directory} is not related to wiki_directory {wiki_directory}")
@@ -31,7 +29,7 @@ class ItemNameDialog(QDialog):
         layout = QVBoxLayout()
         self.setLayout(layout)
         self.setFixedSize(400, 200)
-        label = QLabel(parent=self, text=f"Enter your item/folder name")
+        label = QLabel(parent=self, text="Enter your item/folder name")
         layout.addWidget(label)
 
 
@@ -39,7 +37,7 @@ class ItemNameDialog(QDialog):
         self.__line_edit.textChanged.connect(self.__validate)
         layout.addWidget(self.__line_edit)
 
-        self.__dir_preview = DirPreview(self, wiki_directory)
+        self.__dir_preview = DirPreview(self, wiki_directory, pre_chosen_dir=directory.relative_to(wiki_directory))
         self.__dir_preview.file_selected.connect(self.__on_select)
         layout.addWidget(self.__dir_preview)
         
@@ -86,7 +84,7 @@ class ItemNameDialog(QDialog):
             valid = False
             error_msg = "Not a valid item name."
 
-        if self.gen_resultatnt_path().exists():
+        if (self.__wiki_directory / self.gen_resultatnt_path()).exists():
             valid = False
             error_msg = f"Item/folder already exists"
 
