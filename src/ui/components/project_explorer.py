@@ -105,16 +105,15 @@ class ProjectExplorer(QWidget):
         ).relative_to(self.__get_workdir()))
     
     def __on_move_btn(self):
-        workdir = self.__get_workdir()
 
         selected_items = []
         for index in self.__project_tree.get_selected_indexes():
             selected_item: pathlib.Path = index.data(Qt.ItemDataRole.UserRole + 1)
-            if isinstance(selected_item, pathlib.Path):
+            if not isinstance(selected_item, pathlib.Path):
                 logging.error("Selected item is None or not pathlib.Path type=%s", type(selected_item))
                 continue
             selected_items.append(selected_item)
-
+        
         dialog = ItemMoveDialog(self, selected_items, self.__get_workdir())
         dialog.items_moved.connect(self.__move_item)
         dialog.exec()
@@ -156,7 +155,7 @@ class ProjectExplorer(QWidget):
     def __on_delete_btn(self):
         for index in self.__project_tree.get_selected_indexes():
             selected_item: pathlib.Path = index.data(Qt.ItemDataRole.UserRole + 1)
-            if not selected_item or not isinstance(selected_item, pathlib.Path):
+            if not isinstance(selected_item, pathlib.Path):
                 logging.error("Selected item is None or not pathlib.Path type=%s", type(selected_item))
                 continue
             self.__delete_item(selected_item)
