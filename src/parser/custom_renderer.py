@@ -6,8 +6,6 @@ from mistune import create_markdown
 from mistune.core import BaseRenderer, BlockState
 from mistune.util import safe_entity, striptags
 
-
-
 def escape_text(s: str, quote: bool = True):
     return html.escape(s, quote)
 
