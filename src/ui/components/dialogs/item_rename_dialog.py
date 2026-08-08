@@ -92,7 +92,6 @@ class ItemRenameDialog(QDialog):
             valid = False
             error_msg = "Not a valid item name."
         cur_path = self.__wiki_directory / self.gen_resultatnt_path()
-        logging.debug("cur_path=%s", cur_path)
         if cur_path.exists():
             valid = False
             error_msg = f"Item/folder already exists"
