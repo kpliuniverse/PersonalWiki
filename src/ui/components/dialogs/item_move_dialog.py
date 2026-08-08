@@ -9,10 +9,10 @@ from PyQt6.QtWidgets import QDialog, QDialogButtonBox, QHBoxLayout, QLabel, QPus
 from PyQt6.QtCore import QTimer, Qt, pyqtSignal
 from PyQt6.QtGui import QFontMetrics
 
-from src.components.dialogs.projectdialog import ProjectDialog, ProjectDialogArgs
+from src.ui.components.dialogs.project_dialog import ProjectDialog, ProjectDialogArgs
 from src.exceptions import GUIException
-from src.utils.moveinfo import MoveInfo
-from src.utils.pathutils import gen_path_string
+from src.utils.move_info import MoveInfo
+from src.utils.path_utils import gen_path_string
 
 
 
@@ -43,7 +43,7 @@ class DirPreview(QWidget):
         if self.__chosen_path is None:
             self.__location_label.setText("(no chosen path)")
             return
-        location_text = f"at {gen_path_string(self.__chosen_path, self.__wiki_directory)}"
+        location_text = f"at {gen_path_string(self.__wiki_directory / self.__chosen_path, self.__wiki_directory)}"
         metrics = QFontMetrics(self.__location_label.font())
         elided_text = metrics.elidedText(location_text, Qt.TextElideMode.ElideMiddle, self.__location_label.width())
         self.__location_label.setText(elided_text)
@@ -59,7 +59,9 @@ class DirPreview(QWidget):
     def __on_browse(self):
         dialog = ProjectDialog(self, self.__wiki_directory, ProjectDialogArgs(
             dir_only=True,
-            add_root_as_folder=True
+            add_root_as_folder=True,
+            
+            
         ))
         dialog.on_file_selected.connect(self.__on_chosen)
         dialog.exec()
@@ -70,9 +72,6 @@ class ItemMoveDialog(QDialog):
 
     def __init__ (self, parent: QWidget, items: List[pathlib.Path], wiki_directory: pathlib.Path):
         super().__init__(parent=parent)
-        for i, item in enumerate(items):
-            if not item.is_relative_to(wiki_directory):
-                raise GUIException(f"item {item} (index #{i}) is not related to wiki_directory {wiki_directory}")
 
         if not items:
             raise GUIException("ItemMoveDialog created without specifying items to move.")
@@ -80,7 +79,7 @@ class ItemMoveDialog(QDialog):
         self.__items = items
         layout = QVBoxLayout()
         self.setLayout(layout)
-        label_text = f"Moving {len(items)} items" if len(items) > 1 else f"Moving {(items[0].relative_to(wiki_directory)).as_posix()}"
+        label_text = f"Moving {len(items)} items" if len(items) > 1 else f"Moving {(items[0]).as_posix()}"
         label = QLabel(parent=self, text=label_text)
         layout.addWidget(label)
 
@@ -115,4 +114,5 @@ class ItemMoveDialog(QDialog):
         if chosen_dir is None:
             logging.warning("No directory selected, ignoring move request.")
             return
-        self.items_moved.emit(MoveInfo.gen_move_info(self.__items, chosen_dir))
+        chosen_dir = self.__wiki_directory / chosen_dir
+        self.items_moved.emit(MoveInfo.gen_move_info([self.__wiki_directory / item for item in self.__items], chosen_dir).relative_to(self.__wiki_directory))

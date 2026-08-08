@@ -4,7 +4,6 @@ import os
 import pathlib
 from typing import List
 
-
 @dataclass(frozen=True)
 class MoveInfo:
     paths_deleted: List[pathlib.Path]
@@ -28,8 +27,8 @@ class MoveInfo:
                     paths_removed.extend((pl_root / f for f in files))
                     paths_removed.append(pl_root)
 
-                for (root,_,files) in os.walk(item, topdown=True):       
-                    pl_root = pathlib.Path(root)       
+                for (root,_,files) in os.walk(item, topdown=True):
+                    pl_root = pathlib.Path(root)
                     paths_created.append(dst / pl_root.relative_to(item.parent))
                     paths_created.extend((dst / pl_root.relative_to(item.parent) / f for f in files ))
             if item.is_file():
@@ -42,4 +41,12 @@ class MoveInfo:
             paths_deleted=paths_removed,
             src_items=src,
             dest=dst
+        )
+
+    def relative_to(self, path: pathlib.Path):
+        return MoveInfo(
+            paths_deleted=[p.relative_to(path) for p in self.paths_deleted],
+            paths_created=[p.relative_to(path) for p in self.paths_created] ,
+            src_items=[p.relative_to(path) for p in self.src_items],
+            dest = self.dest.relative_to(path)
         )

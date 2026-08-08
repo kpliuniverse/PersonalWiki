@@ -3,7 +3,7 @@ import logging
 
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 
-from src.parser import markdownparser
+from src.parser import markdown_parser
 
 class RendererWorker(QObject):
 
@@ -16,7 +16,7 @@ class RendererWorker(QObject):
     @pyqtSlot(str)    
     def render_pwe(self, pwe: str):
         logging.debug("Rendering")
-        parsed = markdownparser.parse_chunk(pwe)
+        parsed = markdown_parser.parse_chunk(pwe)
         self.finished.emit(parsed)
-        markdownparser.parse_chunk(pwe)
+        markdown_parser.parse_chunk(pwe)
         logging.debug("Done rendering")

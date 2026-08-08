@@ -19,7 +19,7 @@ from PyQt6.QtWidgets import (
 )
 
 from src.exceptions import GUIException
-from src.itemmodels.projectitem import ProjectItem
+from src.itemmodels.project_item import ProjectItem
 
 class DragDropInfo(NamedTuple):
     src: pathlib.Path
@@ -29,12 +29,24 @@ class DragDropInfo(NamedTuple):
 class ProjectTreeArgs:
     dir_only: bool = False
     add_root_as_folder: bool = False
+    read_only: bool = False
 
 class CustomQTreeView(QTreeView):
     drag_drop_item = pyqtSignal(DragDropInfo)
+
+    def __post_init__(self):
+        self.work_dir: Optional[pathlib.Path] = None
+
+    def set_workdir(self, work_dir):
+        self.work_dir = work_dir
+
+        
     @override
     def dropEvent(self, e: Optional[QDropEvent]):
 
+        if self.work_dir is None:
+            raise GUIException("Workdir not set")
+        
         src: CustomQTreeView = e.source() # type: ignore
 
         if src is None:
@@ -64,39 +76,37 @@ class CustomQTreeView(QTreeView):
             logging.warning("Item returned None.")
             return
         target_path: pathlib.Path = target_item.data(Qt.ItemDataRole.UserRole + 1)
+        target_path_abs = self.work_dir / target_path
 
-        if target_path.is_file():
-            target_path = target_path.parent        
+        if target_path_abs.is_file():
+            target_path = target_path.parent
 
         dragged_indexes = src.selectedIndexes()
         if not dragged_indexes:
-            logging.info("dragged_indexes is None")
+            logging.info("dragged_indexes is None or empty")
             return
         assert model == src.model()
 
-        if len(dragged_indexes) > 1:
-            logging.info("Cancelling due to multiple destinations")
-            return
-        
-        dragged_item = model.itemFromIndex(dragged_indexes[0])
-        if dragged_item is None:
-            logging.warning("dragged_item is None")
-            return
-        dragged_path: pathlib.Path = dragged_item.data(Qt.ItemDataRole.UserRole + 1)
+        for dragged_index in dragged_indexes:
+            dragged_item = model.itemFromIndex(dragged_index)
+            if dragged_item is None:
+                logging.warning("dragged_item is None")
+                return
+            dragged_path: pathlib.Path = dragged_item.data(Qt.ItemDataRole.UserRole + 1)
+            dragged_path_abs = self.work_dir / dragged_path
+            if dragged_path.parent == target_path:
+                logging.info("parent of dragged_path is the same as target_path")
+                e.ignore()
+                return
+            logging.debug("Dragged %s to %s", dragged_path, target_path)
 
-        if dragged_path.parent == target_path:
-            logging.info("parent of dragged_path is the same as target_path")
-            e.ignore()
-            return
-        logging.debug("Dragged %s to %s", dragged_path, target_path)
+            # Let the ProjectTree take care of the rendering, as using e.accept() / calling super().dropEvent() results in bugs over removing unrelated items
+            
 
-        # Let the ProjectTree take care of the rendering, as using e.accept() / calling super().dropEvent() results in bugs over removing unrelated items
-        
+            self.drag_drop_item.emit(DragDropInfo(dragged_path, target_path))
 
-        self.drag_drop_item.emit(DragDropInfo(dragged_path, target_path))
 
 class ProjectTree(QWidget):
-    __tree: QTreeView
 
     def __init__(self, parent: QWidget, tree_args: ProjectTreeArgs):
         self.__args = tree_args
@@ -118,10 +128,11 @@ class ProjectTree(QWidget):
         self.__cur_selected_path: Optional[pathlib.Path] = None
         self.__working_directory: Optional[pathlib.Path] = None
 
-        self.__tree.setDragEnabled(True)
-        if v := self.__tree.viewport():
-            v.setAcceptDrops(True)
-        self.__tree.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
+        if not tree_args.read_only:
+            self.__tree.setDragEnabled(True)
+            if v := self.__tree.viewport():
+                v.setAcceptDrops(True)
+            self.__tree.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
     def __on_select(self, val: QModelIndex):
         self.__cur_selected_item = val
         self.__cur_selected_path = pathlib.Path(self.__cur_selected_item.data(Qt.ItemDataRole.UserRole + 1))
@@ -184,20 +195,23 @@ class ProjectTree(QWidget):
         dir_to_item: Dict[str, QStandardItem] = dict()
         item_system_model.setHorizontalHeaderLabels([])
         subdirs: Deque[pathlib.Path] = deque([directory])
-        dir_to_item[directory.as_posix()] = root_node
+        dot = directory.relative_to(self.__working_directory).as_posix()
+        dir_to_item[dot] = root_node
         while len(subdirs) > 0:
             subdir = subdirs.popleft()
             for path in subdir.iterdir():
                 if path.is_junction() and path.is_symlink():
                     continue
-                project_item = ProjectItem(path)
+                rel_path = path.relative_to(self.__working_directory)
+                rel_subdir = subdir.relative_to(self.__working_directory)
+                project_item = ProjectItem(rel_path)
                 if path.is_dir():
                     subdirs.append(path)
-                    dir_to_item[path.as_posix()] = project_item
-                    dir_to_item[subdir.as_posix()].appendRow(project_item)
+                    dir_to_item[rel_path.as_posix()] = project_item
+                    dir_to_item[rel_subdir.as_posix()].appendRow(project_item)
 
                 if path.is_file() and not self.__args.dir_only:
-                    dir_to_item[subdir.as_posix()].appendRow(project_item)
+                    dir_to_item[rel_subdir.as_posix()].appendRow(project_item)
 
         self.__tree.setModel(item_system_model)
 
@@ -205,7 +219,7 @@ class ProjectTree(QWidget):
             root_node.appendRow(ProjectItem(pathlib.Path(directory), name="(root)"))
 
         self.__index_dict.clear()
-        self.__index_dict[directory.as_posix()] = root_node
+        self.__index_dict[dot] = root_node
         items: deque[QStandardItem] = deque([root_node])
         
         while len(items) > 0:
@@ -215,3 +229,5 @@ class ProjectTree(QWidget):
                     data: pathlib.Path = child.data(Qt.ItemDataRole.UserRole + 1)
                     self.__index_dict[data.as_posix()] = child
                     items.append(child)
+
+        self.__tree.set_workdir(directory)

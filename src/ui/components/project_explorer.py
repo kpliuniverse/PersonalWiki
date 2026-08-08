@@ -2,8 +2,9 @@ import logging
 import os
 import pathlib
 import shutil
+from typing import List
 
-from PyQt6.QtCore import QModelIndex, Qt 
+from PyQt6.QtCore import QModelIndex, Qt, pyqtSignal 
 from PyQt6.QtGui import QStandardItem, QStandardItemModel
 from PyQt6.QtWidgets import (
     QMenu,
@@ -15,10 +16,11 @@ from PyQt6.QtWidgets import (
     QPushButton
 )
 
-from src.components.dialogs.itemmovedialog import ItemMoveDialog
-from src.utils.moveinfo import MoveInfo
-from src.components.dialogs.itemnamedialog import ItemNameDialog
-from src.components.projecttree import DragDropInfo, ProjectTree, ProjectTreeArgs
+from src.ui.components.dialogs.item_move_dialog import ItemMoveDialog
+from src.utils.item_actions import Action, MoveAction, CopyAction, NewItemAction, DeleteAction
+from src.utils.move_info import MoveInfo
+from src.ui.components.dialogs.item_name_dialog import ItemNameDialog
+from src.ui.components.project_tree import DragDropInfo, ProjectTree, ProjectTreeArgs
 from src.exceptions import GUIException
 from src.items.items import ItemCreationResult, ItemType
 
@@ -35,7 +37,13 @@ class ToolBar(QToolBar):
         self.del_btn = QPushButton(parent=self, text="Delete")
         self.addWidget(self.del_btn)
 class ProjectExplorer(QWidget):
-
+    """
+        signals:
+        item_operation_requested: takes List[Action] emitted when the widget requests file moves, removes, etc.
+    
+    """
+    
+    item_operation_requested = pyqtSignal(list)
     def __init__(self, parent: QWidget):
         super().__init__(parent)
         self.__root_layout = QVBoxLayout()
@@ -59,8 +67,8 @@ class ProjectExplorer(QWidget):
 
     def __new_menu(self):
         new_menu = QMenu()
-        new_menu.addAction("File", lambda: self.__on_new_item(ItemType["PWE"]))
-        new_menu.addAction("Folder", lambda: self.__on_new_item(ItemType["FOLDER"]))
+        new_menu.addAction("File", lambda: self.__on_new_btn(ItemType["PWE"]))
+        new_menu.addAction("Folder", lambda: self.__on_new_btn(ItemType["FOLDER"]))
         return new_menu
 
     def __get_workdir(self):
@@ -72,16 +80,11 @@ class ProjectExplorer(QWidget):
         return workdir
 
     def __move_item(self, move_info: MoveInfo):
-    
-
-        for item in move_info.src_items:
-            try:
-                shutil.move(item, move_info.dest)
-
-            except shutil.Error as e:
-                logging.info("Move cancelled due to: %s", e)
-                return
         
+        actions = [MoveAction(item, move_info.dest) for item in move_info.src_items]
+        self.item_operation_requested.emit(actions)
+
+        logging.debug("Updating __move_item")
         for path2 in move_info.paths_deleted:
             self.__project_tree.delete_item(path2)
 
@@ -90,11 +93,11 @@ class ProjectExplorer(QWidget):
 
     def __on_drag_drop_item(self, info: DragDropInfo):
         self.__move_item(MoveInfo.gen_move_info(
-            [info.src],
-            info.dst
-        ))
+            [self.__get_workdir() / info.src],
+            self.__get_workdir() / info.dst
+        ).relative_to(self.__get_workdir()))
     
-    def __on_move_item(self):
+    def __on_move_btn(self):
         workdir = self.__get_workdir()
 
         selected_items = []
@@ -105,7 +108,7 @@ class ProjectExplorer(QWidget):
                 continue
             selected_items.append(selected_item)
 
-        dialog = ItemMoveDialog(self, selected_items, workdir)
+        dialog = ItemMoveDialog(self, selected_items, self.__get_workdir())
         dialog.items_moved.connect(self.__move_item)
         dialog.exec()
 
@@ -113,29 +116,21 @@ class ProjectExplorer(QWidget):
         toolbar = ToolBar(self)
 
         toolbar.new_btn.setMenu(self.__new_menu())
-        toolbar.del_btn.clicked.connect(self.__on_delete_item)
-        toolbar.move_btn.clicked.connect(self.__on_move_item)
+        toolbar.del_btn.clicked.connect(self.__on_delete_btn)
+        toolbar.move_btn.clicked.connect(self.__on_move_btn)
 
         return toolbar
 
     def __create_new_item(self, item: ItemCreationResult):
-        if item.typ == ItemType["FOLDER"]:
-            item.path.mkdir()
-        else:
-            with open(item.path, "x", encoding="utf-8") as _:
-                pass
+        self.item_operation_requested.emit([NewItemAction(item.path, item.typ == ItemType["FOLDER"])])
         self.__project_tree.add_path(item.path)
         # self.__index_dict[item.path.parent.as_posix()].appendRow(project_item)
         # self.__index_dict[item.path.as_posix()] = project_item
 
     def __delete_item(self, item: pathlib.Path):
-        if item.is_dir():
-            shutil.rmtree(item)
-            #os.rmdir(self.__cur_selected_item)
-        if item.is_file():
-            os.remove(item)
+        self.item_operation_requested.emit([DeleteAction(item)])
 
-    def __on_delete_item(self):
+    def __on_delete_btn(self):
         for index in self.__project_tree.get_selected_indexes():
             selected_item: pathlib.Path = index.data(Qt.ItemDataRole.UserRole + 1)
             if not selected_item or not isinstance(selected_item, pathlib.Path):
@@ -144,16 +139,20 @@ class ProjectExplorer(QWidget):
             self.__delete_item(selected_item)
             self.__project_tree.delete_item(selected_item)
             
-    def __on_new_item(self, item_type: ItemType):
+    def __on_new_btn(self, item_type: ItemType):
         workdir = self.__get_workdir()
         selected_path = self.__project_tree.get_cur_selected_path()
+        
         if not selected_path:
             dir_to_create = workdir
-        elif selected_path.is_dir():
-            dir_to_create = selected_path
         else:
-            dir_to_create = selected_path.parent
+            selected_path = workdir / selected_path
+            if selected_path.is_dir():
+                dir_to_create = selected_path
+            else:
+                dir_to_create = selected_path.parent
 
+        
         dialog = ItemNameDialog(self, item_type, dir_to_create, workdir)
         dialog.on_path_selected.connect(self.__create_new_item)
         dialog.exec()

@@ -6,7 +6,7 @@ from typing import Optional
 from PyQt6.QtWidgets import QDialog, QDialogButtonBox, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 from PyQt6.QtCore import Qt, pyqtSignal
 
-from src.components.projecttree import ProjectTree, ProjectTreeArgs
+from src.ui.components.project_tree import ProjectTree, ProjectTreeArgs
 
 @dataclass
 class ProjectDialogArgs:
@@ -24,7 +24,8 @@ class ProjectDialog(QDialog):
         self.setLayout(layout)
         self.__tree = ProjectTree(self, ProjectTreeArgs(
             dir_only=args.dir_only,
-            add_root_as_folder=args.add_root_as_folder            
+            add_root_as_folder=args.add_root_as_folder,
+            read_only=True
         ))
         self.__tree.load(wiki_dir)
         self.__tree.item_clicked.connect(self.__on_tree_select)

@@ -10,8 +10,8 @@ from PyQt6.QtCore import QTimer, Qt, pyqtSignal
 
 from src.exceptions import GUIException
 from src.items.items import ItemType, ItemCreationResult
-from src.utils.filevalidity import valid_wiki_name
-from src.utils.pathutils import gen_path_string
+from src.utils.file_validity import valid_wiki_name
+from src.utils.path_utils import gen_path_string
 
 class ItemNameDialog(QDialog):
 
@@ -75,7 +75,7 @@ class ItemNameDialog(QDialog):
         ending = ""
         if self.__item_type == ItemType["PWE"]:
             ending = ".pwe"
-        return self.__working_directory / f"{txt_stripped}{ending}"
+        return (self.__working_directory / f"{txt_stripped}{ending}").relative_to(self.__wiki_directory)
 
     def __validate(self):
         valid = True
