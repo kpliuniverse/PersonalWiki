@@ -96,6 +96,7 @@ class ProjectExplorer(QWidget):
             [self.__get_workdir() / info.src],
             self.__get_workdir() / info.dst
         ).relative_to(self.__get_workdir()))
+        self.__validate_btns()
     
     def __on_move_btn(self):
 
@@ -113,9 +114,10 @@ class ProjectExplorer(QWidget):
 
     def __rename_item(self, info: RenameInfo):
         self.item_operation_requested.emit([MoveAction(info.file, info.full_new_name())])
-
         self.__project_tree.delete_item(info.file)
         self.__project_tree.add_item(info.full_new_name())
+        self.__validate_btns()
+        
         
     def __on_rename_btn(self):
         if len((index := self.__project_tree.get_selected_indexes())) > 1:
@@ -139,11 +141,13 @@ class ProjectExplorer(QWidget):
     def __create_new_item(self, item: ItemCreationResult):
         self.item_operation_requested.emit([NewItemAction(item.path, item.typ == ItemType["FOLDER"])])
         self.__project_tree.add_item(item.path)
+        self.__validate_btns()
         # self.__index_dict[item.path.parent.as_posix()].appendRow(project_item)
         # self.__index_dict[item.path.as_posix()] = project_item
 
     def __delete_item(self, item: pathlib.Path):
         self.item_operation_requested.emit([DeleteAction(item)])
+        self.__validate_btns()
 
     def __on_delete_btn(self):
         for index in self.__project_tree.get_selected_indexes():
