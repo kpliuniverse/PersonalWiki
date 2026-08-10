@@ -11,7 +11,6 @@ from PyQt6.QtWidgets import (
     QTextEdit,
     QWidget,
 )
-
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtGui import QAction, QFont, QKeySequence, QShortcut
 from PyQt6.QtCore import Q_ARG, QMetaObject, QModelIndex, QObject, QTimer, QUrl, Qt, pyqtSignal, pyqtSlot, QThread
@@ -28,21 +27,7 @@ from src.utils.navigation_info import NavigationInfo
 from src.wiki.wiki import open_wiki
 
 class MainWindow(QMainWindow):
-    def __intercept_navigation(self, nav_info: NavigationInfo):
-        scheme = nav_info.url.scheme()
-        if scheme == "data":
-            return
-        if scheme == "wiki":
-            # QUrl.path() treates first member
-            url_copy = QUrl(nav_info.url)
-            url_copy.setScheme("")
-            url_str = url_copy.toString().strip("/")
-            logging.debug("url_str=%s", url_str)
-            if (self.__app_state.cur_wiki.get_wiki_proper_path() / url_str).exists():
-                self.__load_item(pathlib.Path(url_str))
-        logging.debug("Going to %s", nav_info.url.toString())
-            
-        
+                    
     def __init__(self, initcontext: InitContext):
         super().__init__()
         self.__rendering_thread: Optional[QThread] = None
@@ -97,9 +82,23 @@ class MainWindow(QMainWindow):
         save_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
         save_shortcut.activated.connect(self.__save_cur_item)
 
-        self.__load_cur_item()      
+        self.__load_cur_item()
         self.__refresh_project_tree()
         
+    def __intercept_navigation(self, nav_info: NavigationInfo):
+        scheme = nav_info.url.scheme()
+        if scheme == "data":
+            return
+        if scheme == "wiki":
+            # QUrl.path() treates first member
+            url_copy = QUrl(nav_info.url)
+            url_copy.setScheme("")
+            url_str = url_copy.toString().lstrip("/")
+            logging.debug("url_str=%s", url_str)
+            if (self.__app_state.cur_wiki.get_wiki_proper_path() / url_str).exists():
+                self.__load_item(pathlib.Path(url_str))
+
+        logging.debug("Going to %s", nav_info.url.toString())
 
     @pyqtSlot()
     def __render_markdown(self):
@@ -112,7 +111,7 @@ class MainWindow(QMainWindow):
         logging.debug("Preparing to render...")
         renderer_worker = RendererWorker()
         renderer_worker.moveToThread(self.__rendering_thread)
-        self.__rendering_thread.started.connect(lambda: QMetaObject.invokeMethod(renderer_worker, "render_pwe",Qt.ConnectionType.QueuedConnection, Q_ARG(str, pwe_string)))
+        self.__rendering_thread.started.connect(lambda: QMetaObject.invokeMethod(renderer_worker, "render_pwe", Qt.ConnectionType.QueuedConnection, Q_ARG(str, pwe_string)))
         renderer_worker.finished.connect(self.__text_view.setHtml)
         renderer_worker.finished.connect(self.__rendering_thread.quit)
         self.__rendering_thread.finished.connect(renderer_worker.deleteLater)
