@@ -12,6 +12,7 @@ dependencies = [
     "pyqt6-webengine>=6.11.0",
     "pytest>=9.1.1",
     "pytest-qt>=4.5.0",
+    "qscintilla>=2.14.1",
 ]
 
 
