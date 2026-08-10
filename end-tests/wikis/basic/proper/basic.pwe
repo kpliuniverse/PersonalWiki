@@ -10,3 +10,7 @@ This should autosave.
 *<b>This does now escapes now</b>*
 
 "You're a freak. A daughter of a tyrant", they said.
+
+Here is a markdown example: [Here](wiki://example/headings.pwe)
+
+This should not work [Here](wiki://../hacked.txt)

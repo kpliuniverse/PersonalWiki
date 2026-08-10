@@ -14,20 +14,35 @@ from PyQt6.QtWidgets import (
 
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtGui import QAction, QFont, QKeySequence, QShortcut
-from PyQt6.QtCore import Q_ARG, QMetaObject, QModelIndex, QObject, QTimer, Qt, pyqtSignal, pyqtSlot, QThread
+from PyQt6.QtCore import Q_ARG, QMetaObject, QModelIndex, QObject, QTimer, QUrl, Qt, pyqtSignal, pyqtSlot, QThread
 from PyQt6.QtWebEngineCore import QWebEngineProfile
 
 from src.ui.components.project_explorer import ProjectExplorer
 from src.exceptions import GUIException
-from src.pages.custom_page import CustomPage
+from src.ui.pages.custom_page import CustomPage
 from src.initcontext import InitContext
 from src.states.appstate import AppState
 from src.ui.components.main_ribbon import MainRibbon
 from src.ui.workers.renderer_worker import RendererWorker
+from src.utils.navigation_info import NavigationInfo
 from src.wiki.wiki import open_wiki
 
 class MainWindow(QMainWindow):
-
+    def __intercept_navigation(self, nav_info: NavigationInfo):
+        scheme = nav_info.url.scheme()
+        if scheme == "data":
+            return
+        if scheme == "wiki":
+            # QUrl.path() treates first member
+            url_copy = QUrl(nav_info.url)
+            url_copy.setScheme("")
+            url_str = url_copy.toString().strip("/")
+            logging.debug("url_str=%s", url_str)
+            if (self.__app_state.cur_wiki.get_wiki_proper_path() / url_str).exists():
+                self.__load_item(pathlib.Path(url_str))
+        logging.debug("Going to %s", nav_info.url.toString())
+            
+        
     def __init__(self, initcontext: InitContext):
         super().__init__()
         self.__rendering_thread: Optional[QThread] = None
@@ -65,6 +80,7 @@ class MainWindow(QMainWindow):
         self.profile = QWebEngineProfile()
 
         webpage = CustomPage(self.profile, self.__text_view)
+        webpage.navigation_requested.connect(self.__intercept_navigation)
         self.__text_view.setPage(webpage)
         self.__text_view.show()
         editor_splitter.addWidget(self.__text_view)
@@ -131,15 +147,18 @@ class MainWindow(QMainWindow):
             action = QAction(action_entry[0], self)
             action.triggered.connect(action_entry[1])
             file_menu.addAction(action)
-        
+
+    def __load_item(self, item_path: pathlib.Path):
+        self.__app_state.cur_wiki.set_cur_item(item_path)
+        self.__load_cur_item()
+
     def __on_project_item_double_clicked(self, val: QModelIndex):
         item_path: pathlib.Path = val.data(Qt.ItemDataRole.UserRole + 1)
         item_path_abs = self.__app_state.cur_wiki.get_wiki_proper_path() / item_path
         logging.debug("Item double clicked to %s", item_path)
         if item_path_abs.is_file():
-            self.__app_state.cur_wiki.set_cur_item(item_path)
-            self.__load_cur_item()
-
+            self.__load_item(item_path)
+            
     def __refresh_project_tree(self):  
         proper_path = (self.__app_state.cur_wiki.get_wiki_dir_path() / "proper")
         self.__project_explorer.load(proper_path)
