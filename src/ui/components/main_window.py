@@ -13,7 +13,16 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtGui import QAction, QFont, QKeySequence, QShortcut
-from PyQt6.QtCore import Q_ARG, QMetaObject, QModelIndex, QObject, QTimer, QUrl, Qt, pyqtSignal, pyqtSlot, QThread
+from PyQt6.QtCore import (
+    Q_ARG, 
+    QMetaObject, 
+    QModelIndex, 
+    QTimer, 
+    QUrl, 
+    Qt, 
+    pyqtSlot, 
+    QThread
+)
 from PyQt6.QtWebEngineCore import QWebEngineProfile
 
 from src.ui.components.project_explorer import ProjectExplorer
@@ -35,7 +44,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("PersonalWiki")
 
         self.__app_state = AppState()
-        self.__app_state.cur_wiki = open_wiki(initcontext.wiki)
+        self.__app_state.cur_wiki = open_wiki(initcontext.path_to_pwi_file)
 
         self.__init_menu_bar()
         self.root = QWidget()
@@ -90,14 +99,13 @@ class MainWindow(QMainWindow):
         if scheme == "data":
             return
         if scheme == "wiki":
-            # QUrl.path() treates first member
+            # QUrl.path() truncates first member
             url_copy = QUrl(nav_info.url)
             url_copy.setScheme("")
             url_str = url_copy.toString().lstrip("/")
             logging.debug("url_str=%s", url_str)
             if (self.__app_state.cur_wiki.get_wiki_proper_path() / url_str).exists():
                 self.__load_item(pathlib.Path(url_str))
-
         logging.debug("Going to %s", nav_info.url.toString())
 
     @pyqtSlot()

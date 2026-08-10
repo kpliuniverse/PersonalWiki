@@ -26,7 +26,7 @@ class App:
         self.app = QApplication(sys.argv)
         self.init_fonts()
         self.main_window = MainWindow(initcontext=InitContext(
-            wiki=pathlib.Path(self.app.arguments()[1])
+            path_to_pwi_file=pathlib.Path(self.app.arguments()[1])
         ))
 
     def run(self):

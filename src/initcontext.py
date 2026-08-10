@@ -6,4 +6,4 @@ from attrs import define
 
 @define(frozen=True)
 class InitContext:
-    wiki: pathlib.Path
+    path_to_pwi_file: pathlib.Path
