@@ -14,3 +14,6 @@ def gen_path_string(item_path: pathlib.Path, wiki_directory: pathlib.Path):
         return f"/{(item_path.relative_to(wiki_directory)).as_posix()}"
 
 
+
+def path_root():
+    return pathlib.Path(".")

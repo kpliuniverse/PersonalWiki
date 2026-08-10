@@ -3,6 +3,8 @@ from PyQt6.QtWidgets import (
     QApplication,
 )
 
+from PyQt6.QtGui import QFontDatabase
+
 import sys
 import pathlib 
 import logging

@@ -82,12 +82,17 @@ class CustomQTreeView(QTreeView):
             return
         assert model == src.model()
 
-        for dragged_index in dragged_indexes:
+        for dragged_index in sorted(dragged_indexes, key=lambda ind: ind.row(), reverse=True):
+            logging.debug(f"{dragged_index.row()=}")
             dragged_item = model.itemFromIndex(dragged_index)
             if dragged_item is None:
                 logging.warning("dragged_item is None")
                 return
-            dragged_path: pathlib.Path = dragged_item.data(Qt.ItemDataRole.UserRole + 1)
+            dragged_path: Optional[pathlib.Path] = dragged_item.data(Qt.ItemDataRole.UserRole + 1)
+            logging.debug("dragged_path=%s", dragged_path)
+            if dragged_path is None:
+                logging.warning("dragged_path is None")
+                return
             if dragged_path.parent == target_path:
                 logging.info("parent of dragged_path is the same as target_path")
                 e.ignore()
@@ -111,8 +116,10 @@ class ProjectTree(QWidget):
         self.setLayout(self.__root_layout)
         # self.__add_edit_buttons()
         self.__tree = CustomQTreeView(self)
+        self.__tree.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.__root_layout.addWidget(self.__tree)
         self.__tree.clicked.connect(self.__on_select)
+        
         self.item_clicked = self.__tree.clicked
         self.file_double_clicked = self.__tree.doubleClicked
         self.drag_drop_item = self.__tree.drag_drop_item
@@ -126,8 +133,10 @@ class ProjectTree(QWidget):
             self.__tree.setDragEnabled(True)
             if v := self.__tree.viewport():
                 v.setAcceptDrops(True)
-            self.__tree.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
+            #self.__tree.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
+        
     def __on_select(self, val: QModelIndex):
+
         self.__cur_selected_item = val
         self.__cur_selected_path = pathlib.Path(self.__cur_selected_item.data(Qt.ItemDataRole.UserRole + 1))
 
@@ -210,7 +219,7 @@ class ProjectTree(QWidget):
         self.__tree.setModel(item_system_model)
 
         if self.__args.add_root_as_folder:
-            root_node.appendRow(ProjectItem(pathlib.Path(directory), name="(root)"))
+            root_node.appendRow(ProjectItem(pathlib.Path(directory).relative_to(directory), name="(root)"))
 
         self.__index_dict.clear()
         self.__index_dict[dot] = root_node

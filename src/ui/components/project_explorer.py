@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import (
 
 from src.ui.components.dialogs.item_move_dialog import ItemMoveDialog
 from src.ui.components.dialogs.item_rename_dialog import ItemRenameDialog, RenameInfo
+from src.utils.item_actions import DeleteAction, MoveAction, NewItemAction
 from src.utils.move_info import MoveInfo
 from src.ui.components.dialogs.item_name_dialog import ItemNameDialog
 from src.ui.components.project_tree import DragDropInfo, ProjectTree, ProjectTreeArgs
@@ -177,5 +178,8 @@ class ProjectExplorer(QWidget):
         """
         self.__project_tree.load(directory)
 
-    def refresh(self):
-        self.__project_tree.load(self.__get_workdir())
+    def test_move_item(self, move_info: MoveInfo):
+        """
+            Testing purposes only.
+        """
+        self.__move_item(move_info)
