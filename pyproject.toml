@@ -8,6 +8,7 @@ dependencies = [
     "attrs>=26.1.0",
     "mistune>=3.3.3",
     "pyqt6>=6.11.0",
+    "pyqt6-sip>=13.11.1",
     "pyqt6-webengine>=6.11.0",
     "pytest>=9.1.1",
     "pytest-qt>=4.5.0",

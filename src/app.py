@@ -11,6 +11,7 @@ import logging
 
 from src.initcontext import InitContext
 from src.ui.components.main_window import MainWindow
+from ui.components.wiki_window import WikiWindow
 
 FONT_PATH = pathlib.Path("assets/fonts")
 
@@ -24,11 +25,16 @@ class App:
 
     def __init__(self):
         self.app = QApplication(sys.argv)
-        self.init_fonts()
-        self.main_window = MainWindow(initcontext=InitContext(
-            path_to_pwi_file=pathlib.Path(self.app.arguments()[1])
-        ))
 
     def run(self):
-        self.main_window.show()
+        self.init_fonts()
+        if len(self.app.arguments()) == 1:
+            wiki_window = WikiWindow()
+            wiki_window.show()
+        else:
+            main_window = MainWindow(initcontext=InitContext(
+                path_to_pwi_file=pathlib.Path(self.app.arguments()[1])
+            ))
+            main_window.show()
+
         sys.exit(self.app.exec())    
