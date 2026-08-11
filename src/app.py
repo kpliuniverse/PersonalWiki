@@ -24,17 +24,22 @@ class App:
             logging.info("Added font file: %s", path.as_posix())
 
     def __init__(self):
+        self.main_window: MainWindow | None  = None
         self.app = QApplication(sys.argv)
+
+    def run_main(self, wiki: pathlib.Path):
+        self.main_window = MainWindow(initcontext=InitContext(
+            path_to_pwi_file=pathlib.Path(wiki)
+        ))
+        self.main_window.show()
 
     def run(self):
         self.init_fonts()
         if len(self.app.arguments()) == 1:
             wiki_window = WikiWindow()
+            wiki_window.wiki_opened.connect(self.run_main)
             wiki_window.show()
         else:
-            main_window = MainWindow(initcontext=InitContext(
-                path_to_pwi_file=pathlib.Path(self.app.arguments()[1])
-            ))
-            main_window.show()
+            self.run_main(pathlib.Path(self.app.arguments()[1]))
 
         sys.exit(self.app.exec())    
