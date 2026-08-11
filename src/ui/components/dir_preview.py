@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import  QHBoxLayout, QLabel, QPushButton, QWidget
 from PyQt6.QtCore import QTimer, Qt, pyqtSignal
 from PyQt6.QtGui import QFontMetrics
 
-from src.ui.components.dialogs.project_dialog import ProjectDialog, ProjectDialogArgs
+from ui.dialogs.project_dialog import ProjectDialog, ProjectDialogArgs
 from src.utils.path_utils import gen_path_string
 
 class DirPreview(QWidget):
