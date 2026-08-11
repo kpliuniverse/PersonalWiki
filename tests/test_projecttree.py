@@ -49,7 +49,7 @@ def test_add_path(qtbot: QtBot, tmp_path: pathlib.Path):
 # def test_move_to_root(qtbot: QtBot, tmp_path: pathlib.Path):
 #     main_window = QMainWindow()
 #     tmp_wiki_path = tmp_path / "move_test"
-#     shutil.copytree("testenv/wikis/move_test", tmp_wiki_path)
+#     shutil.copytree(".testenv/wikis/move_test", tmp_wiki_path)
 #     assert tmp_wiki_path.exists()
 #     tmp_wiki = wiki.open_wiki(tmp_wiki_path / "wiki.pwi")
 #     tree = ProjectExplorer(parent=main_window)

@@ -5,4 +5,4 @@ Remove-Item -Recurse -Force testenv -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path testenv | Out-Null
 
 # Copy the contents of end-tests into testenv
-Copy-Item -Path "end-tests\*" -Destination "testenv" -Recurse -Force
+Copy-Item -Path "end-tests\*" -Destination ".testenv" -Recurse -Force
