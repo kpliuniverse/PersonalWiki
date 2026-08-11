@@ -9,11 +9,11 @@ from PyQt6.QtWidgets import (
     QPushButton
 )
 
-from ui.dialogs.item_move_dialog import ItemMoveDialog
-from ui.dialogs.item_rename_dialog import ItemRenameDialog, RenameInfo
+from src.ui.dialogs.item_move_dialog import ItemMoveDialog
+from src.ui.dialogs.item_rename_dialog import ItemRenameDialog, RenameInfo
 from src.utils.item_actions import DeleteAction, MoveAction, NewItemAction
 from src.utils.move_info import MoveInfo
-from ui.dialogs.item_name_dialog import ItemNameDialog
+from src.ui.dialogs.item_name_dialog import ItemNameDialog
 from src.ui.components.project_tree import DragDropInfo, ProjectTree, ProjectTreeArgs
 from src.exceptions import GUIException
 from src.items.items import ItemCreationResult, ItemType

@@ -11,7 +11,7 @@ import logging
 
 from src.initcontext import InitContext
 from src.ui.components.main_window import MainWindow
-from ui.components.wiki_window import WikiWindow
+from src.ui.components.wiki_window import WikiWindow
 
 FONT_PATH = pathlib.Path("assets/fonts")
 
@@ -21,7 +21,7 @@ class App:
     def init_fonts(self): 
         for path in FONT_PATH.iterdir():
             QFontDatabase.addApplicationFont(path.as_posix())
-            logging.info("Added font file: %s", path.as_posix())   
+            logging.info("Added font file: %s", path.as_posix())
 
     def __init__(self):
         self.app = QApplication(sys.argv)
