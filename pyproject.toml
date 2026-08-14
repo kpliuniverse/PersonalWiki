@@ -13,6 +13,7 @@ dependencies = [
     "pytest>=9.1.1",
     "pytest-qt>=4.5.0",
     "qscintilla>=2.14.1",
+    "sip>=6.16.0",
 ]
 
 
