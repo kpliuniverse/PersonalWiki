@@ -25,6 +25,7 @@ from PyQt6.QtCore import (
 )
 # from PyQt6.QtWebEngineCore import QWebEngineProfile
 
+from src.ui.components.item_panel import ItemPanel
 from src.ui.components.project_explorer import ProjectExplorer
 from src.exceptions import GUIException
 # from src.ui.pages.custom_page import CustomPage
@@ -63,6 +64,8 @@ class MainWindow(QMainWindow):
         self.__project_explorer.item_operation_requested.connect(self.__app_state.cur_wiki.do_operations)
         editor_splitter.addWidget(self.__project_explorer)
 
+        self.__item_panel = ItemPanel(editor_splitter)
+        editor_splitter.addWidget(self.__item_panel)
         # self.__text_edit = QTextEdit(editor_splitter)
         # self.__text_edit.setAcceptRichText(False)
         # self.__text_edit.setFont(QFont("Hack", 10, weight=6))
@@ -163,7 +166,10 @@ class MainWindow(QMainWindow):
         logging.debug("Item double clicked to %s", item_path)
         if item_path_abs.is_file():
             self.__load_item(item_path)
-            
+            if item_path_abs.suffix == ".pwe":
+                self.__item_panel.refresh("wiki")
+            else:
+                self.__item_panel.refresh("test")
     def __refresh_project_tree(self):  
         proper_path = (self.__app_state.cur_wiki.get_wiki_dir_path() / "proper")
         self.__project_explorer.load(proper_path)
