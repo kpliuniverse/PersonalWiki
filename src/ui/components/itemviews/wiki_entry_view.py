@@ -4,6 +4,7 @@ from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QLabel, QSplitter, QTextEdit, QVBoxLayout, QWidget
 
+from src.ui.components.entry_ribbon import EntryRibbon
 from src.ui.pages.custom_page import CustomPage
 class WikiEntryView(QWidget):
     def __init__(self, parent) -> None:
@@ -12,8 +13,10 @@ class WikiEntryView(QWidget):
         layout = QVBoxLayout()
         self.setLayout(layout)
 
+        entry_ribbon = EntryRibbon(self)
+        layout.addWidget(entry_ribbon, stretch=1)
         editor_splitter: QSplitter = QSplitter(parent=self)
-        layout.addWidget(editor_splitter)
+        layout.addWidget(editor_splitter, stretch=8)
 
         self.__text_edit = QTextEdit(editor_splitter)
         self.__text_edit.setAcceptRichText(False)
