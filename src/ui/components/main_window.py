@@ -3,6 +3,8 @@ import logging
 import pathlib
 from typing import Optional
 
+from PyQt6.QtOpenGLWidgets import QOpenGLWidget
+from PyQt6 import sip
 from PyQt6 import QtCore
 from PyQt6.QtWidgets import (
     QGridLayout,
@@ -11,7 +13,7 @@ from PyQt6.QtWidgets import (
     # QTextEdit,
     QWidget,
 )
-# from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtGui import QAction, QFont, QKeySequence, QShortcut
 from PyQt6.QtCore import (
     Q_ARG, 
@@ -31,7 +33,7 @@ from src.exceptions import GUIException
 # from src.ui.pages.custom_page import CustomPage
 from src.initcontext import InitContext
 from src.states.appstate import AppState
-from src.ui.components.main_ribbon import MainRibbon
+from src.ui.components.entry_ribbon import EntryRibbon
 from src.ui.workers.renderer_worker import RendererWorker
 from src.utils.navigation_info import NavigationInfo
 from src.wiki.wiki import open_wiki
@@ -47,13 +49,14 @@ class MainWindow(QMainWindow):
         self.__app_state = AppState()
         self.__app_state.cur_wiki = open_wiki(initcontext.path_to_pwi_file)
 
+        #QOpenGLWidget(self) #dummy widget to prevent flickering
         self.__init_menu_bar()
         self.root = QWidget()
         self.__root_layout: QGridLayout = QGridLayout()
         self.root.setLayout(self.__root_layout)
                 
-        ribbon = MainRibbon(parent=self.root)
-        self.__root_layout.addWidget(ribbon)
+        # ribbon = ItemRibbon(parent=self.root)
+        # self.__root_layout.addWidget(ribbon)
         # ribbon.render_button.clicked.connect(self.__on_render_button, type=QtCore.Qt.ConnectionType.QueuedConnection)
 
         editor_splitter: QSplitter = QSplitter(parent=self.root)
@@ -83,7 +86,7 @@ class MainWindow(QMainWindow):
         # editor_splitter.addWidget(self.__text_view)
 
         editor_splitter.setHandleWidth(16)
-        editor_splitter.setSizes([80, 100, 100])
+        editor_splitter.setSizes([20, 300])
 
         self.setCentralWidget(self.root)
 
@@ -167,9 +170,9 @@ class MainWindow(QMainWindow):
         if item_path_abs.is_file():
             self.__load_item(item_path)
             if item_path_abs.suffix == ".pwe":
-                self.__item_panel.refresh("wiki")
+                self.__item_panel.load("wiki")
             else:
-                self.__item_panel.refresh("test")
+                self.__item_panel.load("test")
     def __refresh_project_tree(self):  
         proper_path = (self.__app_state.cur_wiki.get_wiki_dir_path() / "proper")
         self.__project_explorer.load(proper_path)
