@@ -138,8 +138,7 @@ class MainWindow(QMainWindow):
     def __save_cur_item(self):
         self.__item_panel.trigger_save()
         item = self.__app_state.cur_wiki.get_cur_item_abs()
-        # with open(item, "w", encoding="utf-8") as file:
-        #     file.write(self.__text_edit.toPlainText())
+
         time = datetime.time.isoformat(datetime.datetime.today().time(), "seconds")
         self.__update_status_bar(f"Saved {item.as_posix()} at {time}", 5000)
 

@@ -21,6 +21,7 @@ class WikiEntryView(BaseItemView):
     switch_signal = pyqtSignal(pathlib.Path)
 
     def __init__(self, parent, wiki_dir: pathlib.Path) -> None:
+        self.__cur_item_path: Optional[pathlib.Path] = None
         super().__init__(parent)
         self.__wiki_dir = wiki_dir
         self.__rendering_thread: Optional[QThread] = None
@@ -52,6 +53,7 @@ class WikiEntryView(BaseItemView):
         editor_splitter.setSizes([100, 100])
 
     def load_item(self, item: pathlib.Path):
+        self.__cur_item_path = item
         with open(item, encoding="utf-8") as file:
             self.__text_edit.setText(file.read())
         self.__render_markdown()
@@ -93,3 +95,9 @@ class WikiEntryView(BaseItemView):
             if (abs_path := self.__wiki_dir / "proper" / url_str).exists():
                 self.switch_signal.emit(pathlib.Path(abs_path))
         logging.debug("Going to %s", nav_info.url.toString())    
+
+
+    def save_item(self):
+        assert self.__cur_item_path is not None
+        with open(self.__cur_item_path, "w", encoding="utf-8") as file:
+            file.write(self.__text_edit.toPlainText())
