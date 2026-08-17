@@ -27,13 +27,14 @@ from PyQt6.QtCore import (
 )
 # from PyQt6.QtWebEngineCore import QWebEngineProfile
 
-from src.ui.components.item_panel import ItemPanel
+from src.ui.components.item_panel import ItemPanel, ViewType
 from src.ui.components.project_explorer import ProjectExplorer
 from src.exceptions import GUIException
 # from src.ui.pages.custom_page import CustomPage
 from src.initcontext import InitContext
 from src.states.appstate import AppState
 from src.ui.components.entry_ribbon import EntryRibbon
+from src.ui.utils.view_utils import guess_view_type
 from src.ui.workers.renderer_worker import RendererWorker
 from src.utils.navigation_info import NavigationInfo
 from src.wiki.wiki import open_wiki
@@ -42,7 +43,6 @@ class MainWindow(QMainWindow):
                     
     def __init__(self, initcontext: InitContext):
         super().__init__()
-        self.__rendering_thread: Optional[QThread] = None
         self.setGeometry(200, 200, 1200, 800)
         self.setWindowTitle("PersonalWiki")
 
@@ -67,23 +67,8 @@ class MainWindow(QMainWindow):
         self.__project_explorer.item_operation_requested.connect(self.__app_state.cur_wiki.do_operations)
         editor_splitter.addWidget(self.__project_explorer)
 
-        self.__item_panel = ItemPanel(editor_splitter)
+        self.__item_panel = ItemPanel(editor_splitter, self.__app_state.cur_wiki.get_wiki_dir_path())
         editor_splitter.addWidget(self.__item_panel)
-        # self.__text_edit = QTextEdit(editor_splitter)
-        # self.__text_edit.setAcceptRichText(False)
-        # self.__text_edit.setFont(QFont("Hack", 10, weight=6))
-        # self.__text_edit.setAcceptDrops(False)
-        # self.__text_edit.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
-        # editor_splitter.addWidget(self.__text_edit)
-        #
-        # self.__text_view = QWebEngineView(editor_splitter)
-        # self.profile = QWebEngineProfile()
-        #
-        # webpage = CustomPage(self.profile, self.__text_view)
-        # webpage.navigation_requested.connect(self.__intercept_navigation)
-        # self.__text_view.setPage(webpage)
-        # self.__text_view.show()
-        # editor_splitter.addWidget(self.__text_view)
 
         editor_splitter.setHandleWidth(16)
         editor_splitter.setSizes([20, 300])
@@ -94,48 +79,13 @@ class MainWindow(QMainWindow):
         # self.__save_timer.setInterval(1000 * 60 * 5) #every five minutes
         # self.__save_timer.timeout.connect(self.__save_cur_item)
         # self.__save_timer.start()
-        # save_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
-        # save_shortcut.activated.connect(self.__save_cur_item)
+        save_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
+        save_shortcut.activated.connect(self.__save_cur_item)
 
         # self.__load_cur_item()
         self.__refresh_project_tree()
         
-    # def __intercept_navigation(self, nav_info: NavigationInfo):
-    #     scheme = nav_info.url.scheme()
-    #     if scheme == "data":
-    #         return
-    #     if scheme == "wiki":
-    #         # QUrl.path() truncates first member
-    #         url_copy = QUrl(nav_info.url)
-    #         url_copy.setScheme("")
-    #         url_str = url_copy.toString().lstrip("/")
-    #         logging.debug("url_str=%s", url_str)
-    #         if (self.__app_state.cur_wiki.get_wiki_proper_path() / url_str).exists():
-    #             self.__load_item(pathlib.Path(url_str))
-    #     logging.debug("Going to %s", nav_info.url.toString())
 
-    # @pyqtSlot()
-    # def __render_markdown(self):
-    #     if self.__rendering_thread is None:
-    #         self.__rendering_thread = QThread()
-    #     self.__text_view.setHtml("Loading...")
-    #     if self.__rendering_thread.isRunning():
-    #         self.__rendering_thread.requestInterruption()
-    #     pwe_string = self.__text_edit.toPlainText()
-    #     logging.debug("Preparing to render...")
-    #     renderer_worker = RendererWorker()
-    #     renderer_worker.moveToThread(self.__rendering_thread)
-    #     self.__rendering_thread.started.connect(lambda: QMetaObject.invokeMethod(renderer_worker, "render_pwe", Qt.ConnectionType.QueuedConnection, Q_ARG(str, pwe_string)))
-    #     renderer_worker.finished.connect(self.__text_view.setHtml)
-    #     renderer_worker.finished.connect(self.__rendering_thread.quit)
-    #     self.__rendering_thread.finished.connect(renderer_worker.deleteLater)
-    #     self.__rendering_thread.finished.connect(self.__cleanup_thread)
-    #     self.__rendering_thread.start()
-
-    def __cleanup_thread(self):
-        if self.__rendering_thread:
-            self.__rendering_thread.deleteLater()
-            self.__rendering_thread = None
 
     # def __on_render_button(self):
     #     self.__save_cur_item()
@@ -160,8 +110,9 @@ class MainWindow(QMainWindow):
             file_menu.addAction(action)
 
     def __load_item(self, item_path: pathlib.Path):
+        item_path_abs = self.__app_state.cur_wiki.get_wiki_proper_path() / item_path
         self.__app_state.cur_wiki.set_cur_item(item_path)
-        #self.__load_cur_item()
+        self.__item_panel.load(guess_view_type(item_path_abs), item_path_abs)
 
     def __on_project_item_double_clicked(self, val: QModelIndex):
         item_path: pathlib.Path = val.data(Qt.ItemDataRole.UserRole + 1)
@@ -169,14 +120,11 @@ class MainWindow(QMainWindow):
         logging.debug("Item double clicked to %s", item_path)
         if item_path_abs.is_file():
             self.__load_item(item_path)
-            if item_path_abs.suffix == ".pwe":
-                self.__item_panel.load("wiki")
-            else:
-                self.__item_panel.load("test")
+  
+
     def __refresh_project_tree(self):  
         proper_path = (self.__app_state.cur_wiki.get_wiki_dir_path() / "proper")
         self.__project_explorer.load(proper_path)
-
         
     def __update_status_bar(self, message: str, timeout_msec: int | None =None):
         if (status_bar := self.statusBar()) is not None:
@@ -187,12 +135,12 @@ class MainWindow(QMainWindow):
         else:
             raise GUIException("Error loading status bar")
     
-    # def __save_cur_item(self):
-    #     item = self.__app_state.cur_wiki.get_cur_item_abs()
-    #     with open(item, "w", encoding="utf-8") as file:
-    #         file.write(self.__text_edit.toPlainText())
-    #     time = datetime.time.isoformat(datetime.datetime.today().time(), "seconds")
-    #     self.__update_status_bar(f"Saved {item.as_posix()} at {time}", 5000)
+    def __save_cur_item(self):
+        item = self.__app_state.cur_wiki.get_cur_item_abs()
+        with open(item, "w", encoding="utf-8") as file:
+            file.write(self.__text_edit.toPlainText())
+        time = datetime.time.isoformat(datetime.datetime.today().time(), "seconds")
+        self.__update_status_bar(f"Saved {item.as_posix()} at {time}", 5000)
 
     # def __load_cur_item(self):
     #     with open(self.__app_state.cur_wiki.get_cur_item_abs(), encoding="utf-8") as file:

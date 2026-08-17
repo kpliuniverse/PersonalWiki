@@ -1,7 +1,13 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
-class TestView(QWidget):
+from src.ui.utils.item_view_base import BaseItemView
+from src.ui.utils.item_view_protocols import Loadable
+
+
+
+class TestView(BaseItemView):
+
     def __init__(self, parent) -> None:
         super().__init__(parent)
 

@@ -1,14 +1,29 @@
+import logging
+import pathlib
+from typing import Optional, override
+
 from PyQt6.QtWebEngineCore import QWebEngineProfile
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtGui import QFont
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Q_ARG, QMetaObject, QThread, QUrl, Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import QLabel, QSplitter, QTextEdit, QVBoxLayout, QWidget
 
 from src.ui.components.entry_ribbon import EntryRibbon
 from src.ui.pages.custom_page import CustomPage
-class WikiEntryView(QWidget):
-    def __init__(self, parent) -> None:
+from src.ui.utils.item_view_base import BaseItemView
+from src.ui.utils.item_view_protocols import Loadable, Savable
+from src.ui.workers.renderer_worker import RendererWorker
+from src.utils.navigation_info import NavigationInfo
+
+
+class WikiEntryView(BaseItemView):
+
+    switch_signal = pyqtSignal(pathlib.Path)
+
+    def __init__(self, parent, wiki_dir: pathlib.Path) -> None:
         super().__init__(parent)
+        self.__wiki_dir = wiki_dir
+        self.__rendering_thread: Optional[QThread] = None
 
         layout = QVBoxLayout()
         self.setLayout(layout)
@@ -26,13 +41,55 @@ class WikiEntryView(QWidget):
         editor_splitter.addWidget(self.__text_edit)
         
         self.__text_view = QWebEngineView(editor_splitter)
-        # self.profile = QWebEngineProfile()
+        self.profile = QWebEngineProfile()
         
-        # webpage = CustomPage(self.profile, self.__text_view)
-        # # webpage.navigation_requested.connect(self.__intercept_navigation)
-        # self.__text_view.setPage(webpage)
-        # self.__text_view.show()
+        webpage = CustomPage(self.profile, self.__text_view)
+        webpage.navigation_requested.connect(self.__intercept_navigation)
+        self.__text_view.setPage(webpage)
+        self.__text_view.show()
         editor_splitter.addWidget(self.__text_view)
+        editor_splitter.setHandleWidth(16)
         editor_splitter.setSizes([100, 100])
 
-        
+    def load_item(self, item: pathlib.Path):
+        with open(item, encoding="utf-8") as file:
+            self.__text_edit.setText(file.read())
+        self.__render_markdown()
+
+    @pyqtSlot()
+    def __render_markdown(self):
+        if self.__rendering_thread is None:
+            self.__rendering_thread = QThread()
+        self.__text_view.setHtml("Loading...")
+        if self.__rendering_thread.isRunning():
+            self.__rendering_thread.requestInterruption()
+        pwe_string = self.__text_edit.toPlainText()
+        logging.debug("Preparing to render...")
+        renderer_worker = RendererWorker()
+        renderer_worker.moveToThread(self.__rendering_thread)
+        self.__rendering_thread.started.connect(lambda: QMetaObject.invokeMethod(renderer_worker, "render_pwe", Qt.ConnectionType.QueuedConnection, Q_ARG(str, pwe_string)))
+        renderer_worker.finished.connect(self.__text_view.setHtml)
+        renderer_worker.finished.connect(self.__rendering_thread.quit)
+        self.__rendering_thread.finished.connect(renderer_worker.deleteLater)
+        self.__rendering_thread.finished.connect(self.__cleanup_thread)
+        self.__rendering_thread.start()
+
+    
+    def __cleanup_thread(self):
+        if self.__rendering_thread:
+            self.__rendering_thread.deleteLater()
+            self.__rendering_thread = None
+
+    def __intercept_navigation(self, nav_info: NavigationInfo):
+        scheme = nav_info.url.scheme()
+        if scheme == "data":
+            return
+        if scheme == "wiki":
+            # QUrl.path() truncates first member
+            url_copy = QUrl(nav_info.url)
+            url_copy.setScheme("")
+            url_str = url_copy.toString().lstrip("/")
+            logging.debug("url_str=%s", url_str)
+            if (abs_path := self.__wiki_dir / "proper" / url_str).exists():
+                self.switch_signal.emit(pathlib.Path(abs_path))
+        logging.debug("Going to %s", nav_info.url.toString())    

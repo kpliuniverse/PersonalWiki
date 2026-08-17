@@ -9,12 +9,12 @@ from PyQt6.QtGui import QFontMetrics
 from src.ui.dialogs.project_dialog import ProjectDialog, ProjectDialogArgs
 from src.utils.path_utils import gen_path_string
 
-class DirPreview(QWidget):
 
-    file_selected: pyqtSignal = pyqtSignal()
+class DirPreview(QWidget):
+    file_selected = pyqtSignal()
     def __init__(self, parent: QWidget, wiki_dir: pathlib.Path, pre_chosen_dir: Optional[pathlib.Path] = None):
         super().__init__(parent=parent)
-
+    
         dir_chooser_layout = QHBoxLayout()
         self.setLayout(dir_chooser_layout)
 
