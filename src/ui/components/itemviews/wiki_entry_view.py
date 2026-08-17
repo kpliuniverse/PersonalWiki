@@ -17,7 +17,9 @@ from src.utils.navigation_info import NavigationInfo
 
 
 class WikiEntryView(BaseItemView):
-
+    """
+        Implements Loadable, Savable, CanSwitchToOtherItems
+    """
     switch_signal = pyqtSignal(pathlib.Path)
 
     def __init__(self, parent, wiki_dir: pathlib.Path) -> None:
