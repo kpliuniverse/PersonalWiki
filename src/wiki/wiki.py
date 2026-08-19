@@ -14,6 +14,7 @@ from returns.result import Failure, Result, Success
 from src.consts import WIKI_ENCODING
 from src.exceptions import InvalidNameException
 from src.states.wikistate import Session, Settings, WikiState
+from src.utils.file_utils import create_empty_file
 from src.utils.item_validity import valid_item_name
 from src.utils.item_actions import Action, CopyAction, MoveAction, DeleteAction, NewItemAction
         
@@ -63,8 +64,7 @@ class Wiki:
                 if is_dir:
                     path.mkdir()
                 else:
-                    with open(path, "x", encoding=WIKI_ENCODING):
-                        pass
+                    create_empty_file(path)
 
     def set_cur_item(self, item: pathlib.Path):
         self.__wikistate.cur_session.cur_item = item
@@ -128,7 +128,6 @@ def create_wiki(dir_path: pathlib.Path, name: str):
     (wiki_dir / "proper").mkdir()
 
     wiki_pwi = wiki_dir / "wiki.pwi"
-    with open(wiki_pwi, "x", encoding="utf8"):
-        pass
+    create_empty_file(wiki_pwi)
 
     return open_wiki(wiki_pwi)
