@@ -9,7 +9,7 @@ from PyQt6.QtCore import QTimer, Qt, pyqtSignal
 from src.exceptions import GUIException
 from src.items.items import ItemType, ItemCreationResult
 from src.ui.components.dir_preview import DirPreview
-from src.utils.file_validity import valid_item_name
+from src.utils.item_validity import valid_item_name
 
 class ItemNameDialog(QDialog):
 

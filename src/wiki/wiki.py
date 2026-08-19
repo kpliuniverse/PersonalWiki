@@ -14,7 +14,7 @@ from returns.result import Failure, Result, Success
 from src.consts import WIKI_ENCODING
 from src.exceptions import InvalidNameException
 from src.states.wikistate import Session, Settings, WikiState
-from src.utils.file_validity import valid_item_name
+from src.utils.item_validity import valid_item_name
 from src.utils.item_actions import Action, CopyAction, MoveAction, DeleteAction, NewItemAction
         
 class Wiki:

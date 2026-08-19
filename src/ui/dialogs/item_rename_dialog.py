@@ -12,7 +12,7 @@ from attrs import define
 
 from src.exceptions import GUIException
 from src.items.items import ItemType, ItemCreationResult
-from src.utils.file_validity import valid_item_name
+from src.utils.item_validity import valid_item_name
 from src.utils.path_utils import gen_path_string
 
 
