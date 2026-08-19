@@ -202,6 +202,7 @@ class ProjectTree(QWidget):
         dir_to_item[dot] = root_node
         while len(subdirs) > 0:
             subdir = subdirs.popleft()
+            logging.debug("loading %s", subdir.as_posix())
             for path in subdir.iterdir():
                 if path.is_junction() and path.is_symlink():
                     continue
