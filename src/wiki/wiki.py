@@ -13,7 +13,7 @@ from returns.result import Failure, Result, Success
 
 from src.exceptions import InvalidNameException
 from src.states.wikistate import Session, Settings, WikiState
-from src.utils.file_validity import valid_wiki_name
+from src.utils.file_validity import valid_item_name
 from src.utils.item_actions import Action, CopyAction, MoveAction, DeleteAction, NewItemAction
         
 class Wiki:
@@ -120,7 +120,7 @@ class CreateWikiErrors(IntEnum):
     INVALID_NAME = auto()
 
 def create_wiki(dir_path: pathlib.Path, name: str):
-    if not valid_wiki_name(name):
+    if not valid_item_name(name):
         raise InvalidNameException("Invalid name.")
     wiki_dir = dir_path / name
     wiki_dir.mkdir()

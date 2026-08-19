@@ -9,7 +9,7 @@ from PyQt6.QtCore import QTimer, Qt, pyqtSignal
 from src.exceptions import GUIException
 from src.items.items import ItemType, ItemCreationResult
 from src.ui.components.dir_preview import DirPreview
-from src.utils.file_validity import valid_wiki_name
+from src.utils.file_validity import valid_item_name
 
 class ItemNameDialog(QDialog):
 
@@ -77,7 +77,7 @@ class ItemNameDialog(QDialog):
         valid = True
         error_msg = ""
         line_edit_txt = self.__line_edit.text()
-        if not valid_wiki_name(line_edit_txt):
+        if not valid_item_name(line_edit_txt):
             valid = False
             error_msg = "Not a valid item name."
 

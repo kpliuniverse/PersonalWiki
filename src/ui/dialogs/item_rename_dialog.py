@@ -12,7 +12,7 @@ from attrs import define
 
 from src.exceptions import GUIException
 from src.items.items import ItemType, ItemCreationResult
-from src.utils.file_validity import valid_wiki_name
+from src.utils.file_validity import valid_item_name
 from src.utils.path_utils import gen_path_string
 
 
@@ -88,7 +88,7 @@ class ItemRenameDialog(QDialog):
         valid = True
         error_msg = ""
         line_edit_txt = self.__line_edit.text()
-        if not valid_wiki_name(line_edit_txt):
+        if not valid_item_name(line_edit_txt):
             valid = False
             error_msg = "Not a valid item name."
         cur_path = self.__wiki_directory / self.gen_resultatnt_path()
