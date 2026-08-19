@@ -11,10 +11,8 @@ from PyQt6.QtWidgets import QLabel, QSplitter, QTextEdit, QVBoxLayout, QWidget
 from src.ui.components.entry_ribbon import EntryRibbon
 from src.ui.pages.custom_page import CustomPage
 from src.ui.utils.item_view_base import BaseItemView
-from src.ui.utils.item_view_protocols import Loadable, Savable
 from src.ui.workers.renderer_worker import RendererWorker
 from src.utils.navigation_info import NavigationInfo
-
 
 class WikiEntryView(BaseItemView):
     """
@@ -33,6 +31,9 @@ class WikiEntryView(BaseItemView):
 
         entry_ribbon = EntryRibbon(self)
         layout.addWidget(entry_ribbon, stretch=1)
+        entry_ribbon.render_button.clicked.connect(self.__on_render_button)
+
+
         editor_splitter: QSplitter = QSplitter(parent=self)
         layout.addWidget(editor_splitter, stretch=8)
 
@@ -69,6 +70,7 @@ class WikiEntryView(BaseItemView):
             self.__rendering_thread.requestInterruption()
         pwe_string = self.__text_edit.toPlainText()
         logging.debug("Preparing to render...")
+        # TODO: Abstract thread creation.
         renderer_worker = RendererWorker()
         renderer_worker.moveToThread(self.__rendering_thread)
         self.__rendering_thread.started.connect(lambda: QMetaObject.invokeMethod(renderer_worker, "render_pwe", Qt.ConnectionType.QueuedConnection, Q_ARG(str, pwe_string)))
@@ -99,7 +101,13 @@ class WikiEntryView(BaseItemView):
         logging.debug("Going to %s", nav_info.url.toString())    
 
 
-    def save_item(self):
+    def save_cur_item(self):
         assert self.__cur_item_path is not None
         with open(self.__cur_item_path, "w", encoding="utf-8") as file:
             file.write(self.__text_edit.toPlainText())
+
+
+    
+    def __on_render_button(self):
+        self.save_cur_item()
+        self.__render_markdown()
