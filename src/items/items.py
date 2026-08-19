@@ -7,8 +7,8 @@ from attrs import define
 
 
 class ItemType(Enum):
-    PWE = 0
-    FOLDER = 1
+    Pwe = 0
+    Folder = 1
 
 @define
 class ItemCreationResult:
