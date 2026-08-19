@@ -75,7 +75,7 @@ class ItemPanel(QWidget):
 
     def trigger_save(self):
         if isinstance(self.__item_view, Savable):
-            self.__item_view.save_item()
+            self.__item_view.save_cur_item()
 
     def __install_view(self, view: BaseItemView):
         view.show()
