@@ -2,13 +2,14 @@
 
 from dataclasses import dataclass
 import pathlib
+from typing import Optional
 
 from attrs import define, field, setters
 
 
 @dataclass(slots=True)
 class Session:
-    cur_item: pathlib.Path
+    cur_item: Optional[pathlib.Path]
 
 
 @dataclass(slots=True)

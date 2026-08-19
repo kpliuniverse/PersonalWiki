@@ -57,7 +57,6 @@ class MainWindow(QMainWindow):
                 
         # ribbon = ItemRibbon(parent=self.root)
         # self.__root_layout.addWidget(ribbon)
-        # ribbon.render_button.clicked.connect(self.__on_render_button, type=QtCore.Qt.ConnectionType.QueuedConnection)
 
         editor_splitter: QSplitter = QSplitter(parent=self.root)
         self.__root_layout.addWidget(editor_splitter, 1, 0, 8, 1)
@@ -87,9 +86,6 @@ class MainWindow(QMainWindow):
         
 
 
-    # def __on_render_button(self):
-    #     self.__save_cur_item()
-    #     self.__render_markdown()
 
     def __init_menu_bar(self):
         
@@ -136,9 +132,9 @@ class MainWindow(QMainWindow):
             raise GUIException("Error loading status bar")
     
     def __save_cur_item(self):
+        if (item := self.__app_state.cur_wiki.get_cur_item_abs()) is None:
+            return
         self.__item_panel.trigger_save()
-        item = self.__app_state.cur_wiki.get_cur_item_abs()
-
         time = datetime.time.isoformat(datetime.datetime.today().time(), "seconds")
         self.__update_status_bar(f"Saved {item.as_posix()} at {time}", 5000)
 

@@ -65,23 +65,36 @@ class Wiki:
         self.__wikistate.cur_session.cur_item = item
 
     def get_cur_item(self):
+        """
+            Returns None if there are no items currently selected
+        """
         return self.__wikistate.cur_session.cur_item
 
     def get_cur_item_abs(self):
-        return self.get_wiki_proper_path() / self.get_cur_item()
+        """
+            Returns None if there are no items currently selected
+        """
+        cur_item = self.get_cur_item()
+        if cur_item is None:
+            return None
+        return self.get_wiki_proper_path() / cur_item
 
 
 def open_wiki(path_to_wiki_pwi_file: pathlib.Path):
     """
         Open a wiki and return a Wiki object.
     """
-
-    with open(path_to_wiki_pwi_file.parent / ".pw" / "session.json", encoding="utf-8") as session_file:
-        session_json = json.load(session_file)
+    try:
+        with open(path_to_wiki_pwi_file.parent / ".pw" / "session.json", encoding="utf-8") as session_file:
+            session_json = json.load(session_file)
+            session = Session(
+                cur_item=session_json["currentFile"]
+            )
+    except FileNotFoundError:
         session = Session(
-            cur_item=session_json["currentFile"]
+            cur_item=None
         )
-
+    
     wiki = Wiki(
         path_dir=path_to_wiki_pwi_file.parent,
         session=session,
