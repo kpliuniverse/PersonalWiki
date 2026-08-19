@@ -67,8 +67,8 @@ class ProjectExplorer(QWidget):
 
     def __new_menu(self):
         new_menu = QMenu()
-        new_menu.addAction("File", lambda: self.__on_new_btn(ItemType.Pwe))
-        new_menu.addAction("Folder", lambda: self.__on_new_btn(ItemType.Folder))
+        new_menu.addAction("File", lambda: self.__on_new_btn(ItemType.PWE))
+        new_menu.addAction("Folder", lambda: self.__on_new_btn(ItemType.FOLDER))
         return new_menu
 
     def __get_workdir(self):
@@ -142,7 +142,7 @@ class ProjectExplorer(QWidget):
         return toolbar
 
     def __create_new_item(self, item: ItemCreationResult):
-        self.item_operation_requested.emit([NewItemAction(item.path, item.typ == ItemType.Folder)])
+        self.item_operation_requested.emit([NewItemAction(item.path, item.typ == ItemType.FOLDER)])
         self.__project_tree.add_item(item.path)
         self.__validate_btns()
         # self.__index_dict[item.path.parent.as_posix()].appendRow(project_item)

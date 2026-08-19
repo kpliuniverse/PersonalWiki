@@ -69,7 +69,7 @@ class ItemNameDialog(QDialog):
         line_edit_txt = self.__line_edit.text()
         txt_stripped = line_edit_txt.strip()
         ending = ""
-        if self.__item_type == ItemType.Pwe:
+        if self.__item_type == ItemType.PWE:
             ending = ".pwe"
         return self.__working_directory / f"{txt_stripped}{ending}"
 
