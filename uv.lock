@@ -60,6 +60,7 @@ dependencies = [
     { name = "pytest" },
     { name = "pytest-qt" },
     { name = "qscintilla" },
+    { name = "returns" },
     { name = "sip" },
 ]
 
@@ -73,7 +74,8 @@ requires-dist = [
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "pytest-qt", specifier = ">=4.5.0" },
     { name = "qscintilla", specifier = ">=2.14.1" },
-    { name = "sip", specifier = ">=6.16.0" },
+    { name = "returns", specifier = ">=0.29.0" },
+    { name = "sip", specifier = ">=6.16.1" },
 ]
 
 [[package]]
@@ -255,6 +257,18 @@ wheels = [
 ]
 
 [[package]]
+name = "returns"
+version = "0.29.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/29/e6/f5ada68dfb47e9c032683813f3cd9a810978d8ce541866d365076215906f/returns-0.29.0.tar.gz", hash = "sha256:fd9831594403229595dc705fee632a9be24a497df10aa3b9b72405d75d54e8ad", size = 106314, upload-time = "2026-08-02T08:36:26.976Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c2/b6/660f9724d574eee210ba89cc8fc2c41a5d960947bcea7d780847ce766e21/returns-0.29.0-py3-none-any.whl", hash = "sha256:db43c06d228f84b3d93c0418313c37c5ee4ecdb7a0f10326c24444f9baaf074c", size = 160951, upload-time = "2026-08-02T08:36:28.291Z" },
+]
+
+[[package]]
 name = "setuptools"
 version = "84.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -265,15 +279,15 @@ wheels = [
 
 [[package]]
 name = "sip"
-version = "6.16.0"
+version = "6.16.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "packaging" },
     { name = "setuptools" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/35/cb/4b1c18c22e291bb08dfc028bd1577dc7e8818e83a0338557a4de1f203d65/sip-6.16.0.tar.gz", hash = "sha256:22dcb9d02347a3af22a2cba41730c9467f1f781362e97c5eea4ec75c4b7e4ffe", size = 2934509, upload-time = "2026-08-02T12:03:21.857Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3c/ca/6b4861723d1bd92d0a21afece74fc63d9bd62fabb1dcc209113972505434/sip-6.16.1.tar.gz", hash = "sha256:0a739c9cd2929de4e0884456d8caf3cfb22c10534757c7797bd8dc6bd9ed69bc", size = 2940280, upload-time = "2026-08-16T09:37:37.794Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1e/b0/6d9b419dcb5e156cc11740fdbf461e730f6aaa5ccb473e2e4faa244fa567/sip-6.16.0-py3-none-any.whl", hash = "sha256:9985534b110940fad800df322ef660d5885c5a24d8b84c7f4665f8d15eb0a75a", size = 3231099, upload-time = "2026-08-02T12:03:19.562Z" },
+    { url = "https://files.pythonhosted.org/packages/8d/9c/a4943974dd017756b066815e36b429321a2cfa1e7b74d496b26784df43d1/sip-6.16.1-py3-none-any.whl", hash = "sha256:e2680b2b68f76d391793d7cff0a06967399a38ec2f2ae3074bd3d3a66e316046", size = 3231385, upload-time = "2026-08-16T09:37:34.182Z" },
 ]
 
 [[package]]

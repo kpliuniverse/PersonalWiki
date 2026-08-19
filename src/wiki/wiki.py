@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import dataclasses
+from enum import IntEnum, auto
 import json
 import logging
 import os
@@ -8,8 +9,10 @@ import shutil
 from typing import List
 
 from attr import define, field, setters
+from returns.result import Failure, Result, Success
 
 from src.states.wikistate import Session, Settings, WikiState
+from src.utils.file_validity import valid_wiki_name
 from src.utils.item_actions import Action, CopyAction, MoveAction, DeleteAction, NewItemAction
         
 class Wiki:
@@ -80,7 +83,11 @@ class Wiki:
         return self.get_wiki_proper_path() / cur_item
 
 
-def open_wiki(path_to_wiki_pwi_file: pathlib.Path):
+def open_wiki(path_to_wiki_pwi_file: pathlib.Path) -> Wiki:
+
+    if not path_to_wiki_pwi_file.exists():
+        raise FileNotFoundError(f"{path_to_wiki_pwi_file.as_posix()} doesn't exist")
+    
     """
         Open a wiki and return a Wiki object.
     """
@@ -102,3 +109,31 @@ def open_wiki(path_to_wiki_pwi_file: pathlib.Path):
     )
 
     return wiki
+
+
+class CreateWikiErrors(IntEnum):
+    """
+        Error values when for one reason or another, create_wiki doesn't succeed
+    """
+    FILE_ALREADY_EXISTS = auto()
+    INVALID_NAME = auto()
+
+def create_wiki(dir_path: pathlib.Path, name: str) -> Result[Wiki, CreateWikiErrors]:
+    """
+        Create a wiki and return it's Wiki object.
+    """
+    if not valid_wiki_name(name):
+        return Failure(CreateWikiErrors.INVALID_NAME)
+    wiki_dir = dir_path / name
+    try:
+        wiki_dir.mkdir()
+    except FileExistsError:
+        return Failure(CreateWikiErrors.FILE_ALREADY_EXISTS)
+
+    (wiki_dir / "proper").mkdir()
+
+    wiki_pwi = wiki_dir / "wiki.pwi"
+    with open(wiki_pwi, "x", encoding="utf8"):
+        pass
+
+    return Success(open_wiki(wiki_pwi))
