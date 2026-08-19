@@ -120,8 +120,11 @@ class ProjectExplorer(QWidget):
         
         
     def __on_rename_btn(self):
-        if len((index := self.__project_tree.get_selected_indexes())) > 1:
-            # TODO: MessageBox that displays 'You can't rename files'
+        """
+            If multiple files are selected, it only chooses the first one on the index.
+            This is best used for when there are one selected items.
+        """
+        if len((index := self.__project_tree.get_selected_indexes())) < 1:
             return
         selected_item: pathlib.Path = index[0].data(Qt.ItemDataRole.UserRole + 1)
         assert isinstance(selected_item, pathlib.Path)
