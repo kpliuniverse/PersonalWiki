@@ -9,7 +9,6 @@ class BaseItemView(QWidget):
 
     def on_enter(self):
         """
-            Triggered when another view of different type leaves for a this type.
+            Triggered when another view of different type leaves for this type.
         """
 
-        
