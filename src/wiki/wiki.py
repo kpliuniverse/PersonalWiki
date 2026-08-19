@@ -11,6 +11,7 @@ from typing import List
 from attr import define, field, setters
 from returns.result import Failure, Result, Success
 
+from src.exceptions import InvalidNameException
 from src.states.wikistate import Session, Settings, WikiState
 from src.utils.file_validity import valid_wiki_name
 from src.utils.item_actions import Action, CopyAction, MoveAction, DeleteAction, NewItemAction
@@ -118,22 +119,15 @@ class CreateWikiErrors(IntEnum):
     FILE_ALREADY_EXISTS = auto()
     INVALID_NAME = auto()
 
-def create_wiki(dir_path: pathlib.Path, name: str) -> Result[Wiki, CreateWikiErrors]:
-    """
-        Create a wiki and return it's Wiki object.
-    """
+def create_wiki(dir_path: pathlib.Path, name: str):
     if not valid_wiki_name(name):
-        return Failure(CreateWikiErrors.INVALID_NAME)
+        raise InvalidNameException("Invalid name.")
     wiki_dir = dir_path / name
-    try:
-        wiki_dir.mkdir()
-    except FileExistsError:
-        return Failure(CreateWikiErrors.FILE_ALREADY_EXISTS)
-
+    wiki_dir.mkdir()
     (wiki_dir / "proper").mkdir()
 
     wiki_pwi = wiki_dir / "wiki.pwi"
     with open(wiki_pwi, "x", encoding="utf8"):
         pass
 
-    return Success(open_wiki(wiki_pwi))
+    return open_wiki(wiki_pwi)
