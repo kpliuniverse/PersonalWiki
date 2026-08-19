@@ -8,6 +8,7 @@ from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Q_ARG, QMetaObject, QThread, QUrl, Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import QLabel, QSplitter, QTextEdit, QVBoxLayout, QWidget
 
+from src.consts import WIKI_ENCODING
 from src.ui.components.entry_ribbon import EntryRibbon
 from src.ui.pages.custom_page import CustomPage
 from src.ui.utils.item_view_base import BaseItemView
@@ -57,7 +58,7 @@ class WikiEntryView(BaseItemView):
 
     def load_item(self, item: pathlib.Path):
         self.__cur_item_path = item
-        with open(item, encoding="utf-8") as file:
+        with open(item, encoding=WIKI_ENCODING) as file:
             self.__text_edit.setText(file.read())
         self.__render_markdown()
 
@@ -103,7 +104,7 @@ class WikiEntryView(BaseItemView):
 
     def save_cur_item(self):
         assert self.__cur_item_path is not None
-        with open(self.__cur_item_path, "w", encoding="utf-8") as file:
+        with open(self.__cur_item_path, "w", encoding=WIKI_ENCODING) as file:
             file.write(self.__text_edit.toPlainText())
 
 

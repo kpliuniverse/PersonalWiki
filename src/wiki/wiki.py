@@ -11,6 +11,7 @@ from typing import List
 from attr import define, field, setters
 from returns.result import Failure, Result, Success
 
+from src.consts import WIKI_ENCODING
 from src.exceptions import InvalidNameException
 from src.states.wikistate import Session, Settings, WikiState
 from src.utils.file_validity import valid_item_name
@@ -62,7 +63,7 @@ class Wiki:
                 if is_dir:
                     path.mkdir()
                 else:
-                    with open(path, "x", encoding="utf-8"):
+                    with open(path, "x", encoding=WIKI_ENCODING):
                         pass
 
     def set_cur_item(self, item: pathlib.Path):
@@ -93,7 +94,7 @@ def open_wiki(path_to_wiki_pwi_file: pathlib.Path) -> Wiki:
         Open a wiki and return a Wiki object.
     """
     try:
-        with open(path_to_wiki_pwi_file.parent / ".pw" / "session.json", encoding="utf-8") as session_file:
+        with open(path_to_wiki_pwi_file.parent / ".pw" / "session.json", encoding=WIKI_ENCODING) as session_file:
             session_json = json.load(session_file)
             session = Session(
                 cur_item=session_json["currentFile"]

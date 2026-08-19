@@ -7,6 +7,7 @@ import tempfile
 
 import pytest
 
+from src.consts import WIKI_ENCODING
 from src.wiki.wiki import create_wiki, open_wiki
 
 
@@ -14,7 +15,7 @@ def test_open_path():
 
     wiki_dir = pathlib.Path("end-tests/wikis/basic")
     wiki = open_wiki(wiki_dir / "wiki.pwi")
-    with open(wiki_dir / ".pw" / "session.json", "r", encoding="utf-8") as session:
+    with open(wiki_dir / ".pw" / "session.json", "r", encoding=WIKI_ENCODING) as session:
         session_json = json.load(session)
     assert wiki.get_cur_item() == session_json["currentFile"] 
     assert wiki.get_cur_item_abs() == wiki_dir / "proper" / session_json["currentFile"]
