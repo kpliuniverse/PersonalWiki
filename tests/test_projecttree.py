@@ -4,12 +4,11 @@ import tempfile
 
 import pytest
 from pytestqt.qtbot import QtBot
+from PyQt6.QtWidgets import QDialog, QHBoxLayout, QMainWindow, QWidget
 
 from src.exceptions import GUIException
 from src.ui.components.project_explorer import ProjectExplorer
 from src.ui.components.project_tree import ProjectTree, ProjectTreeArgs
-
-from PyQt6.QtWidgets import QDialog, QHBoxLayout, QMainWindow, QWidget
 
 from src.utils.move_info import MoveInfo
 from src.utils.path_utils import path_root
