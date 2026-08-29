@@ -1,32 +1,27 @@
 import logging
 import pathlib
+from typing import Optional
 
 from PyQt6.QtWidgets import QDialog, QLabel, QLineEdit, QPushButton, QWidget, QVBoxLayout
-from PyQt6.QtGui import QFontMetrics
-from PyQt6.QtCore import QTimer, Qt, pyqtSignal
+from PyQt6.QtCore import pyqtSignal
 
 
 from src.exceptions import GUIException
-from src.items.items import ItemType, ItemCreationResult
-from src.ui.components.dir_preview import DirPreview
+from src.ui.components.dir_preview import SystemDirPreview
 from src.utils.item_validity import valid_item_name
 
-class ItemNameDialog(QDialog):
+class NewWikiDialog(QDialog):
 
-    on_name_selected: pyqtSignal = pyqtSignal(ItemCreationResult)
+    on_name_selected: pyqtSignal = pyqtSignal(pathlib.Path)
 
     
-    def __init__(self, parent: QWidget, item_type: ItemType, directory: pathlib.Path, wiki_proper_directory: pathlib.Path):
-        logging.debug("directory=%s, wiki_proper=%s", directory, wiki_proper_directory)
-
-        self.__working_directory = directory
+    def __init__(self, parent: QWidget):
 
         super().__init__(parent)
-
+        
         layout = QVBoxLayout()
         self.setLayout(layout)
-        self.setFixedSize(400, 200)
-        label = QLabel(parent=self, text="Enter your item/folder name")
+        label = QLabel(parent=self, text="Enter your wiki name")
         layout.addWidget(label)
 
 
@@ -34,7 +29,7 @@ class ItemNameDialog(QDialog):
         self.__line_edit.textChanged.connect(self.__validate)
         layout.addWidget(self.__line_edit)
 
-        self.__dir_preview = DirPreview(self, wiki_proper_directory, pre_chosen_dir=directory)
+        self.__dir_preview = SystemDirPreview(self)
         self.__dir_preview.file_selected.connect(self.__on_select)
         layout.addWidget(self.__dir_preview)
         
@@ -46,32 +41,26 @@ class ItemNameDialog(QDialog):
         self.__button.clicked.connect(self.accept)
 
         self.accepted.connect(self.__on_accept)
-
-        self.__item_type = item_type
-        self.__wiki_directory = wiki_proper_directory
         self.__validate()
         # Width of self.__location_label is inaccurate when retrieved in __init__, it must be running on the app for it to be accurate
         # QTimer.singleShot(10, Qt.TimerType.PreciseTimer, self.__update_item_label)
         
     def __on_accept(self):
-        self.on_name_selected.emit(ItemCreationResult(
-                path=self.gen_resultatnt_path(),
-                typ=self.__item_type
-            )
-        )
+        if (p := self.get_resultant_path()) is None:
+            raise GUIException("Accepted without selected path.")
+        self.on_name_selected.emit(p)
 
     def __on_select(self):
-        if chosen_dir := self.__dir_preview.get_chosen_dir():
-            self.__working_directory = self.__wiki_directory / chosen_dir
         self.__validate()
 
-    def gen_resultatnt_path(self):
-        line_edit_txt = self.__line_edit.text()
-        txt_stripped = line_edit_txt.strip()
-        ending = ""
-        if self.__item_type == ItemType.PWE:
-            ending = ".pwe"
-        return self.__working_directory / f"{txt_stripped}{ending}"
+    def get_resultant_path(self) -> Optional[pathlib.Path]:
+        """
+            Get the resulting path.
+        """
+        if (d := self.__dir_preview.get_chosen_dir()) is None:
+            return None
+        out = d / self.__line_edit.text()
+        return out
 
     def __validate(self):
         valid = True
@@ -80,10 +69,11 @@ class ItemNameDialog(QDialog):
         if not valid_item_name(line_edit_txt):
             valid = False
             error_msg = "Not a valid item name."
-
-        if (self.__wiki_directory / self.gen_resultatnt_path()).exists():
+        elif (p := self.get_resultant_path()) is not None:
+            if p.exists():
+                valid = False
+                error_msg = "Item/folder already exists"
+        else:
             valid = False
-            error_msg = f"Item/folder already exists"
-
         self.__error_label.setText(error_msg)
-        self.__button.setDisabled(not valid)  
+        self.__button.setDisabled(not valid)

@@ -4,7 +4,7 @@
 import pathlib
 from typing import Callable, Optional
 
-from PyQt6.QtWidgets import  QHBoxLayout, QLabel, QPushButton, QWidget
+from PyQt6.QtWidgets import  QFileDialog, QHBoxLayout, QLabel, QPushButton, QWidget
 from PyQt6.QtCore import QTimer, Qt, pyqtSignal
 from PyQt6.QtGui import QFontMetrics
 
@@ -116,17 +116,15 @@ class SystemDirPreview(QWidget):
         self.__update_label()
         self.file_selected.emit()
 
-    def get_chosen_dir(self):
+    def get_chosen_dir(self) -> Optional[pathlib.Path]:
         """
             Get chosen dir, relative to wiki proper.
         """
         return self.__chosen_path
 
     def __on_browse(self):
-        dialog = ProjectDialog(self, self.__wiki_directory, ProjectDialogArgs(
-            dir_only=True,
-            add_root_as_folder=True,
-
-        ))
-        dialog.on_file_selected.connect(self.__on_chosen)
+        dialog = QFileDialog(self)
+        dialog.setFileMode(QFileDialog.FileMode.Directory)
+        dialog.setOptions(QFileDialog.Option.ShowDirsOnly)
+        dialog.fileSelected.connect(lambda p: self.__on_chosen(pathlib.Path(p)))
         dialog.exec()
