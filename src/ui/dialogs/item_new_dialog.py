@@ -83,10 +83,11 @@ class ItemNewDialog(QDialog):
         if not valid_item_name(line_edit_txt):
             valid = False
             error_msg = "Not a valid item name."
+        elif self.__dir_preview.get_chosen_dir() is None:
+            valid = False
         elif (self.__wiki_directory / self.gen_resultant_path()).exists():
             valid = False
             error_msg = f"Item/folder already exists"
-        valid = valid and self.__dir_preview.get_chosen_dir() is not None
         self.__error_label.setText(error_msg)
         self.__button.setDisabled(not valid)
         
