@@ -1,4 +1,6 @@
 {
     
-    "pylint.importStrategy": "fromEnvironment"
+    "pylint.importStrategy": "fromEnvironment",
+    "pylint.args": ["--extension-pkg-allow-list=PyQt6"]
+    
 }
