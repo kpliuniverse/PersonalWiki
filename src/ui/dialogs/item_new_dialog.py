@@ -11,7 +11,7 @@ from src.items.items import ItemType, ItemCreationResult
 from src.ui.components.dir_preview import ProjectDirPreview
 from src.utils.item_validity import valid_item_name
 
-class ItemNameDialog(QDialog):
+class ItemNewDialog(QDialog):
 
     on_name_selected: pyqtSignal = pyqtSignal(ItemCreationResult)
 
@@ -20,8 +20,8 @@ class ItemNameDialog(QDialog):
         logging.debug("directory=%s, wiki_proper=%s", directory, wiki_proper_directory)
 
         self.__working_directory = directory
-
         super().__init__(parent)
+        self.setWindowTitle("New Item")
 
         layout = QVBoxLayout()
         self.setLayout(layout)
@@ -55,7 +55,7 @@ class ItemNameDialog(QDialog):
         
     def __on_accept(self):
         self.on_name_selected.emit(ItemCreationResult(
-                path=self.gen_resultatnt_path(),
+                path=self.gen_resultant_path(),
                 typ=self.__item_type
             )
         )
@@ -65,7 +65,10 @@ class ItemNameDialog(QDialog):
             self.__working_directory = self.__wiki_directory / chosen_dir
         self.__validate()
 
-    def gen_resultatnt_path(self):
+    def gen_resultant_path(self):
+        """
+            Get resultant path, relative to wiki proper
+        """
         line_edit_txt = self.__line_edit.text()
         txt_stripped = line_edit_txt.strip()
         ending = ""
@@ -81,7 +84,7 @@ class ItemNameDialog(QDialog):
             valid = False
             error_msg = "Not a valid item name."
 
-        if (self.__wiki_directory / self.gen_resultatnt_path()).exists():
+        if (self.__wiki_directory / self.gen_resultant_path()).exists():
             valid = False
             error_msg = f"Item/folder already exists"
         valid = valid and self.__dir_preview.get_chosen_dir() is not None

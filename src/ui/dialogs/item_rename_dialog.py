@@ -34,7 +34,7 @@ class ItemRenameDialog(QDialog):
         self.__working_item = item
 
         super().__init__(parent)
-
+        self.setWindowTitle("Rename Item")
         layout = QVBoxLayout()
         self.setLayout(layout)
         self.setFixedSize(400, 200)

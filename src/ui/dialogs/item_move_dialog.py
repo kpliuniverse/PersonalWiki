@@ -15,7 +15,7 @@ class ItemMoveDialog(QDialog):
 
     def __init__ (self, parent: QWidget, items: List[pathlib.Path], wiki_proper_directory: pathlib.Path):
         super().__init__(parent=parent)
-
+        self.setWindowTitle("Move Item")
         if not items:
             raise GUIException("ItemMoveDialog created without specifying items to move.")
 

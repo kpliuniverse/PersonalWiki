@@ -13,7 +13,7 @@ from src.ui.dialogs.item_move_dialog import ItemMoveDialog
 from src.ui.dialogs.item_rename_dialog import ItemRenameDialog, RenameInfo
 from src.utils.item_actions import DeleteAction, MoveAction, NewItemAction
 from src.utils.move_info import MoveInfo
-from src.ui.dialogs.item_name_dialog import ItemNameDialog
+from src.ui.dialogs.item_new_dialog import ItemNewDialog
 from src.ui.components.project_tree import DragDropInfo, ProjectTree, ProjectTreeArgs
 from src.exceptions import GUIException
 from src.items.items import ItemCreationResult, ItemType
@@ -175,7 +175,7 @@ class ProjectExplorer(QWidget):
                 dir_to_create = selected_path.parent
 
         
-        dialog = ItemNameDialog(self, item_type, dir_to_create, workdir)
+        dialog = ItemNewDialog(self, item_type, dir_to_create, workdir)
         dialog.on_name_selected.connect(self.__create_new_item)
         dialog.exec()
 
