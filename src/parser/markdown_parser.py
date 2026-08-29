@@ -23,5 +23,4 @@ def parse_chunk(md: str):
         
     )
     add_plugins(md_instance, plugins)
-    ##TODO: deal with external links
     return str(md_instance(md))
