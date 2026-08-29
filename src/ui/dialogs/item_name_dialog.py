@@ -8,7 +8,7 @@ from PyQt6.QtCore import QTimer, Qt, pyqtSignal
 
 from src.exceptions import GUIException
 from src.items.items import ItemType, ItemCreationResult
-from src.ui.components.dir_preview import DirPreview
+from src.ui.components.dir_preview import ProjectDirPreview
 from src.utils.item_validity import valid_item_name
 
 class ItemNameDialog(QDialog):
@@ -34,7 +34,7 @@ class ItemNameDialog(QDialog):
         self.__line_edit.textChanged.connect(self.__validate)
         layout.addWidget(self.__line_edit)
 
-        self.__dir_preview = DirPreview(self, wiki_proper_directory, pre_chosen_dir=directory)
+        self.__dir_preview = ProjectDirPreview(self, wiki_proper_directory, pre_chosen_dir=directory)
         self.__dir_preview.file_selected.connect(self.__on_select)
         layout.addWidget(self.__dir_preview)
         
@@ -84,7 +84,7 @@ class ItemNameDialog(QDialog):
         if (self.__wiki_directory / self.gen_resultatnt_path()).exists():
             valid = False
             error_msg = f"Item/folder already exists"
-
+        valid = valid and self.__dir_preview.get_chosen_dir() is not None
         self.__error_label.setText(error_msg)
         self.__button.setDisabled(not valid)
         

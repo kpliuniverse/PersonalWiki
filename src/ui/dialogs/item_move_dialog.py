@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import QDialog, QDialogButtonBox, QLabel, QPushButton, QVBo
 from PyQt6.QtCore import Qt, pyqtSignal
 
 from src.exceptions import GUIException
-from src.ui.components.dir_preview import DirPreview
+from src.ui.components.dir_preview import ProjectDirPreview
 from src.utils.move_info import MoveInfo
 
 class ItemMoveDialog(QDialog):
@@ -26,7 +26,7 @@ class ItemMoveDialog(QDialog):
         label = QLabel(parent=self, text=label_text)
         layout.addWidget(label)
 
-        self.__dir_preview = DirPreview(self, wiki_proper_directory)
+        self.__dir_preview = ProjectDirPreview(self, wiki_proper_directory)
         self.__dir_preview.file_selected.connect(self.__validate_buttons)
         layout.addWidget(self.__dir_preview)
 
