@@ -1,8 +1,0 @@
-[
-  "tests/test_parsing.py::test_escape",
-  "tests/test_projecttree.py::test_add_path",
-  "tests/test_projecttree.py::test_parenting_bug",
-  "tests/test_wiki.py::test_create_path",
-  "tests/test_wiki.py::test_create_wiki",
-  "tests/test_wiki.py::test_open_path"
-]
