@@ -1,6 +1,7 @@
 import csv
 from enum import StrEnum, auto
 from importlib import resources as impresources
+import logging
 import pathlib
 from typing import Any, Dict, List
 
@@ -8,6 +9,7 @@ from PyQt6.QtGui import QIcon
 import attrs
 
 from src.consts import RESOURCE_PATH
+from src.exceptions import ResourceTypeException
 from src.utils.singleton import Singleton
 
 class ResourceType(StrEnum):
@@ -15,10 +17,19 @@ class ResourceType(StrEnum):
 
 @attrs.define
 class Resource:
+    """
+        Resource class
+
+        type: the type of resource
+        resource
+    """
     type: ResourceType
-    resource: Any
+    res: Any
 
 class ResourceManager(metaclass=Singleton):
+    """
+        Resource manager singleton
+    """
     def __init__(self) -> None:
         self.__resources: Dict[str, Resource] = dict()
         resource_csv = RESOURCE_PATH / "resources.csv"
@@ -37,11 +48,13 @@ class ResourceManager(metaclass=Singleton):
                     res = QIcon(f"res:{path}")
                 self.__resources[path] = Resource(
                     type=res_type,
-                    resource=res
+                    res=res
                 )
+                logging.info("Loaded %s", path)
 
     def get(self, path: str):
         try:
             return self.__resources[path]
         except KeyError:
             raise KeyError(f"Resource {path} not found or loaded.")
+

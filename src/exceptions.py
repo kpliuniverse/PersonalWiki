@@ -3,3 +3,6 @@ class GUIException(Exception):
 
 class InvalidNameException(Exception):
     pass
+
+class ResourceTypeException(Exception):
+    pass
