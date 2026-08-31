@@ -23,19 +23,19 @@ class ToolBar(QToolBar):
     def __init__(self, parent: QWidget):
         res_mgr = ResourceManager()
         super().__init__(parent)
-        self.new_btn = QPushButton(parent=self, text="", icon=res_mgr.get("icons/48px/plus.png").res)
+        self.new_btn = QPushButton(parent=self, text="", icon=res_mgr.get("icons/96px/plus.png").res)
         self.new_btn.setToolTip("New item")
         self.addWidget(self.new_btn)
 
-        self.move_btn = QPushButton(parent=self, text="", icon=res_mgr.get("icons/48px/move.png").res)
+        self.move_btn = QPushButton(parent=self, text="", icon=res_mgr.get("icons/96px/move.png").res)
         self.move_btn.setToolTip("Move items")
         self.addWidget(self.move_btn)
 
-        self.del_btn = QPushButton(parent=self, text="", icon=res_mgr.get("icons/48px/delete.png").res)
+        self.del_btn = QPushButton(parent=self, text="", icon=res_mgr.get("icons/96px/delete.png").res)
         self.del_btn.setToolTip("Delete items.")
         self.addWidget(self.del_btn)
 
-        self.rename_btn = QPushButton(parent=self, text="", icon=res_mgr.get("icons/48px/rename.png").res)
+        self.rename_btn = QPushButton(parent=self, text="", icon=res_mgr.get("icons/96px/rename.png").res)
         self.rename_btn.setToolTip("Rename item")
         self.addWidget(self.rename_btn)
 
