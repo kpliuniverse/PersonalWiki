@@ -12,8 +12,8 @@ from PyQt6.QtGui import QFontDatabase
 from src.consts import RESOURCE_PATH
 from src.initcontext import InitContext
 from src.resources import ResourceManager
-from src.ui.components.main_window import MainWindow
-from src.ui.components.wiki_window import WikiWindow
+from src.ui.windows.main_window import MainWindow
+from src.ui.windows.wiki_window import WikiWindow
 
 
 
