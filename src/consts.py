@@ -3,4 +3,7 @@ import pathlib
 
 WIKI_ENCODING = "utf-8"
 
-RESOURCE_PATH = pathlib.Path("resources")
+
+from pathlib import Path
+
+RESOURCE_PATH = Path(__file__).resolve().parent.parent / "resources"
