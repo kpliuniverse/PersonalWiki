@@ -83,9 +83,6 @@ class MainWindow(QMainWindow):
 
         # self.__load_cur_item()
         self.__refresh_project_tree()
-        
-
-
 
     def __init_menu_bar(self):
         
@@ -117,8 +114,7 @@ class MainWindow(QMainWindow):
         if item_path_abs.is_file():
             self.__load_item(item_path)
   
-
-    def __refresh_project_tree(self):  
+    def __refresh_project_tree(self):
         proper_path = (self.__app_state.cur_wiki.get_wiki_dir_path() / "proper")
         self.__project_explorer.load(proper_path)
         
