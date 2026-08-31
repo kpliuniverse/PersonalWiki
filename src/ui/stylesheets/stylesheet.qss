@@ -1,0 +1,4 @@
+#ProjectExplorerToolbar QPushButton {
+
+    icon-size: 1em;
+}

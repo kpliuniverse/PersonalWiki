@@ -1,6 +1,7 @@
 import datetime
 import logging
 import pathlib
+from importlib import resources
 from typing import Optional
 
 from PyQt6.QtOpenGLWidgets import QOpenGLWidget
@@ -38,11 +39,15 @@ from src.ui.utils.view_utils import guess_view_type
 from src.ui.workers.renderer_worker import RendererWorker
 from src.utils.navigation_info import NavigationInfo
 from src.wiki.wiki import open_wiki
-
+import src.ui.stylesheets as stylesheets
 class MainWindow(QMainWindow):
                     
     def __init__(self, initcontext: InitContext):
         super().__init__()
+
+
+        self.setStyleSheet("")
+        self.setObjectName("MainWindow")
         self.setGeometry(200, 200, 1200, 800)
         self.setWindowTitle("PersonalWiki")
 
@@ -83,6 +88,10 @@ class MainWindow(QMainWindow):
 
         # self.__load_cur_item()
         self.__refresh_project_tree()
+
+        qss_file = resources.files(stylesheets) / "stylesheet.qss"
+        with qss_file.open("r") as f:
+            self.setStyleSheet(f.read())
 
     def __init_menu_bar(self):
         

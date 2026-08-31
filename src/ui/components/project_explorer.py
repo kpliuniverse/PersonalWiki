@@ -19,10 +19,16 @@ from src.exceptions import GUIException
 from src.items.items import ItemCreationResult, ItemType
 from src.resources import ResourceManager
 
-class ToolBar(QToolBar):
+class ProjectExplorerToolbar(QToolBar):
     def __init__(self, parent: QWidget):
-        res_mgr = ResourceManager()
         super().__init__(parent)
+#         self.setStyleSheet("""QToolBar#ProjectExplorerToolbar QPushButton {
+
+#     background-color: black;
+
+# }""")
+        self.setObjectName("ProjectExplorerToolbar")
+        res_mgr = ResourceManager()
         self.new_btn = QPushButton(parent=self, text="", icon=res_mgr.get("icons/96px/plus.png").res)
         self.new_btn.setToolTip("New item")
         self.addWidget(self.new_btn)
@@ -49,6 +55,7 @@ class ProjectExplorer(QWidget):
     item_operation_requested = pyqtSignal(list)
     def __init__(self, parent: QWidget):
         super().__init__(parent)
+        self.setObjectName("ProjectExplorer")
         self.__root_layout = QVBoxLayout()
         self.setLayout(self.__root_layout)
         self.__toolbar = self.__edit_toolbar()
@@ -138,7 +145,7 @@ class ProjectExplorer(QWidget):
         dialog.exec()
 
     def __edit_toolbar(self):
-        toolbar = ToolBar(self)
+        toolbar = ProjectExplorerToolbar(self)
 
         toolbar.new_btn.setMenu(self.__new_menu())
         toolbar.del_btn.clicked.connect(self.__on_delete_btn)

@@ -3,7 +3,7 @@ import sys
 import pathlib 
 import logging
 
-from PyQt6.QtCore import QDir
+from PyQt6.QtCore import QCoreApplication, QDir, Qt
 from PyQt6.QtWidgets import (
     QApplication,
 )
@@ -54,6 +54,7 @@ class App:
         self.add_paths()
         self.init_fonts()
         self.init_resources()
+        QCoreApplication.setAttribute(Qt.ApplicationAttribute.AA_UseStyleSheetPropagationInWidgetStyles, True)
         if len(self.app.arguments()) == 1:
             wiki_window = WikiWindow()
             wiki_window.wiki_opened.connect(self.run_main)
