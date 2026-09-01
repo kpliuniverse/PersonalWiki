@@ -42,17 +42,28 @@ class StylesheetManager():
             qss: str = sass.compile(string=scss.read()) # type: ignore
             stylesheet = tinycss2.parse_stylesheet(qss, skip_comments=True, skip_whitespace=True)
             for rule in stylesheet:
-                
                 if isinstance(rule, ast.QualifiedRule):
                     key = tinycss2.serialize(rule.prelude).strip()
                     rule_copy = deepcopy(rule)
                     rule_copy.prelude = remove_whitespace(rule_copy.prelude)
                     rule_copy.content = remove_whitespace(rule_copy.content)
                     cur_rule = self.__root_rule
+                    final_elems = []
                     for elem in key.split(" "):
+                        first_separator_index = [
+                            ind for ind in
+                            (elem.find(sep) for sep in ["#", "::", ":"])
+                            if ind != -1
+                        ]
+                        first_separator_index = min(first_separator_index) if first_separator_index else None
+                        
+                        if first_separator_index is not None:
+                            elem = elem[:first_separator_index]
+                            
                         if elem not in cur_rule.rules_for_children:
                             cur_rule.rules_for_children[elem] = StylesheetRule()
                         cur_rule = cur_rule.rules_for_children[elem]
+                        final_elems.append(elem)
                     cur_rule.rule.append(rule_copy)
 
     def get_rule(self, selector: str, return_universals_even_if_not_found = False) -> Optional[str]:
@@ -70,7 +81,7 @@ class StylesheetManager():
             try:
                 if child := cur_rule.rules_for_children.get("*", None):
                     qualified_rules.extend(child.rule)
-    
+
                 cur_rule = cur_rule.rules_for_children[elem]
             except KeyError:
                 if return_universals_even_if_not_found:
