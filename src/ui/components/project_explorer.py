@@ -34,15 +34,15 @@ class ProjectExplorerToolbar(QToolBar):
         self.addWidget(self.new_btn)
 
         self.move_btn = QPushButton(parent=self, text="", icon=res_mgr.get("icons/96px/move.png").res)
-        self.move_btn.setToolTip("Move items")
+        self.move_btn.setToolTip("Move Items")
         self.addWidget(self.move_btn)
 
         self.del_btn = QPushButton(parent=self, text="", icon=res_mgr.get("icons/96px/delete.png").res)
-        self.del_btn.setToolTip("Delete items.")
+        self.del_btn.setToolTip("Delete Items")
         self.addWidget(self.del_btn)
 
         self.rename_btn = QPushButton(parent=self, text="", icon=res_mgr.get("icons/96px/rename.png").res)
-        self.rename_btn.setToolTip("Rename item")
+        self.rename_btn.setToolTip("Rename Item")
         self.addWidget(self.rename_btn)
 
 class ProjectExplorer(QWidget):
