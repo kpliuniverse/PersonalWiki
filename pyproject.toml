@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
     "attrs>=26.1.0",
+    "libsass>=0.23.0",
     "mistune>=3.3.3",
     "pyinstaller>=6.22.2",
     "pylint>=4.0.7",
@@ -17,4 +18,5 @@ dependencies = [
     "qscintilla>=2.14.1",
     "returns>=0.29.0",
     "sip>=6.16.1",
+    "tinycss2>=1.5.1",
 ]

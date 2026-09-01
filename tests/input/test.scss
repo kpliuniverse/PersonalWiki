@@ -1,0 +1,28 @@
+a {
+    b: c;
+}
+
+a c {
+    d: e;
+}
+
+a c b {
+    f: e;
+}
+
+a b {
+    a: b
+}
+
+
+multiple-rule {
+    a: b;
+}
+
+multiple-rule {
+    c: d;
+}
+
+a.b {
+    a: b
+}
