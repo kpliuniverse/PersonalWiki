@@ -12,6 +12,7 @@ from PyQt6.QtGui import QFontDatabase
 from src.consts import RESOURCE_PATH
 from src.initcontext import InitContext
 from src.resources import ResourceManager
+from src.ui.stylesheets.stylesheet import MainStylesheetManager
 from src.ui.windows.main_window import MainWindow
 from src.ui.windows.wiki_window import WikiWindow
 
@@ -29,6 +30,7 @@ class App:
 
     def init_resources(self):
         ResourceManager()
+        MainStylesheetManager()
 
     def init_fonts(self):
         """

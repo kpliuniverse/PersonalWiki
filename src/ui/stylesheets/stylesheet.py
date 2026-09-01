@@ -55,7 +55,7 @@ class StylesheetManager():
                         cur_rule = cur_rule.rules_for_children[elem]
                     cur_rule.rule.append(rule_copy)
 
-    def get_rule(self, selector: str) -> Optional[str]:
+    def get_rule(self, selector: str, return_universals_even_if_not_found = False) -> Optional[str]:
         """
             Get rule from selectors
 
@@ -73,6 +73,8 @@ class StylesheetManager():
     
                 cur_rule = cur_rule.rules_for_children[elem]
             except KeyError:
+                if return_universals_even_if_not_found:
+                    return convert_rules_to_string(qualified_rules)
                 return None
             last_elem = elem
         if last_elem is not None and last_elem == "*":
@@ -87,11 +89,12 @@ class StylesheetManager():
                 rule_queue.append(v)
 
         return convert_rules_to_string(qualified_rules)
-        
-        
-                    
-                    
+
+
 class MainStylesheetManager(StylesheetManager, metaclass=Singleton):
+    """
+        A version of StylesheetManager that is a singleton automatically loads stylesheet.scss
+    """
     def __init__(self):
         load_path = pathlib.Path(__file__).resolve().with_name("stylesheet.scss")
         super().__init__(load_path)

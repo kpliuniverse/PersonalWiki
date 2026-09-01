@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import (
 
 from src.ui.dialogs.item_move_dialog import ItemMoveDialog
 from src.ui.dialogs.item_rename_dialog import ItemRenameDialog, RenameInfo
+from src.ui.stylesheets.stylesheet import MainStylesheetManager
 from src.utils.item_actions import DeleteAction, MoveAction, NewItemAction
 from src.utils.move_info import MoveInfo
 from src.ui.dialogs.item_new_dialog import ItemNewDialog
@@ -44,6 +45,7 @@ class ProjectExplorerToolbar(QToolBar):
         self.rename_btn = QPushButton(parent=self, text="", icon=res_mgr.get("icons/96px/rename.png").res)
         self.rename_btn.setToolTip("Rename Item")
         self.addWidget(self.rename_btn)
+
 
 class ProjectExplorer(QWidget):
     """
@@ -81,6 +83,7 @@ class ProjectExplorer(QWidget):
         new_menu = QMenu()
         new_menu.addAction("File", lambda: self.__on_new_btn(ItemType.PWE))
         new_menu.addAction("Folder", lambda: self.__on_new_btn(ItemType.FOLDER))
+        new_menu.setStyleSheet(MainStylesheetManager().get_rule("*"))
         return new_menu
 
     def __get_workdir(self):

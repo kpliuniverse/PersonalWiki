@@ -6,6 +6,7 @@ from PyQt6.QtGui import QCloseEvent
 from PyQt6.QtWidgets import QMainWindow, QPushButton, QVBoxLayout, QWidget, QFileDialog
 
 from src.ui.dialogs.new_wiki_dialog import NewWikiDialog
+from src.ui.stylesheets.stylesheet import MainStylesheetManager
 from src.wiki.wiki import create_wiki
 
 
@@ -31,6 +32,8 @@ class WikiWindow(QMainWindow):
         open_button.clicked.connect(self.__on_open_btn_clicked)
         if (l := panel.layout()) is not None:
             l.addWidget(open_button)
+
+        self.setStyleSheet(MainStylesheetManager().get_rule("*"))
 
     def __on_new_btn_clicked(self):
         new_wiki_dialog = NewWikiDialog(self)
