@@ -6,7 +6,7 @@ from PyQt6.QtGui import QCloseEvent
 from PyQt6.QtWidgets import QMainWindow, QPushButton, QVBoxLayout, QWidget, QFileDialog
 
 from src.ui.dialogs.new_wiki_dialog import NewWikiDialog
-from src.ui.stylesheets.stylesheet import MainStylesheetManager
+from src.ui.stylesheets.app_stylesheet import MainStylesheetManager
 from src.wiki.wiki import create_wiki
 
 

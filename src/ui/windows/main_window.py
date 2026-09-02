@@ -35,7 +35,7 @@ from src.exceptions import GUIException
 from src.initcontext import InitContext
 from src.states.appstate import AppState
 from src.ui.components.entry_ribbon import EntryRibbon
-from src.ui.stylesheets.stylesheet import MainStylesheetManager
+from src.ui.stylesheets.app_stylesheet import MainStylesheetManager
 from src.ui.utils.view_utils import guess_view_type
 from src.ui.workers.renderer_worker import RendererWorker
 from src.utils.navigation_info import NavigationInfo

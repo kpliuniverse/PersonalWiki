@@ -1,7 +1,7 @@
 import logging
 import pathlib
 
-from src.ui.stylesheets.stylesheet import StylesheetManager
+from src.ui.stylesheets.app_stylesheet import StylesheetManager
 
 
 def test_child_elements():

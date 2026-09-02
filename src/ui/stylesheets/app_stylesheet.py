@@ -114,7 +114,7 @@ class MainStylesheetManager(StylesheetManager, metaclass=Singleton):
         A version of StylesheetManager that is a singleton automatically loads stylesheet.scss
     """
     def __init__(self):
-        data = pkgutil.get_data("src.ui.stylesheets", "stylesheet.scss")
+        data = pkgutil.get_data("src.ui.stylesheets", "app_stylesheet.scss")
 
         if data is None:
             raise FileNotFoundError("Neighboring stylesheet.scss not found")

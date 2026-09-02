@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
 
 from src.ui.dialogs.item_move_dialog import ItemMoveDialog
 from src.ui.dialogs.item_rename_dialog import ItemRenameDialog, RenameInfo
-from src.ui.stylesheets.stylesheet import MainStylesheetManager
+from src.ui.stylesheets.app_stylesheet import MainStylesheetManager
 from src.utils.item_actions import DeleteAction, MoveAction, NewItemAction
 from src.utils.move_info import MoveInfo
 from src.ui.dialogs.item_new_dialog import ItemNewDialog

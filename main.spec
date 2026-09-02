@@ -7,7 +7,7 @@ a = Analysis(
     binaries=[],
     datas=[
         ("resources", "resources"),
-        ("src/ui/stylesheets/stylesheet.scss", "src/ui/stylesheets")
+        ("src/ui/stylesheets/app_stylesheet.scss", "src/ui/stylesheets")
     ],
     hiddenimports=[],
     hookspath=[],
