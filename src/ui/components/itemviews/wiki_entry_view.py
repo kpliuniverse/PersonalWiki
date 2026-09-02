@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import QLabel, QSplitter, QTextEdit, QVBoxLayout, QWidget
 from src.consts import WIKI_ENCODING
 from src.ui.components.entry_ribbon import EntryRibbon
 from src.ui.pages.custom_page import CustomPage
+from src.ui.stylesheets.app_stylesheet import MainStylesheetManager
 from src.ui.utils.item_view_base import BaseItemView
 from src.ui.workers.renderer_worker import RendererWorker
 from src.utils.navigation_info import NavigationInfo
@@ -40,7 +41,6 @@ class WikiEntryView(BaseItemView):
 
         self.__text_edit = QTextEdit(editor_splitter)
         self.__text_edit.setAcceptRichText(False)
-        self.__text_edit.setFont(QFont("Hack", 10, weight=6))
         self.__text_edit.setAcceptDrops(False)
         self.__text_edit.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
         editor_splitter.addWidget(self.__text_edit)
@@ -55,6 +55,8 @@ class WikiEntryView(BaseItemView):
         editor_splitter.addWidget(self.__text_view)
         editor_splitter.setHandleWidth(16)
         editor_splitter.setSizes([100, 100])
+
+        self.setStyleSheet(MainStylesheetManager().get_rule("WikiEntryView"))
 
     def load_item(self, item: pathlib.Path):
         self.__cur_item_path = item
