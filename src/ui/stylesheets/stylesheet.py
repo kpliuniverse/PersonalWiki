@@ -1,6 +1,6 @@
 from collections import deque
 from copy import deepcopy
-import logging
+import pkgutil
 import pathlib
 from typing import Dict, List, Optional
 
@@ -32,39 +32,46 @@ def convert_rules_to_string(qualified_rules: List[ast.QualifiedRule]):
 
 class StylesheetManager():
     """
-        if load_path arg is not supplied, it uses "stylesheet.scss" in the same directory
+        if `load_path` arg is not supplied, it uses `stylesheet.scss` in the same directory
         Load path is used for testing.
+
+        If data is None, loads `load_path`
     """
-    def __init__(self, load_path: pathlib.Path):
+    def __init__(self, load_path: Optional[pathlib.Path] = None, data: Optional[str] = None):
         self.__root_rule: StylesheetRule = StylesheetRule()
-    
-        with open(load_path, encoding="utf-8") as scss:
-            qss: str = sass.compile(string=scss.read()) # type: ignore
-            stylesheet = tinycss2.parse_stylesheet(qss, skip_comments=True, skip_whitespace=True)
-            for rule in stylesheet:
-                if isinstance(rule, ast.QualifiedRule):
-                    key = tinycss2.serialize(rule.prelude).strip()
-                    rule_copy = deepcopy(rule)
-                    rule_copy.prelude = remove_whitespace(rule_copy.prelude)
-                    rule_copy.content = remove_whitespace(rule_copy.content)
-                    cur_rule = self.__root_rule
-                    final_elems = []
-                    for elem in key.split(" "):
-                        first_separator_index = [
-                            ind for ind in
-                            (elem.find(sep) for sep in ["#", "::", ":"])
-                            if ind != -1
-                        ]
-                        first_separator_index = min(first_separator_index) if first_separator_index else None
+        
+        if data is None:
+            if load_path is None:
+                raise ValueError("Both arguments are None.")
+            with open(load_path, encoding="utf-8") as scss:
+                data = scss.read()
+
+        qss: str = sass.compile(string=data) # type: ignore
+        stylesheet = tinycss2.parse_stylesheet(qss, skip_comments=True, skip_whitespace=True)
+        for rule in stylesheet:
+            if isinstance(rule, ast.QualifiedRule):
+                key = tinycss2.serialize(rule.prelude).strip()
+                rule_copy = deepcopy(rule)
+                rule_copy.prelude = remove_whitespace(rule_copy.prelude)
+                rule_copy.content = remove_whitespace(rule_copy.content)
+                cur_rule = self.__root_rule
+                final_elems = []
+                for elem in key.split(" "):
+                    first_separator_index = [
+                        ind for ind in
+                        (elem.find(sep) for sep in ["#", "::", ":"])
+                        if ind != -1
+                    ]
+                    first_separator_index = min(first_separator_index) if first_separator_index else None
+                    
+                    if first_separator_index is not None:
+                        elem = elem[:first_separator_index]
                         
-                        if first_separator_index is not None:
-                            elem = elem[:first_separator_index]
-                            
-                        if elem not in cur_rule.rules_for_children:
-                            cur_rule.rules_for_children[elem] = StylesheetRule()
-                        cur_rule = cur_rule.rules_for_children[elem]
-                        final_elems.append(elem)
-                    cur_rule.rule.append(rule_copy)
+                    if elem not in cur_rule.rules_for_children:
+                        cur_rule.rules_for_children[elem] = StylesheetRule()
+                    cur_rule = cur_rule.rules_for_children[elem]
+                    final_elems.append(elem)
+                cur_rule.rule.append(rule_copy)
 
     def get_rule(self, selector: str, return_universals_even_if_not_found = False) -> Optional[str]:
         """
@@ -107,7 +114,10 @@ class MainStylesheetManager(StylesheetManager, metaclass=Singleton):
         A version of StylesheetManager that is a singleton automatically loads stylesheet.scss
     """
     def __init__(self):
-        load_path = pathlib.Path(__file__).resolve().with_name("stylesheet.scss")
-        super().__init__(load_path)
+        data = pkgutil.get_data("src.ui.stylesheets", "stylesheet.scss")
 
+        if data is None:
+            raise FileNotFoundError("Neighboring stylesheet.scss not found")
+        super().__init__(data=data.decode())
+        
             
