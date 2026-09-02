@@ -3,7 +3,7 @@ from typing import Callable, List
 from mistune import Markdown, create_markdown
 from mistune.plugins.table import table
 from mistune.plugins.footnotes import footnotes
-from src.parser.custom_renderer import CustomHTMLRenderer
+from src.renderer.custom_renderer import CustomHTMLRenderer
 
 
 
