@@ -21,6 +21,8 @@ from src.ui.components.project_tree import DragDropInfo, ProjectTree, ProjectTre
 from src.exceptions import GUIException
 from src.items.items import ItemCreationResult, ItemType
 from src.resources import ResourceManager
+from src.utils.wiki_utils import walk_and_return_folder_item
+
 
 class SearchToolbar(QToolBar):
     def __init__(self, parent: QWidget):
@@ -223,6 +225,7 @@ class ProjectExplorer(QWidget):
         dialog.exec()
 
     def load(self, directory: pathlib.Path):
+        walk_and_return_folder_item(directory)
         """
             Loads the widget with a specific path
         """

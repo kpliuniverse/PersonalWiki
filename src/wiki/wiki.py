@@ -85,6 +85,9 @@ class Wiki:
         return self.get_wiki_proper_path() / cur_item
 
 
+    def fetch_items_from_source(self):
+        pass
+
 def open_wiki(path_to_wiki_pwi_file: pathlib.Path) -> Wiki:
 
     if not path_to_wiki_pwi_file.exists():
