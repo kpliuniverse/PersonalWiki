@@ -1,12 +1,14 @@
 import logging
 import pathlib
-from PyQt6.QtCore import Qt, pyqtSignal 
+from typing import Optional
+
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QMenu,
-    QWidget, 
-    QVBoxLayout, 
-    QToolBar, 
-    QPushButton
+    QWidget,
+    QVBoxLayout,
+    QToolBar,
+    QPushButton, QPlainTextEdit, QHBoxLayout, QLineEdit
 )
 
 from src.ui.dialogs.item_move_dialog import ItemMoveDialog
@@ -20,15 +22,26 @@ from src.exceptions import GUIException
 from src.items.items import ItemCreationResult, ItemType
 from src.resources import ResourceManager
 
+class SearchToolbar(QToolBar):
+    def __init__(self, parent: QWidget):
+        super().__init__(parent)
+
+        container = QWidget()
+        container_layout = QHBoxLayout(container)
+        container.setLayout(container_layout)
+        self.search_input = QLineEdit(parent=self)
+        self.search_input.setPlaceholderText("Search")
+        container_layout.addWidget(self.search_input)
+        # self.search_button = QPushButton("Search", parent=self)
+        # container_layout.addWidget(self.search_button)
+        self.addWidget(container)
+
 class ProjectExplorerToolbar(QToolBar):
     def __init__(self, parent: QWidget):
         super().__init__(parent)
-#         self.setStyleSheet("""QToolBar#ProjectExplorerToolbar QPushButton {
 
-#     background-color: black;
 
-# }""")
-        self.setObjectName("ProjectExplorerToolbar")
+
         res_mgr = ResourceManager()
         self.new_btn = QPushButton(parent=self, text="", icon=res_mgr.get("icons/96px/plus.png").res)
         self.new_btn.setToolTip("New Item")
@@ -46,6 +59,10 @@ class ProjectExplorerToolbar(QToolBar):
         self.rename_btn.setToolTip("Rename Item")
         self.addWidget(self.rename_btn)
 
+        self.search_btn = QPushButton(parent=self, text="Search")
+        self.search_btn.setToolTip("Search")
+        self.addWidget(self.search_btn)
+
 
 class ProjectExplorer(QWidget):
     """
@@ -55,13 +72,23 @@ class ProjectExplorer(QWidget):
     """
     
     item_operation_requested = pyqtSignal(list)
+
     def __init__(self, parent: QWidget):
         super().__init__(parent)
+
+        self.__search_term: str = ""
+
         self.setObjectName("ProjectExplorer")
         self.__root_layout = QVBoxLayout()
         self.setLayout(self.__root_layout)
         self.__toolbar = self.__edit_toolbar()
         self.__root_layout.addWidget(self.__toolbar)
+
+        self.__search_toolbar = SearchToolbar(self)
+        self.__search_toolbar.setVisible(False)
+        self.__search_toolbar.search_input.textChanged.connect(self.__on_search_update)
+
+        self.__root_layout.addWidget(self.__search_toolbar)
         self.__project_tree = ProjectTree(self, ProjectTreeArgs(
             dir_only=False
         ))
@@ -154,6 +181,7 @@ class ProjectExplorer(QWidget):
         toolbar.del_btn.clicked.connect(self.__on_delete_btn)
         toolbar.move_btn.clicked.connect(self.__on_move_btn)
         toolbar.rename_btn.clicked.connect(self.__on_rename_btn)
+        toolbar.search_btn.clicked.connect(self.__toggle_search)
         return toolbar
 
     def __create_new_item(self, item: ItemCreationResult):
@@ -205,3 +233,12 @@ class ProjectExplorer(QWidget):
             Testing purposes only.
         """
         self.__move_item(move_info)
+
+    def __toggle_search(self):
+
+        self.__search_toolbar.setVisible(not self.__search_toolbar.isVisible())
+        self.__search_term = ""
+
+    def __on_search_update(self):
+        self.__search_term = self.__search_toolbar.search_input.text().strip()
+        logging.debug("Search term: %s", self.__search_term)
