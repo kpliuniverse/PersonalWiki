@@ -31,7 +31,7 @@ class ProjectExplorerToolbar(QToolBar):
         self.setObjectName("ProjectExplorerToolbar")
         res_mgr = ResourceManager()
         self.new_btn = QPushButton(parent=self, text="", icon=res_mgr.get("icons/96px/plus.png").res)
-        self.new_btn.setToolTip("New item")
+        self.new_btn.setToolTip("New Item")
         self.addWidget(self.new_btn)
 
         self.move_btn = QPushButton(parent=self, text="", icon=res_mgr.get("icons/96px/move.png").res)
