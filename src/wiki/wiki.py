@@ -9,7 +9,7 @@ import shutil
 from typing import List
 
 from attr import define, field, setters
-from returns.result import Failure, Result, Success
+from returns.result import Failure, Result, Success, attempt, safe
 
 from src.consts import WIKI_ENCODING
 from src.exceptions import InvalidNameException
@@ -87,26 +87,37 @@ class Wiki:
 
 def open_wiki(path_to_wiki_pwi_file: pathlib.Path) -> Wiki:
 
-    if not path_to_wiki_pwi_file.exists():
-        raise FileNotFoundError(f"{path_to_wiki_pwi_file.as_posix()} doesn't exist")
-    
     """
         Open a wiki and return a Wiki object.
     """
-    try:
-        with open(path_to_wiki_pwi_file.parent / ".pw" / "session.json", encoding=WIKI_ENCODING) as session_file:
+
+    if not path_to_wiki_pwi_file.exists():
+        raise FileNotFoundError(f"{path_to_wiki_pwi_file.as_posix()} doesn't exist")
+
+    session_path = path_to_wiki_pwi_file.parent / ".pw" / "session.json"
+
+    @safe
+    def __open_wiki() -> Session:
+        with open(session_path, encoding=WIKI_ENCODING) as session_file:
             session_json = json.load(session_file)
-            session = Session(
+            return Session(
                 cur_item=session_json["currentFile"]
             )
-    except FileNotFoundError:
-        session = Session(
-            cur_item=None
-        )
     
+    match __open_wiki():
+        case Success(s):
+            session = s
+        case Failure(FileNotFoundError()):
+            logging.info("Session file %s not found, supplying default session configuration...", session_path)
+            session = Session(
+                cur_item=None
+            )
+        case Failure(e):
+            raise e
+        
     wiki = Wiki(
         path_dir=path_to_wiki_pwi_file.parent,
-        session=session,
+        session=session, # type: ignore
         settings=Settings()
     )
 
