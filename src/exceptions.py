@@ -1,8 +1,11 @@
-class GUIException(Exception):
+class GUIException(BaseException):
     pass
 
-class InvalidNameException(Exception):
+class InvalidNameException(BaseException):
     pass
 
-class ResourceTypeException(Exception):
+class ResourceTypeException(BaseException):
+    pass
+
+class ResourceNotFoundError(BaseException):
     pass
