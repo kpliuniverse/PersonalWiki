@@ -24,7 +24,6 @@ class CustomHTMLRenderer(BaseRenderer):
         "ftps:",
         "irc:",
         "ircs:",
-        "wiki:"
     )
     GOOD_DATA_PROTOCOLS: ClassVar[Tuple[str, ...]] = (
         "data:image/gif;",
@@ -70,8 +69,6 @@ class CustomHTMLRenderer(BaseRenderer):
             return escape_text(url)
 
         _url = _unquote_url(url).lower().lstrip()
-        if allow_harmful_protocols and _url.startswith(tuple(allow_harmful_protocols)):
-            return escape_text(url)
 
         if _is_safe_url(_url, self.SAFE_PROTOCOLS, self.GOOD_DATA_PROTOCOLS):
             return escape_text(url)
@@ -181,6 +178,8 @@ def _unquote_url(url: str) -> str:
 def _is_safe_url(url: str, safe_protocols: Tuple[str, ...], good_data_protocols: Tuple[str, ...]) -> bool:
     if url.startswith(safe_protocols):
         return True
+    if url.startswith("wiki"):
+        return "../" not in url
     if url.startswith(good_data_protocols):
         return True
     if url.startswith(("/", "#", "?")):

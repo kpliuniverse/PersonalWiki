@@ -15,6 +15,7 @@ Here is a markdown example: [Here](wiki://example/headings.pwe)
 
 This should not work [Here](wiki://../hacked.txt)
 
+Neithr should [this](wiki://../long.pwe)
 san gen banye sabixi de wo
 ji tinghian oghisan chighe danche maije mantou
 yoghi han des ni ghughin sai nari
