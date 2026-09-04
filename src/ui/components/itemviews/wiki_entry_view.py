@@ -101,15 +101,15 @@ class WikiEntryView(BaseItemView):
             logging.debug("url_str=%s", url_str)
             if (abs_path := self.__wiki_dir / "proper" / url_str).exists():
                 self.switch_signal.emit(pathlib.Path(abs_path))
-        logging.debug("Going to %s", nav_info.url.toString())    
-
+        logging.debug("Going to %s", nav_info.url.toString())
 
     def save_cur_item(self):
+        """
+            Save the currently open item
+        """
         assert self.__cur_item_path is not None
         with open(self.__cur_item_path, "w", encoding=WIKI_ENCODING) as file:
             file.write(self.__text_edit.toPlainText())
-
-
     
     def __on_render_button(self):
         self.save_cur_item()
