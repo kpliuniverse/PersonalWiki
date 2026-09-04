@@ -9,6 +9,7 @@ import tinycss2
 
 from tinycss2 import ast
 
+from src.utils.package_utils import get_data_and_raise_if_none
 from src.utils.singleton import Singleton
 
 
@@ -32,10 +33,9 @@ def convert_rules_to_string(qualified_rules: List[ast.QualifiedRule]):
 
 class StylesheetManager():
     """
-        if `load_path` arg is not supplied, it uses `stylesheet.scss` in the same directory
-        Load path is used for testing.
-
-        If data is None, loads `load_path`
+        constructor arguments:
+            `data`, optional, raw_string of Sass css
+            `load_path`, if `data` is not supplied, the path to load
     """
     def __init__(self, load_path: Optional[pathlib.Path] = None, data: Optional[str] = None):
         self.__root_rule: StylesheetRule = StylesheetRule()
@@ -111,13 +111,9 @@ class StylesheetManager():
 
 class MainStylesheetManager(StylesheetManager, metaclass=Singleton):
     """
-        A version of StylesheetManager that is a singleton automatically loads stylesheet.scss
+        A version of StylesheetManager that is a singleton automatically loads app_stylesheet.scss
     """
     def __init__(self):
-        data = pkgutil.get_data("src.ui.stylesheets", "app_stylesheet.scss")
-
-        if data is None:
-            raise FileNotFoundError("Neighboring stylesheet.scss not found")
-        super().__init__(data=data.decode())
+        super().__init__(data=get_data_and_raise_if_none("src.ui.stylesheets", "app_stylesheet.scss").decode())
         
             
