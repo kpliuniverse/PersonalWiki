@@ -85,15 +85,15 @@ class StylesheetManager():
         qualified_rules: list[ast.QualifiedRule] = []
         last_elem = None
         for elem in selector.split(" "):
-            try:
-                if child := cur_rule.rules_for_children.get("*", None):
-                    qualified_rules.extend(child.rule)
+            if child := cur_rule.rules_for_children.get("*", None):
+                qualified_rules.extend(child.rule)
 
-                cur_rule = cur_rule.rules_for_children[elem]
-            except KeyError:
+            cur_rule = cur_rule.rules_for_children.get(elem, None)
+            if cur_rule is None:
                 if return_universals_even_if_not_found:
                     return convert_rules_to_string(qualified_rules)
                 return None
+            
             last_elem = elem
         if last_elem is not None and last_elem == "*":
             return convert_rules_to_string(qualified_rules)
