@@ -1,8 +1,0 @@
-@font-face {
-  font-family: noto;
-  src: url(assets/NotoSans-VariableFont_wdth\,wght.ttf) format('truetype');
-}
-
-body {
-    font-family: noto;    
-}
