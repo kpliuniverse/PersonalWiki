@@ -1,4 +1,5 @@
 import html
+import logging
 from typing import Any, ClassVar, Dict, Iterable, Optional, Tuple, Union, Literal
 from urllib.parse import unquote
 
@@ -72,6 +73,7 @@ class CustomHTMLRenderer(BaseRenderer):
 
         if _is_safe_url(_url, self.SAFE_PROTOCOLS, self.GOOD_DATA_PROTOCOLS):
             return escape_text(url)
+        logging.info("url %s  is found as unsafe", url)
         return "#harmful-link"
 
     def text(self, text: str) -> str:
