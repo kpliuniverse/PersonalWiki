@@ -181,7 +181,7 @@ def _is_safe_url(url: str, safe_protocols: Tuple[str, ...], good_data_protocols:
     if url.startswith(safe_protocols):
         return True
     if url.startswith("wiki"):
-        return "../" not in url
+        return "../" not in url and url.endswith("/..")
     if url.startswith(good_data_protocols):
         return True
     if url.startswith(("/", "#", "?")):
