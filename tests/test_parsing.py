@@ -14,3 +14,7 @@ def test_escape():
         chunk = parse_chunk(md)
         assert isinstance(chunk, str)
         assert chunk.strip() == f"<p>{html.escape(md)}</p>"
+
+
+def test_false_harmful_link():
+    assert parse_chunk("[hello](wiki://hello)").strip("\n") == '<p><a href="wiki://hello">hello</a></p>'
