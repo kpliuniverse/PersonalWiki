@@ -1,0 +1,10 @@
+@font-face {
+  font-family: Noto-Sans;
+  src: url(NotoSans-VariableFont_wdth\,wght.ttf) format('truetype');
+}
+
+body {
+  background-color: black;
+  color: white; 
+  font-family: Noto-Sans;     
+}
