@@ -23,7 +23,9 @@ class WebServer(object):
         context = {
             "body": parse_chunk(md)
         }
-        return Response(MainHTMLTemplater().render(context), mimetype="text/html")
+        response = MainHTMLTemplater().render(context)
+        print(response)
+        return Response(response, mimetype="text/html")
 
     def wsgi_app(self, environ, start_response):
         self.url_map = Map([
@@ -31,6 +33,7 @@ class WebServer(object):
             Rule('/exit', endpoint='exit')
         ])
         request = Request(environ)
+
         
         adapter = self.url_map.bind_to_environ(request.environ)
 

@@ -3,7 +3,7 @@
 
 args = []
 
-EXECUTABLES = ["main.py", "webserver_main.py"]
+EXECUTABLES = ["main.py"]
 
 for exec in EXECUTABLES:
     a = Analysis(
