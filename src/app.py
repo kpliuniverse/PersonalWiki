@@ -17,9 +17,6 @@ from src.ui.stylesheets.app_stylesheet import MainStylesheetManager
 from src.ui.windows.main_window import MainWindow
 from src.ui.windows.wiki_window import WikiWindow
 
-
-
-
 class App:
 
     def __init__(self):

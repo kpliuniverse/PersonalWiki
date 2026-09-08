@@ -2,6 +2,7 @@ import base64
 import os
 import pathlib
 import sys
+from typing import override
 
 import waitress
 from werkzeug import Request, Response
@@ -9,9 +10,15 @@ from werkzeug.exceptions import HTTPException, NotFound
 from werkzeug.routing import Map, Rule
 from werkzeug.serving import run_simple
 from werkzeug.middleware.shared_data import SharedDataMiddleware
-from src.consts import WIKI_ENCODING
+from src.consts import LOOPBACK_IP_ADD, PROJECT_ROOT, WIKI_ENCODING
+from src.multiprocessing.child_process import ChildProcess
 from src.parser.markdown_parser import parse_chunk
 from src.templating.templating import MainHTMLTemplater
+
+import importlib
+
+from src import consts
+
 
 
 class WebServer(object):
@@ -55,13 +62,18 @@ class WebServer(object):
 def create_app():
     app = WebServer()
     app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
-        '/default_static':  (pathlib.Path(__file__).parent / "src/static").as_posix()
-
+        '/default_static':  (PROJECT_ROOT / "src/static").as_posix()
     })
     return app
 
 
-if __name__ == "__main__": 
-    run_simple("127.0.0.1", 8080, create_app(), use_reloader=True)
+class WebserverProcess(ChildProcess):
+    def __init__(self):
+        self.port = 8080
+        self.host = LOOPBACK_IP_ADD
 
-    # waitress.serve(create_app(), host="127.0.0.1", port=8080)
+    @override
+    def run(self):
+        waitress.serve(create_app(), host=self.host, port=self.port)
+
+    

@@ -7,6 +7,8 @@ from src.utils.wiki_utils import walk_and_return_folder_item
 
 
 def main():
+    import multiprocessing
+    multiprocessing.freeze_support()
     logging.basicConfig(level=logging.DEBUG)
     walk_and_return_folder_item(pathlib.Path("end-tests/folders/walktest"))
     #App().run()
