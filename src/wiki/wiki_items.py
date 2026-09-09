@@ -59,12 +59,13 @@ class UnnamedFolderItem(Item):
         """
         # TODO: make this non-recursive
         slash = "" if __prefix == "" else "/"
-        print(f"{__prefix}{slash}{self.__name}")
+        disp = f"{__prefix}{slash}{self.name()}"
+        print(disp)
         for child in self.__children:
             if isinstance(child, FileItem):
-                print(f"{self.__name}/{child.name()}")
+                print(f"{disp}/{child.name()}")
             if isinstance(child, UnnamedFolderItem):
-                child.print(f"{self.__name}")
+                child.print(disp)
 
 
 class NamedFolderItem(Item):
