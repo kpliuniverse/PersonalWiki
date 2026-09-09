@@ -2,7 +2,7 @@ import datetime
 import logging
 import pathlib
 from importlib import resources
-from typing import Optional
+from typing import Optional, override
 
 from PyQt6.QtOpenGLWidgets import QOpenGLWidget
 from PyQt6 import sip
@@ -15,7 +15,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtGui import QAction, QFont, QKeySequence, QShortcut
+from PyQt6.QtGui import QAction, QCloseEvent, QFont, QKeySequence, QShortcut
 from PyQt6.QtCore import (
     Q_ARG, 
     QMetaObject, 
@@ -23,7 +23,7 @@ from PyQt6.QtCore import (
     QTimer, 
     QUrl, 
     Qt, 
-    pyqtSlot, 
+    pyqtSignal, 
     QThread
 )
 # from PyQt6.QtWebEngineCore import QWebEngineProfile
@@ -41,11 +41,12 @@ from src.ui.workers.renderer_worker import RendererWorker
 from src.utils.navigation_info import NavigationInfo
 from src.wiki.wiki import open_wiki
 class MainWindow(QMainWindow):
-                    
+
+    on_close = pyqtSignal()
     def __init__(self, initcontext: InitContext):
         super().__init__()
 
-
+        
         self.setStyleSheet("")
         self.setObjectName("MainWindow")
         self.setGeometry(200, 200, 1200, 800)
@@ -147,3 +148,8 @@ class MainWindow(QMainWindow):
     #         self.__text_edit.setText(file.read())
     #     self.__render_markdown()
     #     self.__save_timer.start()
+
+    @override
+    def closeEvent(self, a0: QCloseEvent | None) -> None:
+        self.on_close.emit()
+        return super().closeEvent(a0)
