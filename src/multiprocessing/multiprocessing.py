@@ -47,7 +47,11 @@ class MultiprocessingManager(metaclass=Singleton):
 
             Returns its UUID
         """
-        i_d = uuid7()
+        while True:
+            i_d = uuid7()
+            if i_d not in self.__processes:
+                break
+        
         self.__processes[i_d] = ChildProcessInfo(
             close_function=process.close,
             process=Process(target=ChildProcess.run),
