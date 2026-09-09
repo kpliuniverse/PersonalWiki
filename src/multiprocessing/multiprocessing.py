@@ -54,7 +54,7 @@ class MultiprocessingManager(metaclass=Singleton):
         
         self.__processes[i_d] = ChildProcessInfo(
             close_function=process.close,
-            process=Process(target=ChildProcess.run),
+            process=Process(target=process.run),
             status=ProcessStatus.READY
         )
         return i_d
@@ -69,6 +69,8 @@ class MultiprocessingManager(metaclass=Singleton):
             return Failure(MultiprocessingError.ProcessNotFound)
         child_process_info.process.start()
         child_process_info.process.join()
+        if child_process_info.process.exitcode is not None:
+            return Failure(MultiprocessingError.ProcessFailedToStart)
         return Success(None)
 
     def run_process(self, process: ChildProcess) -> Result[UUID, MultiprocessingError]:
