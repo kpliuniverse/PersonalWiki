@@ -41,12 +41,12 @@ def walk_and_return_folder_item(root_path: pathlib.Path):
         Loads the widget with a specific path
     """
     # TODO: separate file scanning logic
-    root_node = UnnamedFolderItem("root")
+    root_item = UnnamedFolderItem("root")
 
     queue: Deque[FolderIterEntry] = deque()
     queue.append(FolderIterEntry(
         path=root_path.relative_to(root_path),
-        folder=root_node
+        folder=root_item
     ))
     while queue:
         cur_folder = queue.popleft()
@@ -60,4 +60,6 @@ def walk_and_return_folder_item(root_path: pathlib.Path):
                     path=path.relative_to(root_path),
                     folder=folder
                 ))
-    root_node.print()
+    return root_item
+
+def to_model(unnamed_folder_item: UnnamedFolderItem) -> 

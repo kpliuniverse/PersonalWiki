@@ -1,6 +1,6 @@
 import pathlib
 from enum import IntEnum, auto, StrEnum
-from typing import Union, Optional
+from typing import List, Protocol, Union, Optional
 
 import attrs
 from returns.result import Result, Failure, Success
@@ -67,7 +67,8 @@ class UnnamedFolderItem(Item):
             if isinstance(child, UnnamedFolderItem):
                 child.print(disp)
 
-
+    def children(self) -> List[UnnamedItem]:
+        return list(self.__children)
 class NamedFolderItem(Item):
     def __init__(self, name: str):
         super().__init__(name)

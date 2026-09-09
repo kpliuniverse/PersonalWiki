@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import (
 
 from src.exceptions import GUIException
 from src.itemmodels.project_item import ProjectItem
+from src.utils.path_utils import path_root
 
 class DragDropInfo(NamedTuple):
     src: pathlib.Path
@@ -198,7 +199,7 @@ class ProjectTree(QWidget):
         dir_to_item: Dict[str, QStandardItem] = dict()
         item_system_model.setHorizontalHeaderLabels([])
         subdirs: Deque[pathlib.Path] = deque([directory])
-        dot = directory.relative_to(self.__working_directory).as_posix()
+        dot = path_root().as_posix()
         dir_to_item[dot] = root_node
         while len(subdirs) > 0:
             subdir = subdirs.popleft()
@@ -220,7 +221,7 @@ class ProjectTree(QWidget):
         self.__tree.setModel(item_system_model)
 
         if self.__args.add_root_as_folder:
-            root_node.appendRow(ProjectItem(pathlib.Path(directory).relative_to(directory), name="(root)"))
+            root_node.appendRow(ProjectItem(path_root(), name="(root)"))
 
         self.__index_dict.clear()
         self.__index_dict[dot] = root_node
