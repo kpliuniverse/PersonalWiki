@@ -122,3 +122,13 @@ class NamedFolderItem(Item):
         if (final_item := cur_folder.get(path.name)) is None:
             return Failure(WikiError.ITEM_NOT_FOUND)
         return Success(final_item)
+
+    def to_unnamed_folder_item(self) -> UnnamedFolderItem:
+        # TODO: make this non-recursive
+        root = UnnamedFolderItem(self.name())
+        for child in self.__children.values():
+            if isinstance(child, FileItem):
+                root.add_child(child)
+            if isinstance(child, NamedFolderItem):
+                root.add_child(child.to_unnamed_folder_item())
+        return root

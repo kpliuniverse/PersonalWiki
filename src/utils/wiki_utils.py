@@ -1,8 +1,10 @@
 import logging
 import os
 import pathlib
-from typing import Optional, List
+from collections import deque
+from typing import Optional, List, Deque
 
+from pygments.lexers import q
 from returns.result import Failure, Success
 
 from src.wiki.wiki_items import UnnamedFolderItem, FileItem, NamedFolderItem, NamedItem
@@ -27,6 +29,21 @@ def walk_and_return_folder_item(root_path: pathlib.Path):
         for item in items:
             cur_folder.add_child(item)
 
-    return root_folder_item
+    return root_folder_item.to_unnamed_folder_item()
 
+def walk_and_return_folder_item_unnamed(root_path: pathlib.Path):
+    """
+        Loads the widget with a specific path
+    """
+    # TODO: separate file scanning logic
+    root_node = UnnamedFolderItem("root")
 
+    stack = deque()
+    stack.append(root_path)
+    prev_path: Optional[pathlib.Path] = None
+
+    for path in root_path.iterdir():
+        if path.is_file():
+            root_node.add_child(FileItem(path.name))
+        if path.is_dir():
+            stack.push(UnnamedFolderItem(path.name))
