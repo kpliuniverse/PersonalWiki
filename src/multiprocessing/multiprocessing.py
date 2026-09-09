@@ -37,7 +37,7 @@ class MultiprocessingError(StrEnum):
     ProcessFailedToStart = auto()
 
 class MultiprocessingManager(metaclass=Singleton):
-
+    # In this code, it is written i_d because it conflicts with id builtin function, though the latter is unused.
     def __init__(self):
         self.__processes: Dict[UUID, ChildProcessInfo] = {}
 
@@ -83,8 +83,16 @@ class MultiprocessingManager(metaclass=Singleton):
 
     @safe
     def close_process(self, i_d: UUID):
+        """
+            returns ResultE
+        """
         self.__processes[i_d].close_function()
         self.__processes[i_d].process.terminate()
+
+    @safe
+    def close_all(self):
+        for i_d in self.__processes.keys():
+            self.close_process(i_d)
     
         
         
