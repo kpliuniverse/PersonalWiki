@@ -10,8 +10,11 @@ from PyQt6.QtWidgets import (
 )
 
 from PyQt6.QtGui import QFontDatabase
+from returns.result import Failure
 from src.consts import RESOURCE_PATH
 from src.initcontext import InitContext
+from src.multiprocessing.child_processes.webserver import WebserverProcess
+from src.multiprocessing.multiprocessing import MultiprocessingManager, MultiprocessingException
 from src.resources import ResourceManager
 from src.ui.stylesheets.app_stylesheet import MainStylesheetManager
 from src.ui.windows.main_window import MainWindow
@@ -38,14 +41,22 @@ class App:
             QFontDatabase.addApplicationFont(path.as_posix())
             logging.info("Added font file: %s", path.as_posix())
 
+    def __cleanup(self):
+        MultiprocessingManager().close_all()
+
     def run_main(self, wiki: pathlib.Path):
         """
             Runs the main windows.
         """
+
+        match MultiprocessingManager().run_process(WebserverProcess()):
+            case Failure(_):
+                raise MultiprocessingException("Failed to start web server")
         self.main_window = MainWindow(initcontext=InitContext(
             path_to_pwi_file=pathlib.Path(wiki)
         ))
-        self.main_window.show()
+        self.main_window.show() 
+        self.main_window.on_close.connect(self.__cleanup)
 
     def run(self):
         """
