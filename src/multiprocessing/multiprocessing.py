@@ -65,10 +65,11 @@ class MultiprocessingManager(metaclass=Singleton):
 
             You should get the uuid from ready_process
         """
+        
         if (child_process_info := self.__processes.get(i_d, None)) is None:
             return Failure(MultiprocessingError.ProcessNotFound)
         child_process_info.process.start()
-        child_process_info.process.join()
+#child_process_info.process.join()
         if child_process_info.process.exitcode is not None:
             return Failure(MultiprocessingError.ProcessFailedToStart)
         return Success(None)
