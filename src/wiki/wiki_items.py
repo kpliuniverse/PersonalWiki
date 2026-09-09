@@ -1,3 +1,4 @@
+import pathlib
 from enum import IntEnum, auto, StrEnum
 from typing import Union, Optional
 
@@ -5,8 +6,10 @@ import attrs
 from returns.result import Result, Failure, Success
 
 
-class WikiErrorType(StrEnum):
-    DuplicateFileName = auto()
+class WikiError(StrEnum):
+    DUPLICATE_FILE_NAME = auto()
+    ITEM_NOT_FOUND = auto()
+    NOT_A_FOLDER_ITEM = auto()
 
 class ItemType(IntEnum):
     FILE = 0
@@ -42,9 +45,9 @@ class UnnamedFolderItem(Item):
         self.__item_type = ItemType.FOLDER
         self.__children: set[UnnamedItem] = set()
 
-    def add_child(self, child: UnnamedItem) -> Result[None, WikiErrorType]:
+    def add_child(self, child: UnnamedItem) -> Result[None, WikiError]:
         if child in self.__children:
-            return Failure(WikiErrorType.DuplicateFileName)
+            return Failure(WikiError.DUPLICATE_FILE_NAME)
 
         self.__children.add(child)
         return Success(None)
@@ -70,9 +73,9 @@ class NamedFolderItem(Item):
         self.__item_type = ItemType.FOLDER
         self.__children: dict[str, NamedItem] = dict()
 
-    def add_child(self, child: NamedItem) -> Result[None, WikiErrorType]:
+    def add_child(self, child: NamedItem) -> Result[None, WikiError]:
         if child in self.__children:
-            return Failure(WikiErrorType.DuplicateFileName)
+            return Failure(WikiError.DUPLICATE_FILE_NAME)
 
         self.__children[child.name()] = child
         return Success(None)
@@ -84,12 +87,38 @@ class NamedFolderItem(Item):
         """
         # TODO: make this non-recursive
         slash = "" if __prefix == "" else "/"
-        print(f"{__prefix}{slash}{self.name()}")
-        for child in self.__children:
+        name = f"{__prefix}{slash}{self.name()}"
+        print(name)
+        for child in self.__children.values():
             if isinstance(child, FileItem):
-                print(f"{self.name()}/{child.name()}")
-            if isinstance(child, UnnamedFolderItem):
-                child.print(f"{self.name()}")
+                print(f"{name}/{child.name()}")
+            if isinstance(child, NamedFolderItem):
+                child.print(f"{name}")
 
     def get(self, name: str) -> Optional[NamedItem]:
+        """
+            Get the item by name. Returns None if not found
+        """
         return self.__children.get(name, None)
+
+    def get_path(self, path: pathlib.Path) -> Result[NamedItem, ItemError]:
+        """
+            Get the item by path.
+            e.g. `folder.get_path(pathlib.Path("a/b/c"))` is equal to folder.get("a").get("b").get("c")
+            If, for example, a and b, is a file, returns `ItemError.NOT_A_FOLDER_ITEM`.
+        """
+        if len(path.parts) == 0:
+
+            return Success(self)
+        cur_folder: NamedFolderItem = self
+
+        for part in path.parts[:-1]:
+            item = cur_folder.get(part)
+            if item is None:
+                return Failure(WikiError.ITEM_NOT_FOUND)
+            if isinstance(item, FileItem):
+                return Failure(WikiError.NOT_A_FOLDER_ITEM)
+            cur_folder = item
+        if (final_item := cur_folder.get(path.name)) is None:
+            return Failure(WikiError.ITEM_NOT_FOUND)
+        return Success(final_item)
