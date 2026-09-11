@@ -1,6 +1,6 @@
 import pathlib
 from enum import IntEnum, auto, StrEnum
-from typing import List, Protocol, Union, Optional
+from typing import List, Protocol, Union, Optional, Callable
 
 import attrs
 from returns.result import Result, Failure, Success
@@ -69,6 +69,9 @@ class UnnamedFolderItem(Item):
 
     def children(self) -> List[UnnamedItem]:
         return list(self.__children)
+
+    def filter(self, f: Callable[]):
+
 class NamedFolderItem(Item):
     def __init__(self, name: str):
         super().__init__(name)

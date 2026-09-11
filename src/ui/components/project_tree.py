@@ -15,7 +15,10 @@ from PyQt6.QtWidgets import (
 
 from src.exceptions import GUIException
 from src.itemmodels.project_item import ProjectItem
-from src.utils.path_utils import path_root
+from src.utils.path_utils import path_dot
+from utils.wiki_utils import to_model
+from wiki.wiki_items import UnnamedFolderItem, ItemType
+
 
 class DragDropInfo(NamedTuple):
     src: pathlib.Path
@@ -106,6 +109,7 @@ class CustomQTreeView(QTreeView):
             self.drag_drop_item.emit(DragDropInfo(dragged_path, target_path))
 
 
+
 class ProjectTree(QWidget):
 
     def __init__(self, parent: QWidget, tree_args: ProjectTreeArgs):
@@ -128,7 +132,7 @@ class ProjectTree(QWidget):
 
         self.__cur_selected_item: Optional[QModelIndex] = None
         self.__cur_selected_path: Optional[pathlib.Path] = None
-        self.__working_directory: Optional[pathlib.Path] = None
+        #self.__working_directory: Optional[pathlib.Path] = None
 
         if not tree_args.read_only:
             self.__tree.setDragEnabled(True)
@@ -171,9 +175,10 @@ class ProjectTree(QWidget):
     def get_selected_indexes(self):
         return self.__tree.selectedIndexes()
 
-    def get_working_directory(self):
-        return self.__working_directory
-    
+    # def get_working_directory(self):
+    #     return self.__working_directory
+    #
+
     def add_item(self, path: pathlib.Path):
         """
             Add a path to the project tree. Note that it doesn't actually create the item in the filesystem.
@@ -186,45 +191,24 @@ class ProjectTree(QWidget):
         except KeyError as exc:
             raise GUIException(f"It seems like parent of '{path}' ({path.parent}) doesn't exist") from exc
 
-    def load(self, directory: pathlib.Path):
+    def load_folder(self, folder: UnnamedFolderItem):
         """
             Loads the widget with a specific path
         """
         # TODO: separate file scanning logic
-        self.__working_directory = directory
-        item_system_model = QStandardItemModel()
+        #self.__working_directory = directory
+        item_system_model = to_model(folder)
         root_node = item_system_model.invisibleRootItem()
         if root_node is None:
             raise GUIException("Failed fetching root node")
-        dir_to_item: Dict[str, QStandardItem] = dict()
-        item_system_model.setHorizontalHeaderLabels([])
-        subdirs: Deque[pathlib.Path] = deque([directory])
-        dot = path_root().as_posix()
-        dir_to_item[dot] = root_node
-        while len(subdirs) > 0:
-            subdir = subdirs.popleft()
-            logging.debug("loading %s", subdir.as_posix())
-            for path in subdir.iterdir():
-                if path.is_junction() and path.is_symlink():
-                    continue
-                rel_path = path.relative_to(self.__working_directory)
-                rel_subdir = subdir.relative_to(self.__working_directory)
-                project_item = ProjectItem(rel_path)
-                if path.is_dir():
-                    subdirs.append(path)
-                    dir_to_item[rel_path.as_posix()] = project_item
-                    dir_to_item[rel_subdir.as_posix()].appendRow(project_item)
-
-                if path.is_file() and not self.__args.dir_only:
-                    dir_to_item[rel_subdir.as_posix()].appendRow(project_item)
 
         self.__tree.setModel(item_system_model)
 
         if self.__args.add_root_as_folder:
-            root_node.appendRow(ProjectItem(path_root(), name="(root)"))
+            root_node.appendRow(ProjectItem(path_dot(), name="(root)"))
 
         self.__index_dict.clear()
-        self.__index_dict[dot] = root_node
+        self.__index_dict[path_dot().as_posix()] = root_node
         items: deque[QStandardItem] = deque([root_node])
         
         while len(items) > 0:

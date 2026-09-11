@@ -2,14 +2,17 @@ import logging
 import os
 import pathlib
 from collections import deque
-from typing import Optional, List, Deque
+from typing import Optional, List, Deque, Dict
 
 import attrs
+from PyQt6.QtGui import QStandardItemModel, QStandardItem
 from pygments.lexers import q
 from returns.result import Failure, Success
 
-from src.wiki.wiki_items import UnnamedFolderItem, FileItem, NamedFolderItem, NamedItem
+from itemmodels.project_item import ProjectItem
+from src.wiki.wiki_items import UnnamedFolderItem, FileItem, NamedFolderItem, NamedItem, ItemType
 from src.wiki.wiki_items import WikiError
+from utils.path_utils import path_dot
 
 
 # def walk_and_return_folder_item(root_path: pathlib.Path):
@@ -62,4 +65,29 @@ def walk_and_return_folder_item(root_path: pathlib.Path):
                 ))
     return root_item
 
-def to_model(unnamed_folder_item: UnnamedFolderItem) -> 
+
+
+def to_model(folder: UnnamedFolderItem):
+    item_system_model = QStandardItemModel()
+    root_node = item_system_model.invisibleRootItem()
+    if root_node is None:
+        raise Exception("item_system_model.invisibleRootItem() is None. This is not normal.")
+    dir_to_item: Dict[str, QStandardItem] = dict()
+    item_system_model.setHorizontalHeaderLabels([])
+    subdirs: Deque[FolderIterEntry] = deque([FolderIterEntry(path_dot(), folder)])
+    dot = path_dot().as_posix()
+    dir_to_item[dot] = root_node
+    while len(subdirs) > 0:
+        subdir = subdirs.popleft()
+        logging.debug("loading %s", subdir.path.as_posix())
+        for child in subdir.folder.children():
+            rel_subdir = subdir.path
+            rel_path = rel_subdir / child.name()
+            project_item = ProjectItem(rel_path)
+            if child.item_type() == ItemType.FOLDER:
+                subdirs.append(FolderIterEntry(rel_path, child))
+                dir_to_item[rel_path.as_posix()] = project_item
+                dir_to_item[rel_subdir.as_posix()].appendRow(project_item)
+            if child.item_type() == ItemType.FILE:
+                dir_to_item[rel_subdir.as_posix()].appendRow(project_item)
+    return item_system_model

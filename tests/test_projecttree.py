@@ -11,7 +11,7 @@ from src.ui.components.project_explorer import ProjectExplorer
 from src.ui.components.project_tree import ProjectTree, ProjectTreeArgs
 
 from src.utils.move_info import MoveInfo
-from src.utils.path_utils import path_root
+from src.utils.path_utils import path_dot
 from src.wiki import wiki
 
 def test_parenting_bug(qtbot: QtBot):
@@ -38,9 +38,9 @@ def test_add_path(qtbot: QtBot, tmp_path: pathlib.Path):
     tree = ProjectTree(parent=main_window, tree_args=ProjectTreeArgs(
         dir_only=False
     ))
-    tree.load(tmp_path)
-    tree.add_item(path_root() / "a")
-    tree.add_item(path_root() / "a" / "b")
+    tree.load_folder(tmp_path)
+    tree.add_item(path_dot() / "a")
+    tree.add_item(path_dot() / "a" / "b")
     with pytest.raises(GUIException) as e_info:
         tree.add_item(tmp_path / "c" / "d")
 

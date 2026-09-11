@@ -27,7 +27,6 @@ from src.utils.wiki_utils import walk_and_return_folder_item
 class SearchToolbar(QToolBar):
     def __init__(self, parent: QWidget):
         super().__init__(parent)
-
         container = QWidget()
         container_layout = QHBoxLayout(container)
         container.setLayout(container_layout)
@@ -80,6 +79,8 @@ class ProjectExplorer(QWidget):
 
         self.__search_term: str = ""
 
+        self.__workdir: Optional[None] = None
+
         self.setObjectName("ProjectExplorer")
         self.__root_layout = QVBoxLayout()
         self.setLayout(self.__root_layout)
@@ -116,12 +117,10 @@ class ProjectExplorer(QWidget):
         return new_menu
 
     def __get_workdir(self):
-        workdir = self.__project_tree.get_working_directory()
-
-        if workdir is None:
+        if self.__workdir is None:
             raise GUIException("on_new_item() called without working directory")
 
-        return workdir
+        return self.__workdir
 
     def __move_item(self, move_info: MoveInfo):
         
@@ -229,7 +228,7 @@ class ProjectExplorer(QWidget):
         """
             Loads the widget with a specific path
         """
-        self.__project_tree.load(directory)
+        self.__project_tree.load_folder(directory)
 
     def test_move_item(self, move_info: MoveInfo):
         """

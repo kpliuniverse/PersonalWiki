@@ -36,7 +36,7 @@ class ProjectDialog(QDialog):
             add_root_as_folder=args.add_root_as_folder,
             read_only=True
         ))
-        self.__tree.load(wiki_dir)
+        self.__tree.load_folder(wiki_dir)
         self.__tree.item_clicked.connect(self.__on_tree_select)
         layout.addWidget(self.__tree)
 
