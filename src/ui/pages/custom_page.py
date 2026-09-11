@@ -3,6 +3,7 @@ from typing import override
 from PyQt6.QtCore import QUrl, pyqtSignal
 from PyQt6.QtWebEngineCore import QWebEnginePage
 
+from src.consts import LOOPBACK_IP_ADD
 from src.utils.navigation_info import NavigationInfo
 
 class CustomPage(QWebEnginePage):
@@ -16,4 +17,7 @@ class CustomPage(QWebEnginePage):
             type=type,
             is_main_frame=isMainFrame
         ))
-        return url.scheme() == "data"
+    
+        return url.host() == LOOPBACK_IP_ADD
+
+
