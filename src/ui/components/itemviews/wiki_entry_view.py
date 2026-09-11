@@ -1,3 +1,4 @@
+import base64
 import logging
 import pathlib
 from typing import Optional, override
@@ -8,12 +9,14 @@ from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Q_ARG, QMetaObject, QThread, QUrl, Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import QLabel, QSplitter, QTextEdit, QVBoxLayout, QWidget
 
-from src.consts import WIKI_ENCODING
+from src.consts import LOOPBACK_IP_ADD, WIKI_ENCODING
+from src.multiprocessing.child_processes.webserver import WEBSERVER_PORT
 from src.ui.components.entry_ribbon import EntryRibbon
 from src.ui.pages.custom_page import CustomPage
 from src.ui.stylesheets.app_stylesheet import MainStylesheetManager
 from src.ui.utils.item_view_base import BaseItemView
-from src.ui.workers.renderer_worker import RendererWorker
+from src.ui.workers.renderer_worker import RedirectorWorker
+from src.utils.encoding import url_b64_encode
 from src.utils.navigation_info import NavigationInfo
 
 class WikiEntryView(BaseItemView):
@@ -26,7 +29,7 @@ class WikiEntryView(BaseItemView):
         self.__cur_item_path: Optional[pathlib.Path] = None
         super().__init__(parent)
         self.__wiki_dir = wiki_dir
-        self.__rendering_thread: Optional[QThread] = None
+        # self.__rendering_thread: Optional[QThread] = None
 
         layout = QVBoxLayout()
         self.setLayout(layout)
@@ -66,28 +69,36 @@ class WikiEntryView(BaseItemView):
 
     @pyqtSlot()
     def __render_markdown(self):
-        if self.__rendering_thread is None:
-            self.__rendering_thread = QThread()
+        if self.__cur_item_path is None:
+            logging.warning("Tried to call __render_markdown while no file is opened")
+            return
+        # if self.__rendering_thread is None:
+        #     self.__rendering_thread = QThread()
         self.__text_view.setHtml("Loading...")
-        if self.__rendering_thread.isRunning():
-            self.__rendering_thread.requestInterruption()
+        # if self.__rendering_thread.isRunning():
+        #     self.__rendering_thread.requestInterruption()
         pwe_string = self.__text_edit.toPlainText()
         logging.debug("Preparing to render...")
-        # TODO: Abstract thread creation.
-        renderer_worker = RendererWorker()
-        renderer_worker.moveToThread(self.__rendering_thread)
-        self.__rendering_thread.started.connect(lambda: QMetaObject.invokeMethod(renderer_worker, "render_pwe", Qt.ConnectionType.QueuedConnection, Q_ARG(str, pwe_string)))
-        renderer_worker.finished.connect(self.__text_view.setHtml)
-        renderer_worker.finished.connect(self.__rendering_thread.quit)
-        self.__rendering_thread.finished.connect(renderer_worker.deleteLater)
-        self.__rendering_thread.finished.connect(self.__cleanup_thread)
-        self.__rendering_thread.start()
+        path = self.__cur_item_path.as_posix()
+        b64 = url_b64_encode(path.encode())
+        url = QUrl(f"http://{LOOPBACK_IP_ADD}:{WEBSERVER_PORT}/view/{b64}")
+        self.__text_view.setUrl(url)
+        logging.info("Going to %s", url.toString())
+        # # TODO: Abstract thread creation.
+        # renderer_worker = RedirectorWorker()
+        # renderer_worker.moveToThread(self.__rendering_thread)
+        # self.__rendering_thread.started.connect(lambda: QMetaObject.invokeMethod(renderer_worker, "render_pwe", Qt.ConnectionType.QueuedConnection, Q_ARG(str, pwe_string)))
+        # renderer_worker.finished.connect(self.__text_view.setHtml)
+        # renderer_worker.finished.connect(self.__rendering_thread.quit)
+        # self.__rendering_thread.finished.connect(renderer_worker.deleteLater)
+        # self.__rendering_thread.finished.connect(self.__cleanup_thread)
+        # self.__rendering_thread.start()
 
     
-    def __cleanup_thread(self):
-        if self.__rendering_thread:
-            self.__rendering_thread.deleteLater()
-            self.__rendering_thread = None
+    # def __cleanup_thread(self):
+    #     if self.__rendering_thread:
+    #         self.__rendering_thread.deleteLater()
+    #         self.__rendering_thread = None
 
     def __intercept_navigation(self, nav_info: NavigationInfo):
         scheme = nav_info.url.scheme()
