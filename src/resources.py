@@ -9,8 +9,18 @@ from PyQt6.QtGui import QIcon
 import attrs
 
 from src.consts import RESOURCE_PATH
-from src.exceptions import ResourceNotFoundError, ResourceTypeException
 from src.utils.singleton import Singleton
+
+
+
+class ResourceTypeException(BaseException):
+    """
+        Not used for now.
+    """
+    pass
+
+class ResourceNotFoundError(BaseException):
+    pass
 
 class ResourceType(StrEnum):
     ICON = auto()

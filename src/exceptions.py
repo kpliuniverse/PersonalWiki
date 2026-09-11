@@ -3,9 +3,3 @@ class GUIException(BaseException):
 
 class InvalidNameException(BaseException):
     pass
-
-class ResourceTypeException(BaseException):
-    pass
-
-class ResourceNotFoundError(BaseException):
-    pass
