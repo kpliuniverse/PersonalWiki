@@ -18,12 +18,13 @@ from src.templating.templating import MainHTMLTemplater
 import importlib
 
 from src import consts
+from src.utils.encoding import url_b64_decode
 
 
 
 class WebServer(object):
     def view(self, args):
-        path: str = base64.b64decode(args["path"], altchars=b'-_').decode(WIKI_ENCODING)
+        path: str = url_b64_decode(args["path"]).decode(WIKI_ENCODING)
         with open(f"/{path.replace("\\", "/")}", encoding=WIKI_ENCODING) as f:
             md = f.read()
 
@@ -38,7 +39,7 @@ class WebServer(object):
             Rule('/exit', endpoint='exit')
         ])
         request = Request(environ)
-        
+
         adapter = self.url_map.bind_to_environ(request.environ)
 
         try:
@@ -66,10 +67,11 @@ def create_app():
     })
     return app
 
+WEBSERVER_PORT = 8080
 
 class WebserverProcess(ChildProcess):
     def __init__(self):
-        self.port = 8080
+        self.port = WEBSERVER_PORT
         self.host = LOOPBACK_IP_ADD
 
     @override
