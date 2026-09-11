@@ -72,6 +72,6 @@ class App:
             wiki_window.wiki_opened.connect(self.run_main)
             wiki_window.show()
         else:
-            self.run_main(pathlib.Path(self.app.arguments()[1]))
+            self.run_main(pathlib.Path(self.app.arguments()[1]).resolve())
 
         sys.exit(self.app.exec())    
