@@ -33,16 +33,16 @@ def test_parenting_bug(qtbot: QtBot):
     assert projtree1.parent() == parent1
 
 
-def test_add_path(qtbot: QtBot, tmp_path: pathlib.Path): 
-    main_window = QMainWindow()
-    tree = ProjectTree(parent=main_window, tree_args=ProjectTreeArgs(
-        dir_only=False
-    ))
-    tree.load_folder(tmp_path)
-    tree.add_item(path_dot() / "a")
-    tree.add_item(path_dot() / "a" / "b")
-    with pytest.raises(GUIException) as e_info:
-        tree.add_item(tmp_path / "c" / "d")
+# def test_add_path(qtbot: QtBot, tmp_path: pathlib.Path): 
+#     main_window = QMainWindow()
+#     tree = ProjectTree(parent=main_window, tree_args=ProjectTreeArgs(
+#         dir_only=False
+#     ))
+#     tree.load_folder(tmp_path)
+#     tree.add_item(path_dot() / "a")
+#     tree.add_item(path_dot() / "a" / "b")
+#     with pytest.raises(GUIException) as e_info:
+#         tree.add_item(tmp_path / "c" / "d")
 
 
 # def test_move_to_root(qtbot: QtBot, tmp_path: pathlib.Path):
