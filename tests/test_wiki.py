@@ -44,3 +44,13 @@ def test_create_wiki(tmp_path: pathlib.Path):
     assert (gen_file_path / "proper").is_dir()
     assert (gen_file_path / "wiki.pwi").is_file()
 
+def test_file_filter():
+    by_alphabet: Callable[[UnnamedItem], str] = lambda x: x.name()
+    # base
+    base = walk_and_return_folder_item(pathlib.Path("end-tests/folders/walktest")).sorted(key=by_alphabet)
+    
+    # True case
+    assert base.file_filter(lambda _ : True, filter_empty_folders=False).sorted(key=by_alphabet).to_str_list() == base.to_str_list()
+    # False case
+    assert base.file_filter(lambda _: False).to_str_list() == ["root"]
+    
