@@ -102,7 +102,7 @@ def open_wiki(path_to_wiki_pwi_file: pathlib.Path) -> Wiki:
     @safe
     def __open_wiki() -> Session:
         with open(session_path, encoding=WIKI_ENCODING) as session_file:
-            session_json = json.load_folder(session_file)
+            session_json = json.load(session_file)
             return Session(
                 cur_item=session_json["currentFile"]
             )

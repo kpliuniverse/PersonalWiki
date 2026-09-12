@@ -16,8 +16,8 @@ from PyQt6.QtWidgets import (
 from src.exceptions import GUIException
 from src.itemmodels.project_item import ProjectItem
 from src.utils.path_utils import path_dot
-from utils.wiki_utils import to_model
-from wiki.wiki_items import UnnamedFolderItem, ItemType
+from src.utils.wiki_utils import to_model
+from src.wiki.wiki_items import UnnamedFolderItem, ItemType
 
 
 class DragDropInfo(NamedTuple):

@@ -9,10 +9,10 @@ from PyQt6.QtGui import QStandardItemModel, QStandardItem
 from pygments.lexers import q
 from returns.result import Failure, Success
 
-from itemmodels.project_item import ProjectItem
+from src.itemmodels.project_item import ProjectItem
 from src.wiki.wiki_items import UnnamedFolderItem, FileItem, NamedFolderItem, NamedItem, ItemType
 from src.wiki.wiki_items import WikiError
-from utils.path_utils import path_dot
+from src.utils.path_utils import path_dot
 
 
 # def walk_and_return_folder_item(root_path: pathlib.Path):
@@ -44,7 +44,7 @@ def walk_and_return_folder_item(root_path: pathlib.Path):
         Loads the widget with a specific path
     """
     # TODO: separate file scanning logic
-    root_item = UnnamedFolderItem("root")
+    root_item = UnnamedFolderItem.create_root()
 
     queue: Deque[FolderIterEntry] = deque()
     queue.append(FolderIterEntry(
