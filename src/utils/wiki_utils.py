@@ -9,7 +9,7 @@ from PyQt6.QtGui import QStandardItemModel, QStandardItem
 from pygments.lexers import q
 from returns.result import Failure, Success
 
-from src.itemmodels.project_item import ProjectItem
+from src.itemmodels.project_item import ItemInfo, ProjectItem
 from src.wiki.wiki_items import UnnamedFolderItem, FileItem, NamedFolderItem, NamedItem, ItemType
 from src.wiki.wiki_items import WikiError
 from src.utils.path_utils import path_dot
@@ -44,7 +44,7 @@ def walk_and_return_folder_item(root_path: pathlib.Path):
         Loads the widget with a specific path
     """
     # TODO: separate file scanning logic
-    root_item = UnnamedFolderItem.create_root()
+    root_item = UnnamedFolderItem("root")
 
     queue: Deque[FolderIterEntry] = deque()
     queue.append(FolderIterEntry(
@@ -71,7 +71,7 @@ def to_model(folder: UnnamedFolderItem):
     item_system_model = QStandardItemModel()
     root_node = item_system_model.invisibleRootItem()
     if root_node is None:
-        raise Exception("item_system_model.invisibleRootItem() is None. This is not normal.")
+        raise ValueError("item_system_model.invisibleRootItem() is None. This is not normal.")
     dir_to_item: Dict[str, QStandardItem] = dict()
     item_system_model.setHorizontalHeaderLabels([])
     subdirs: Deque[FolderIterEntry] = deque([FolderIterEntry(path_dot(), folder)])
@@ -81,13 +81,18 @@ def to_model(folder: UnnamedFolderItem):
         subdir = subdirs.popleft()
         logging.debug("loading %s", subdir.path.as_posix())
         for child in subdir.folder.children():
+            print(subdir.folder)
             rel_subdir = subdir.path
             rel_path = rel_subdir / child.name()
-            project_item = ProjectItem(rel_path)
-            if child.item_type() == ItemType.FOLDER:
+            item_info = ItemInfo(
+                path = rel_path,
+                item_type=child.item_type()
+            )
+            project_item = ProjectItem(item_info)
+            if isinstance(child, UnnamedFolderItem):
                 subdirs.append(FolderIterEntry(rel_path, child))
                 dir_to_item[rel_path.as_posix()] = project_item
                 dir_to_item[rel_subdir.as_posix()].appendRow(project_item)
-            if child.item_type() == ItemType.FILE:
+            if isinstance(child, FileItem):
                 dir_to_item[rel_subdir.as_posix()].appendRow(project_item)
     return item_system_model

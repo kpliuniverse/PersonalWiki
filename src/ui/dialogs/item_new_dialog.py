@@ -7,7 +7,7 @@ from PyQt6.QtCore import QTimer, Qt, pyqtSignal
 
 
 from src.exceptions import GUIException
-from src.items.items import ItemType, ItemCreationResult
+from src.items.items import ItemRecognizedType, ItemCreationResult
 from src.ui.components.dir_preview import ProjectDirPreview
 from src.utils.item_validity import valid_item_name
 
@@ -16,7 +16,7 @@ class ItemNewDialog(QDialog):
     on_name_selected: pyqtSignal = pyqtSignal(ItemCreationResult)
 
     
-    def __init__(self, parent: QWidget, item_type: ItemType, directory: pathlib.Path, wiki_proper_directory: pathlib.Path):
+    def __init__(self, parent: QWidget, item_type: ItemRecognizedType, directory: pathlib.Path, wiki_proper_directory: pathlib.Path):
         logging.debug("directory=%s, wiki_proper=%s", directory, wiki_proper_directory)
 
         self.__working_directory = directory
@@ -56,7 +56,7 @@ class ItemNewDialog(QDialog):
     def __on_accept(self):
         self.on_name_selected.emit(ItemCreationResult(
                 path=self.gen_resultant_path(),
-                typ=self.__item_type
+                recognized_type=self.__item_type
             )
         )
 
@@ -72,7 +72,7 @@ class ItemNewDialog(QDialog):
         line_edit_txt = self.__line_edit.text()
         txt_stripped = line_edit_txt.strip()
         ending = ""
-        if self.__item_type == ItemType.PWE:
+        if self.__item_type == ItemRecognizedType.PWE:
             ending = ".pwe"
         return self.__working_directory / f"{txt_stripped}{ending}"
 

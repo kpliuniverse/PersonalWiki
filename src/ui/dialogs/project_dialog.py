@@ -15,6 +15,7 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from attrs import define
 
 from src.ui.components.project_tree import ProjectTree, ProjectTreeArgs
+from src.utils.wiki_utils import walk_and_return_folder_item
 
 @define
 class ProjectDialogArgs:
@@ -36,7 +37,7 @@ class ProjectDialog(QDialog):
             add_root_as_folder=args.add_root_as_folder,
             read_only=True
         ))
-        self.__tree.load_folder(wiki_dir)
+        self.__tree.load_folder(walk_and_return_folder_item(wiki_dir))
         self.__tree.item_clicked.connect(self.__on_tree_select)
         layout.addWidget(self.__tree)
 

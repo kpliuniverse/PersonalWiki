@@ -10,8 +10,7 @@ def main():
     import multiprocessing
     multiprocessing.freeze_support()
     logging.basicConfig(level=logging.DEBUG)
-    walk_and_return_folder_item(pathlib.Path("end-tests/folders/walktest"))
-    #App().run()
+    App().run()
 
 if __name__ == "__main__":
     main()

@@ -6,11 +6,11 @@ import re
 from attrs import define
 
 
-class ItemType(Enum):
+class ItemRecognizedType(Enum):
     PWE = 0
     FOLDER = 1
 
 @define
 class ItemCreationResult:
     path: pathlib.Path
-    typ: ItemType
+    recognized_type: ItemRecognizedType

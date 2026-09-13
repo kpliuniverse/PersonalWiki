@@ -1,6 +1,6 @@
 import logging
 import pathlib
-from typing import Optional
+from typing import List, Optional
 
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
@@ -11,6 +11,8 @@ from PyQt6.QtWidgets import (
     QPushButton, QPlainTextEdit, QHBoxLayout, QLineEdit
 )
 
+from src.consts import ITEM_DATA_ROLE
+from src.itemmodels.project_item import ItemInfo
 from src.ui.dialogs.item_move_dialog import ItemMoveDialog
 from src.ui.dialogs.item_rename_dialog import ItemRenameDialog, RenameInfo
 from src.ui.stylesheets.app_stylesheet import MainStylesheetManager
@@ -19,9 +21,10 @@ from src.utils.move_info import MoveInfo
 from src.ui.dialogs.item_new_dialog import ItemNewDialog
 from src.ui.components.project_tree import DragDropInfo, ProjectTree, ProjectTreeArgs
 from src.exceptions import GUIException
-from src.items.items import ItemCreationResult, ItemType
+from src.items.items import ItemCreationResult, ItemRecognizedType
 from src.resources import ResourceManager
 from src.utils.wiki_utils import walk_and_return_folder_item
+from src.wiki.wiki_items import ItemType, sort_alphabetically_key
 
 
 class SearchToolbar(QToolBar):
@@ -79,7 +82,7 @@ class ProjectExplorer(QWidget):
 
         self.__search_term: str = ""
 
-        self.__workdir: Optional[None] = None
+        self.__workdir: Optional[pathlib.Path] = None
 
         self.setObjectName("ProjectExplorer")
         self.__root_layout = QVBoxLayout()
@@ -111,8 +114,8 @@ class ProjectExplorer(QWidget):
 
     def __new_menu(self):
         new_menu = QMenu()
-        new_menu.addAction("File", lambda: self.__on_new_btn(ItemType.PWE))
-        new_menu.addAction("Folder", lambda: self.__on_new_btn(ItemType.FOLDER))
+        new_menu.addAction("File", lambda: self.__on_new_btn(ItemRecognizedType.PWE))
+        new_menu.addAction("Folder", lambda: self.__on_new_btn(ItemRecognizedType.FOLDER))
         new_menu.setStyleSheet(MainStylesheetManager().get_rule("*"))
         return new_menu
 
@@ -131,7 +134,7 @@ class ProjectExplorer(QWidget):
         for path2 in move_info.paths_deleted:
             self.__project_tree.delete_item(path2)
 
-        for path in move_info.paths_created:
+        for path in move_info.items_created:
             self.__project_tree.add_item(path)
 
     def __on_drag_drop_item(self, info: DragDropInfo):
@@ -143,22 +146,22 @@ class ProjectExplorer(QWidget):
     
     def __on_move_btn(self):
 
-        selected_items = []
+        selected_items: List[pathlib.Path] = []
         for index in self.__project_tree.get_selected_indexes():
-            selected_item: pathlib.Path = index.data(Qt.ItemDataRole.UserRole + 1)
-            if not isinstance(selected_item, pathlib.Path):
+            selected_item: ItemInfo = index.data(ITEM_DATA_ROLE)
+            if not isinstance(selected_item, ItemInfo):
                 logging.error("Selected item is None or not pathlib.Path type=%s", type(selected_item))
                 continue
-            selected_items.append(selected_item)
+            selected_items.append(selected_item.path)
         
         dialog = ItemMoveDialog(self, selected_items, self.__get_workdir())
         dialog.items_moved.connect(self.__move_item)
         dialog.exec()
 
     def __rename_item(self, info: RenameInfo):
-        self.item_operation_requested.emit([MoveAction(info.file, info.full_new_name())])
-        self.__project_tree.delete_item(info.file)
-        self.__project_tree.add_item(info.full_new_name())
+        self.item_operation_requested.emit([MoveAction(info.item.path, info.full_new_path())])
+        self.__project_tree.delete_item(info.item.path)
+        self.__project_tree.add_item(ItemInfo(path=info.full_new_path(), item_type=info.item.item_type))
         self.__validate_btns()
         
         
@@ -169,7 +172,7 @@ class ProjectExplorer(QWidget):
         """
         if len((index := self.__project_tree.get_selected_indexes())) < 1:
             return
-        selected_item: pathlib.Path = index[0].data(Qt.ItemDataRole.UserRole + 1)
+        selected_item: ItemInfo = index[0].data(ITEM_DATA_ROLE)
         assert isinstance(selected_item, pathlib.Path)
         dialog = ItemRenameDialog(self, selected_item, self.__get_workdir())
         dialog.on_name_selected.connect(self.__rename_item)
@@ -186,8 +189,9 @@ class ProjectExplorer(QWidget):
         return toolbar
 
     def __create_new_item(self, item: ItemCreationResult):
-        self.item_operation_requested.emit([NewItemAction(item.path, item.typ == ItemType.FOLDER)])
-        self.__project_tree.add_item(item.path)
+        self.item_operation_requested.emit([NewItemAction(item.path, item.recognized_type == ItemRecognizedType.FOLDER)])
+        item_type = ItemType.FOLDER if item.recognized_type == ItemRecognizedType.FOLDER else ItemType.FILE
+        self.__project_tree.add_item(ItemInfo(item.path, item_type))
         self.__validate_btns()
         # self.__index_dict[item.path.parent.as_posix()].appendRow(project_item)
         # self.__index_dict[item.path.as_posix()] = project_item
@@ -198,14 +202,14 @@ class ProjectExplorer(QWidget):
 
     def __on_delete_btn(self):
         for index in self.__project_tree.get_selected_indexes():
-            selected_item: pathlib.Path = index.data(Qt.ItemDataRole.UserRole + 1)
+            selected_item: ItemInfo = index.data(ITEM_DATA_ROLE)
             if not isinstance(selected_item, pathlib.Path):
                 logging.error("Selected item is None or not pathlib.Path type=%s", type(selected_item))
                 continue
             self.__delete_item(selected_item)
             self.__project_tree.delete_item(selected_item)
             
-    def __on_new_btn(self, item_type: ItemType):
+    def __on_new_btn(self, item_type: ItemRecognizedType):
         workdir = self.__get_workdir()
         selected_path = self.__project_tree.get_cur_selected_path()
         
@@ -223,12 +227,18 @@ class ProjectExplorer(QWidget):
         dialog.on_name_selected.connect(self.__create_new_item)
         dialog.exec()
 
+
+    def __get_folder(self):
+        if self.__workdir is None:
+            raise ValueError("__get_folder called while self.__workdir is None")
+        return walk_and_return_folder_item(self.__workdir).sorted(key=sort_alphabetically_key)
+
     def load(self, directory: pathlib.Path):
-        walk_and_return_folder_item(directory)
         """
             Loads the widget with a specific path
         """
-        self.__project_tree.load_folder(directory)
+        self.__workdir = directory
+        self.__project_tree.load_folder(self.__get_folder())
 
     def test_move_item(self, move_info: MoveInfo):
         """

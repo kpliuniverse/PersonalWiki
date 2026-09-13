@@ -28,6 +28,8 @@ from PyQt6.QtCore import (
 )
 # from PyQt6.QtWebEngineCore import QWebEngineProfile
 
+from src.consts import ITEM_DATA_ROLE
+from src.itemmodels.project_item import ItemInfo
 from src.ui.components.item_panel import ItemPanel, ViewType
 from src.ui.components.project_explorer import ProjectExplorer
 from src.exceptions import GUIException
@@ -117,11 +119,11 @@ class MainWindow(QMainWindow):
         self.__item_panel.load(guess_view_type(item_path_abs), item_path_abs)
 
     def __on_project_item_double_clicked(self, val: QModelIndex):
-        item_path: pathlib.Path = val.data(Qt.ItemDataRole.UserRole + 1)
-        item_path_abs = self.__app_state.cur_wiki.get_wiki_proper_path() / item_path
+        item_path: ItemInfo = val.data(ITEM_DATA_ROLE)
+        item_path_abs = self.__app_state.cur_wiki.get_wiki_proper_path() / item_path.path
         logging.debug("Item double clicked to %s", item_path)
         if item_path_abs.is_file():
-            self.__load_item(item_path)
+            self.__load_item(item_path.path)
   
     def __refresh_project_tree(self):
         proper_path = (self.__app_state.cur_wiki.get_wiki_dir_path() / "proper")

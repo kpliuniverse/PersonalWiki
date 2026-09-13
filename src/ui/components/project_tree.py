@@ -12,13 +12,17 @@ from PyQt6.QtWidgets import (
     QWidget, 
     QVBoxLayout, 
 )
+import attrs
 
+from src.consts import ITEM_DATA_ROLE
 from src.exceptions import GUIException
-from src.itemmodels.project_item import ProjectItem
+from src.itemmodels.project_item import ItemInfo, ProjectItem
 from src.utils.path_utils import path_dot
 from src.utils.wiki_utils import to_model
 from src.wiki.wiki_items import UnnamedFolderItem, ItemType
 
+class AttemptedChildItemOnFileItemException(Exception):
+    pass
 
 class DragDropInfo(NamedTuple):
     src: pathlib.Path
@@ -43,8 +47,8 @@ class CustomQTreeView(QTreeView):
     @override
     def dropEvent(self, e: Optional[QDropEvent]):
 
-        if self.work_dir is None:
-            raise GUIException("Workdir not set")
+        # if self.work_dir is None:
+        #     raise GUIException("Workdir not set")
         
         src: CustomQTreeView = e.source() # type: ignore
 
@@ -70,14 +74,14 @@ class CustomQTreeView(QTreeView):
         if model is None:
             logging.warning("This QTree has not been assigned any model.")
             return
-        target_item = model.itemFromIndex(target_index)
-        if target_item is None:
+        target_item_from_index = model.itemFromIndex(target_index)
+        if target_item_from_index is None:
             logging.warning("Item returned None.")
             return
-        target_path: pathlib.Path = target_item.data(Qt.ItemDataRole.UserRole + 1)
-        target_path_abs = self.work_dir / target_path
-
-        if target_path_abs.is_file():
+        target_item: ItemInfo = target_item_from_index.data(ITEM_DATA_ROLE)
+        #target_path_abs = self.work_dir / target_path
+        target_path = target_item.path
+        if target_item.item_type == ItemType.FILE:
             target_path = target_path.parent
 
         dragged_indexes = src.selectedIndexes()
@@ -92,21 +96,21 @@ class CustomQTreeView(QTreeView):
             if dragged_item is None:
                 logging.warning("dragged_item is None")
                 return
-            dragged_path: Optional[pathlib.Path] = dragged_item.data(Qt.ItemDataRole.UserRole + 1)
+            dragged_path: Optional[ItemInfo] = dragged_item.data(ITEM_DATA_ROLE)
             logging.debug("dragged_path=%s", dragged_path)
             if dragged_path is None:
                 logging.warning("dragged_path is None")
                 return
-            if dragged_path.parent == target_path:
+            if dragged_path.path.parent == target_path:
                 logging.info("parent of dragged_path is the same as target_path")
                 e.ignore()
                 return
-            logging.debug("Dragged %s to %s", dragged_path, target_path)
+            logging.debug("Dragged %s to %s", dragged_path.path, target_path)
 
             # Let the ProjectTree take care of the rendering, as using e.accept() / calling super().dropEvent() results in bugs over removing unrelated items
             
 
-            self.drag_drop_item.emit(DragDropInfo(dragged_path, target_path))
+            self.drag_drop_item.emit(DragDropInfo(dragged_path.path, target_path))
 
 
 
@@ -143,7 +147,7 @@ class ProjectTree(QWidget):
     def __on_select(self, val: QModelIndex):
 
         self.__cur_selected_item = val
-        self.__cur_selected_path = pathlib.Path(self.__cur_selected_item.data(Qt.ItemDataRole.UserRole + 1))
+        self.__cur_selected_path = pathlib.Path(self.__cur_selected_item.data(ITEM_DATA_ROLE).path)
 
     def get_cur_selected_path(self):    
         return self.__cur_selected_path
@@ -163,8 +167,8 @@ class ProjectTree(QWidget):
         
             while len(items) > 0:
                 item = items.popleft()
-                cur_path: pathlib.Path = item.data(Qt.ItemDataRole.UserRole + 1)
-                self.__index_dict.pop(cur_path.as_posix())
+                cur_path: ItemInfo = item.data(ITEM_DATA_ROLE)
+                self.__index_dict.pop(cur_path.path.as_posix())
                 logging.debug("Popped %s", cur_path)
                 for row in range(item.rowCount()):
                     if child := item.child(row, 0):
@@ -179,17 +183,22 @@ class ProjectTree(QWidget):
     #     return self.__working_directory
     #
 
-    def add_item(self, path: pathlib.Path):
+    def add_item(self, item_info: ItemInfo):
         """
             Add a path to the project tree. Note that it doesn't actually create the item in the filesystem.
         """
-        logging.debug("Added tree entry for %s", path)
-        project_item = ProjectItem(path)
+        logging.debug("Added tree entry for %s", item_info.path)
+        project_item = ProjectItem(item_info)
         try:
-            self.__index_dict[path.parent.as_posix()].appendRow(project_item)
-            self.__index_dict[path.as_posix()] = project_item
+            parent_item = self.__index_dict[item_info.path.parent.as_posix()]
+            
+            if isinstance(parent_item, ProjectItem) and parent_item.info.item_type != ItemType.FOLDER:
+                raise GUIException(f"Attempted to insert a child on a file-type item: {item_info.path.parent.as_posix()}")
+            parent_item.appendRow(project_item)
+            self.__index_dict[item_info.path.as_posix()] = project_item
+            print(self.__index_dict)
         except KeyError as exc:
-            raise GUIException(f"It seems like parent of '{path}' ({path.parent}) doesn't exist") from exc
+            raise GUIException(f"It seems like parent of '{item_info.path}'  doesn't exist") from exc
 
     def load_folder(self, folder: UnnamedFolderItem):
         """
@@ -197,15 +206,21 @@ class ProjectTree(QWidget):
         """
         # TODO: separate file scanning logic
         #self.__working_directory = directory
+        if self.__args.dir_only:
+            folder = folder.filter_folders_only()
         item_system_model = to_model(folder)
         root_node = item_system_model.invisibleRootItem()
         if root_node is None:
-            raise GUIException("Failed fetching root node")
+            raise GUIException("item_system_model.invisibleRootItem() is None. This is not normal.")
 
         self.__tree.setModel(item_system_model)
 
         if self.__args.add_root_as_folder:
-            root_node.appendRow(ProjectItem(path_dot(), name="(root)"))
+            item_info = ItemInfo(
+                path=path_dot(), 
+                item_type=ItemType.FOLDER
+            )
+            root_node.appendRow(ProjectItem(item_info, name="(root)"))
 
         self.__index_dict.clear()
         self.__index_dict[path_dot().as_posix()] = root_node
@@ -215,8 +230,8 @@ class ProjectTree(QWidget):
             item = items.popleft()
             for row in range(item.rowCount()):
                 if child := item.child(row, 0):
-                    data: pathlib.Path = child.data(Qt.ItemDataRole.UserRole + 1)
-                    self.__index_dict[data.as_posix()] = child
+                    data: ItemInfo = child.data(ITEM_DATA_ROLE)
+                    self.__index_dict[data.path.as_posix()] = child
                     items.append(child)
 
-        self.__tree.set_workdir(directory)
+        #self.__tree.set_workdir(directory)

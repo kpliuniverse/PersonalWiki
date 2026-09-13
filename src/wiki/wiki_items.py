@@ -18,7 +18,7 @@ class ItemType(IntEnum):
 
 
 class Item:
-    __item_type: ItemType
+    _item_type: ItemType
     def __init__(self, name: str):
         self.__name = name
 
@@ -26,7 +26,7 @@ class Item:
         return self.__name
 
     def item_type(self):
-        return self.__item_type
+        return self._item_type
 
     def __hash__(self):
         return hash(self.__name)
@@ -37,7 +37,7 @@ NamedItem = Union["FileItem", "NamedFolderItem"]
 class FileItem(Item):
     def __init__(self, name: str):
         super().__init__(name)
-        self.__item_type = ItemType.FILE
+        self._item_type = ItemType.FILE
 
 @attrs.define
 class FilterFolder:
@@ -50,20 +50,18 @@ def sort_alphabetically_key(n: UnnamedItem):
 
 class UnnamedFolderItem(Item):
     """
-        Note that to efficiently detect dupes, its children is stored on a set. 
-        That means order is not guaranteed when filtering. 
-        It can be, however, be sorted using the `sorted()` method
+        An item that contains child items that are stored in a list.
     """
     def __init__(self, name: str):
         super().__init__(name)
-        self.__item_type = ItemType.FOLDER
-        self.__children: set[UnnamedItem] = set()
+        self._item_type = ItemType.FOLDER
+        self.__children: List[UnnamedItem] = []
 
     def add_child(self, child: UnnamedItem) -> Result[None, WikiError]:
         if child in self.__children:
             return Failure(WikiError.DUPLICATE_FILE_NAME)
 
-        self.__children.add(child)
+        self.__children.append(child)
         return Success(None)
 
     def to_str_list(self, __prefix: str = ""):
@@ -91,9 +89,9 @@ class UnnamedFolderItem(Item):
         
         
     def children(self) -> List[UnnamedItem]:
-        return list(self.__children)
+        return self.__children
 
-    def folder_filter(self, f: Callable[[UnnamedFolderItem], bool], *, include_files, dont_include_children_if_parent_is_filtered_out=False):
+    def folder_filter(self, cond: Callable[[UnnamedFolderItem], bool], *, include_files, dont_include_children_if_parent_is_filtered_out=False):
         """
             Filters folders based on criteria.
 
@@ -105,23 +103,38 @@ class UnnamedFolderItem(Item):
             if isinstance(child, FileItem) and include_files:
                 root.add_child(FileItem(child.name()))
             if isinstance(child, UnnamedFolderItem):
-                if dont_include_children_if_parent_is_filtered_out and not f(child):
+                meets_cond = cond(child)
+                if dont_include_children_if_parent_is_filtered_out and not meets_cond:
                     continue
-
-                child_folder = child.folder_filter(f, include_files=include_files, dont_include_children_if_parent_is_filtered_out=False)
-                if len(child_folder.children()) > 0:
-                    root.add_child(child)
+                elif not meets_cond and len([c for c in child.children() if isinstance(c, UnnamedFolderItem)]) == 0:
+                    continue
+                child_folder = child.folder_filter(cond, include_files=include_files, dont_include_children_if_parent_is_filtered_out=False)
+                if len([c for c in child_folder.children() if isinstance(c, UnnamedFolderItem)]) > 0 or meets_cond:
+                    root.add_child(child_folder)
         return root
 
     def filter_folders_only(self):
         return self.folder_filter(lambda _ : True, include_files=False)
 
     def filter_out_empty_folders(self):
-        return self.folder_filter(lambda f: len([c for c in f.children() if isinstance(c, FileItem)]) > 0, include_files=True)
+        root = self.create_root()
+        # TODO: maybe we can make this non-recursive?
+        for child in self.children():
+            if isinstance(child, FileItem):
+                root.add_child(FileItem(child.name()))
+            if isinstance(child, UnnamedFolderItem):
+                if len(child.children()) == 0:
+                    continue
+                child_folder = child.filter_out_empty_folders()
+                if len(child_folder.children()) > 0:
+                    root.add_child(child_folder)
+        return root
     
     def file_filter(self, f: Callable[[FileItem], bool], *, filter_empty_folders=True):
         """
             Filters files based on criteria.
+
+            ORDERING NOT GUARANTEED
         """
         root = self.create_root()
 
@@ -166,7 +179,7 @@ class UnnamedFolderItem(Item):
 class NamedFolderItem(Item):
     def __init__(self, name: str):
         super().__init__(name)
-        self.__item_type = ItemType.FOLDER
+        self._item_type = ItemType.FOLDER
         self.__children: dict[str, NamedItem] = dict()
 
     def add_child(self, child: NamedItem) -> Result[None, WikiError]:
@@ -197,7 +210,7 @@ class NamedFolderItem(Item):
         """
         return self.__children.get(name, None)
 
-    def get_path(self, path: pathlib.Path) -> Result[NamedItem, ItemError]:
+    def get_path(self, path: pathlib.Path) -> Result[NamedItem, WikiError]:
         """
             Get the item by path.
             e.g. `folder.get_path(pathlib.Path("a/b/c"))` is equal to folder.get("a").get("b").get("c")
