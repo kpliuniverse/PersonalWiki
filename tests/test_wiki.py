@@ -11,7 +11,7 @@ import pytest
 from src.consts import WIKI_ENCODING
 from src.utils.wiki_utils import walk_and_return_folder_item
 from src.wiki.wiki import create_wiki, open_wiki
-from src.wiki.wiki_items import UnnamedItem
+from src.wiki.wiki_items import FileItem, UnnamedFolderItem, UnnamedItem, sort_alphabetically_key
 
 
 def test_open_path(): 
@@ -44,6 +44,28 @@ def test_create_wiki(tmp_path: pathlib.Path):
     assert (gen_file_path / "proper").is_dir()
     assert (gen_file_path / "wiki.pwi").is_file()
 
+
+def test_filter_out_empty_folders():
+    root = UnnamedFolderItem("root")
+    x = UnnamedFolderItem("a")
+    x.add_child(FileItem("b"))
+    root.add_child(x)
+    x = UnnamedFolderItem("c")
+    x.add_child(FileItem("d"))
+    root.add_child(x)
+    root.add_child(UnnamedFolderItem("e"))
+    inp = root
+
+    root = UnnamedFolderItem("root")
+    x = UnnamedFolderItem("a")
+    x.add_child(FileItem("b"))
+    root.add_child(x)
+    x = UnnamedFolderItem("c")
+    x.add_child(FileItem("d"))
+    root.add_child(x)
+    exp_result = root
+
+    assert inp.filter_out_empty_folders().sorted(sort_alphabetically_key).to_str_list() == exp_result.to_str_list()
 def test_file_filter():
     by_alphabet: Callable[[UnnamedItem], str] = lambda x: x.name()
     # base
@@ -53,4 +75,4 @@ def test_file_filter():
     assert base.file_filter(lambda _ : True, filter_empty_folders=False).sorted(key=by_alphabet).to_str_list() == base.to_str_list()
     # False case
     assert base.file_filter(lambda _: False).to_str_list() == ["root"]
-    
+

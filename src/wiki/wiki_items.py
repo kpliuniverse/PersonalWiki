@@ -44,7 +44,10 @@ class FilterFolder:
     orig: UnnamedFolderItem
     filtered: UnnamedFolderItem
 
-type StrList = List[str | StrList]
+def sort_alphabetically_key(n: UnnamedItem):
+    return n.name()
+
+
 class UnnamedFolderItem(Item):
     """
         Note that to efficiently detect dupes, its children is stored on a set. 
@@ -90,33 +93,37 @@ class UnnamedFolderItem(Item):
     def children(self) -> List[UnnamedItem]:
         return list(self.__children)
 
-    def folder_filter(self, f: Callable[[UnnamedFolderItem], bool], *, include_files):
+    def folder_filter(self, f: Callable[[UnnamedFolderItem], bool], *, include_files, dont_include_children_if_parent_is_filtered_out=False):
         """
             Filters folders based on criteria.
 
             `include_files` determine if files should be included
         """
-        root = UnnamedFolderItem.create_root()
+        root = self.create_root()
 
-        queue = Deque([FilterFolder(self, root)])
-        while queue:
-            folder = queue.popleft()
+        for child in self.children():
+            if isinstance(child, FileItem) and include_files:
+                root.add_child(FileItem(child.name()))
+            if isinstance(child, UnnamedFolderItem):
+                if dont_include_children_if_parent_is_filtered_out and not f(child):
+                    continue
 
-            for child in folder.orig.children():
-                if isinstance(child, FileItem) and include_files:
-                    folder.filtered.add_child(FileItem(child.name()))
-                if isinstance(child, UnnamedFolderItem) and f(child):
-                    child_folder = UnnamedFolderItem(child.name())
-                    folder.filtered.add_child(child_folder)
-                    queue.append(FilterFolder(child, child_folder))
+                child_folder = child.folder_filter(f, include_files=include_files, dont_include_children_if_parent_is_filtered_out=False)
+                if len(child_folder.children()) > 0:
+                    root.add_child(child)
         return root
 
+    def filter_folders_only(self):
+        return self.folder_filter(lambda _ : True, include_files=False)
 
+    def filter_out_empty_folders(self):
+        return self.folder_filter(lambda f: len([c for c in f.children() if isinstance(c, FileItem)]) > 0, include_files=True)
+    
     def file_filter(self, f: Callable[[FileItem], bool], *, filter_empty_folders=True):
         """
             Filters files based on criteria.
         """
-        root = UnnamedFolderItem.create_root()
+        root = self.create_root()
 
         queue = Deque([FilterFolder(self, root)])
         while queue:
@@ -131,12 +138,12 @@ class UnnamedFolderItem(Item):
                     queue.append(FilterFolder(child, child_folder))
         print(root)
         if filter_empty_folders:
-            root = root.folder_filter(lambda f: len([c for c in f.children() if isinstance(c, FileItem)]) > 0, include_files=True)
+            root = root.filter_out_empty_folders()
+
         return root
 
-    
     def sorted(self, key: Callable[[UnnamedItem], Any], reverse=False):
-        root = UnnamedFolderItem.create_root()
+        root = self.create_root()
 
         queue = Deque([FilterFolder(self, root)])
         while queue:
@@ -151,9 +158,9 @@ class UnnamedFolderItem(Item):
                     queue.append(FilterFolder(child, child_folder))
         return root
 
-    @staticmethod
-    def create_root():
-        return UnnamedFolderItem("root")
+
+    def create_root(self):
+        return UnnamedFolderItem(self.name())
 
         
 class NamedFolderItem(Item):
