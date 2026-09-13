@@ -11,5 +11,5 @@ def test_close():
         case Failure(e):
             raise multiprocessing.MultiprocessingException(e)
         case Success(i_d):
-            time.sleep(5)
+            time.sleep(1)
             mgr.close_process(i_d)

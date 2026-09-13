@@ -45,27 +45,68 @@ def test_create_wiki(tmp_path: pathlib.Path):
     assert (gen_file_path / "wiki.pwi").is_file()
 
 
-def test_filter_out_empty_folders():
-    root = UnnamedFolderItem("root")
-    x = UnnamedFolderItem("a")
-    x.add_child(FileItem("b"))
-    root.add_child(x)
-    x = UnnamedFolderItem("c")
-    x.add_child(FileItem("d"))
-    root.add_child(x)
-    root.add_child(UnnamedFolderItem("e"))
-    inp = root
+class TestFilterOutEmptyFolders:
 
-    root = UnnamedFolderItem("root")
-    x = UnnamedFolderItem("a")
-    x.add_child(FileItem("b"))
-    root.add_child(x)
-    x = UnnamedFolderItem("c")
-    x.add_child(FileItem("d"))
-    root.add_child(x)
-    exp_result = root
+    def test_basic(self):
+        # Test empty e
+        root = UnnamedFolderItem("root")
+        x = UnnamedFolderItem("a")
+        x.add_child(FileItem("b"))
+        root.add_child(x)
+        x = UnnamedFolderItem("c")
+        x.add_child(FileItem("d"))
+        root.add_child(x)
+        root.add_child(UnnamedFolderItem("e"))
+        inp = root
 
-    assert inp.filter_out_empty_folders().sorted(sort_alphabetically_key).to_str_list() == exp_result.to_str_list()
+        root = UnnamedFolderItem("root")
+        x = UnnamedFolderItem("a")
+        x.add_child(FileItem("b"))
+        root.add_child(x)
+        x = UnnamedFolderItem("c")
+        x.add_child(FileItem("d"))
+        root.add_child(x)
+        exp_result = root
+
+        assert inp.filter_out_empty_folders().sorted(sort_alphabetically_key).to_str_list() == exp_result.to_str_list()
+
+    def test_empty(self):
+        root = UnnamedFolderItem("root")
+        x = UnnamedFolderItem("a")
+        root.add_child(x)
+        x = UnnamedFolderItem("c")
+        root.add_child(x)
+        root.add_child(UnnamedFolderItem("e"))
+        inp = root
+
+        root = UnnamedFolderItem("root")
+        exp_result = root
+
+        assert inp.filter_out_empty_folders().sorted(sort_alphabetically_key).to_str_list() == exp_result.to_str_list()
+
+    def test_nested(self):
+        root = UnnamedFolderItem("root")
+        x = UnnamedFolderItem("a")
+        x.add_child(FileItem("b"))
+        root.add_child(x)
+        x = UnnamedFolderItem("c")
+        x.add_child(FileItem("d"))
+        x.add_child(UnnamedFolderItem("e"))
+        root.add_child(x)
+        inp = root
+
+        root = UnnamedFolderItem("root")
+        x = UnnamedFolderItem("a")
+        x.add_child(FileItem("b"))
+        root.add_child(x)
+        x = UnnamedFolderItem("c")
+        x.add_child(FileItem("d"))
+        root.add_child(x)
+        exp_result = root
+
+        assert inp.filter_out_empty_folders().sorted(sort_alphabetically_key).to_str_list() == exp_result.sorted(sort_alphabetically_key).to_str_list()
+    
+
 def test_file_filter():
     by_alphabet: Callable[[UnnamedItem], str] = lambda x: x.name()
     # base
