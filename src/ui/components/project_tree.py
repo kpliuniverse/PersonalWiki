@@ -19,7 +19,7 @@ from src.exceptions import GUIException
 from src.itemmodels.project_item import ItemInfo, ProjectItem
 from src.utils.path_utils import path_dot
 from src.utils.wiki_utils import to_model
-from src.wiki.wiki_items import UnnamedFolderItem, ItemType
+from src.wiki.wiki_items import FolderItem, ItemType
 
 class AttemptedChildItemOnFileItemException(Exception):
     pass
@@ -187,11 +187,11 @@ class ProjectTree(QWidget):
         """
             Add a path to the project tree. Note that it doesn't actually create the item in the filesystem.
         """
-        logging.debug("Added tree entry for %s", item_info.path)
+        logging.debug("Adding tree entry for %s", item_info.path)
         project_item = ProjectItem(item_info)
         try:
             parent_item = self.__index_dict[item_info.path.parent.as_posix()]
-            
+
             if isinstance(parent_item, ProjectItem) and parent_item.info.item_type != ItemType.FOLDER:
                 raise GUIException(f"Attempted to insert a child on a file-type item: {item_info.path.parent.as_posix()}")
             parent_item.appendRow(project_item)
@@ -200,7 +200,7 @@ class ProjectTree(QWidget):
         except KeyError as exc:
             raise GUIException(f"It seems like parent of '{item_info.path}'  doesn't exist") from exc
 
-    def load_folder(self, folder: UnnamedFolderItem):
+    def load_folder(self, folder: FolderItem):
         """
             Loads the widget with a specific path
         """

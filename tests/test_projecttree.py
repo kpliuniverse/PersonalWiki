@@ -15,7 +15,7 @@ from src.utils.move_info import MoveInfo
 from src.utils.path_utils import path_dot
 from src.utils.wiki_utils import walk_and_return_folder_item
 from src.wiki import wiki
-from src.wiki.wiki_items import ItemType, UnnamedFolderItem
+from src.wiki.wiki_items import ItemType, FolderItem
 
 def test_parenting_bug(qtbot: QtBot):
     main_window = QMainWindow()
@@ -41,7 +41,7 @@ def test_add_path(qtbot: QtBot,):
     tree = ProjectTree(parent=main_window, tree_args=ProjectTreeArgs(
         dir_only=False
     ))
-    tree.load_folder(UnnamedFolderItem("root"))
+    tree.load_folder(FolderItem("root"))
     tree.add_item(ItemInfo(path=path_dot() / "a", item_type=ItemType.FOLDER))
     tree.add_item(ItemInfo(path=path_dot() / "a" / "b", item_type=ItemType.FILE))
 

@@ -11,7 +11,7 @@ import pytest
 from src.consts import WIKI_ENCODING
 from src.utils.wiki_utils import walk_and_return_folder_item
 from src.wiki.wiki import create_wiki, open_wiki
-from src.wiki.wiki_items import FileItem, UnnamedFolderItem, UnnamedItem, sort_alphabetically_key
+from src.wiki.wiki_items import FileItem, FolderItem, Item, sort_alphabetically_key
 
 
 def test_open_path(): 
@@ -49,21 +49,21 @@ class TestFilterOutEmptyFolders:
 
     def test_basic(self):
         # Test empty e
-        root = UnnamedFolderItem("root")
-        x = UnnamedFolderItem("a")
+        root = FolderItem("root")
+        x = FolderItem("a")
         x.add_child(FileItem("b"))
         root.add_child(x)
-        x = UnnamedFolderItem("c")
+        x = FolderItem("c")
         x.add_child(FileItem("d"))
         root.add_child(x)
-        root.add_child(UnnamedFolderItem("e"))
+        root.add_child(FolderItem("e"))
         inp = root
 
-        root = UnnamedFolderItem("root")
-        x = UnnamedFolderItem("a")
+        root = FolderItem("root")
+        x = FolderItem("a")
         x.add_child(FileItem("b"))
         root.add_child(x)
-        x = UnnamedFolderItem("c")
+        x = FolderItem("c")
         x.add_child(FileItem("d"))
         root.add_child(x)
         exp_result = root
@@ -71,35 +71,35 @@ class TestFilterOutEmptyFolders:
         assert inp.filter_out_empty_folders().sorted(sort_alphabetically_key).to_str_list() == exp_result.to_str_list()
 
     def test_empty(self):
-        root = UnnamedFolderItem("root")
-        x = UnnamedFolderItem("a")
+        root = FolderItem("root")
+        x = FolderItem("a")
         root.add_child(x)
-        x = UnnamedFolderItem("c")
+        x = FolderItem("c")
         root.add_child(x)
-        root.add_child(UnnamedFolderItem("e"))
+        root.add_child(FolderItem("e"))
         inp = root
 
-        root = UnnamedFolderItem("root")
+        root = FolderItem("root")
         exp_result = root
 
         assert inp.filter_out_empty_folders().sorted(sort_alphabetically_key).to_str_list() == exp_result.to_str_list()
 
     def test_nested(self):
-        root = UnnamedFolderItem("root")
-        x = UnnamedFolderItem("a")
+        root = FolderItem("root")
+        x = FolderItem("a")
         x.add_child(FileItem("b"))
         root.add_child(x)
-        x = UnnamedFolderItem("c")
+        x = FolderItem("c")
         x.add_child(FileItem("d"))
-        x.add_child(UnnamedFolderItem("e"))
+        x.add_child(FolderItem("e"))
         root.add_child(x)
         inp = root
 
-        root = UnnamedFolderItem("root")
-        x = UnnamedFolderItem("a")
+        root = FolderItem("root")
+        x = FolderItem("a")
         x.add_child(FileItem("b"))
         root.add_child(x)
-        x = UnnamedFolderItem("c")
+        x = FolderItem("c")
         x.add_child(FileItem("d"))
         root.add_child(x)
         exp_result = root
@@ -108,7 +108,7 @@ class TestFilterOutEmptyFolders:
     
 
 def test_file_filter():
-    by_alphabet: Callable[[UnnamedItem], str] = lambda x: x.name()
+    by_alphabet: Callable[[Item], str] = lambda x: x.name()
     # base
     base = walk_and_return_folder_item(pathlib.Path("end-tests/folders/walktest")).sorted(key=by_alphabet)
     

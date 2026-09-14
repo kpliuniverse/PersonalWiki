@@ -10,7 +10,7 @@ from pygments.lexers import q
 from returns.result import Failure, Success
 
 from src.itemmodels.project_item import ItemInfo, ProjectItem
-from src.wiki.wiki_items import UnnamedFolderItem, FileItem, NamedFolderItem, NamedItem, ItemType
+from src.wiki.wiki_items import FolderItem, FileItem, Item, ItemType
 from src.wiki.wiki_items import WikiError
 from src.utils.path_utils import path_dot
 
@@ -37,14 +37,14 @@ from src.utils.path_utils import path_dot
 @attrs.define
 class FolderIterEntry:
     path: pathlib.Path
-    folder: UnnamedFolderItem
+    folder: FolderItem
 
 def walk_and_return_folder_item(root_path: pathlib.Path):
     """
         Loads the widget with a specific path
     """
     # TODO: separate file scanning logic
-    root_item = UnnamedFolderItem("root")
+    root_item = FolderItem("root")
 
     queue: Deque[FolderIterEntry] = deque()
     queue.append(FolderIterEntry(
@@ -57,7 +57,7 @@ def walk_and_return_folder_item(root_path: pathlib.Path):
             if path.is_file():
                 cur_folder.folder.add_child(FileItem(path.name))
             if path.is_dir():
-                folder = UnnamedFolderItem(path.name)
+                folder = FolderItem(path.name)
                 cur_folder.folder.add_child(folder)
                 queue.append(FolderIterEntry(
                     path=path.relative_to(root_path),
@@ -67,7 +67,7 @@ def walk_and_return_folder_item(root_path: pathlib.Path):
 
 
 
-def to_model(folder: UnnamedFolderItem):
+def to_model(folder: FolderItem):
     item_system_model = QStandardItemModel()
     root_node = item_system_model.invisibleRootItem()
     if root_node is None:
@@ -89,7 +89,7 @@ def to_model(folder: UnnamedFolderItem):
                 item_type=child.item_type()
             )
             project_item = ProjectItem(item_info)
-            if isinstance(child, UnnamedFolderItem):
+            if isinstance(child, FolderItem):
                 subdirs.append(FolderIterEntry(rel_path, child))
                 dir_to_item[rel_path.as_posix()] = project_item
                 dir_to_item[rel_subdir.as_posix()].appendRow(project_item)

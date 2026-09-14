@@ -31,8 +31,7 @@ class Item:
     def __hash__(self):
         return hash(self.__name)
 
-UnnamedItem = Union["FileItem", "UnnamedFolderItem"]
-NamedItem = Union["FileItem", "NamedFolderItem"]
+
 
 class FileItem(Item):
     def __init__(self, name: str):
@@ -41,23 +40,23 @@ class FileItem(Item):
 
 @attrs.define
 class FilterFolder:
-    orig: UnnamedFolderItem
-    filtered: UnnamedFolderItem
+    orig: FolderItem
+    filtered: FolderItem
 
-def sort_alphabetically_key(n: UnnamedItem):
+def sort_alphabetically_key(n: Item):
     return n.name()
 
 
-class UnnamedFolderItem(Item):
+class FolderItem(Item):
     """
         An item that contains child items that are stored in a list.
     """
     def __init__(self, name: str):
         super().__init__(name)
         self._item_type = ItemType.FOLDER
-        self.__children: List[UnnamedItem] = []
+        self.__children: List[Item] = []
 
-    def add_child(self, child: UnnamedItem) -> Result[None, WikiError]:
+    def add_child(self, child: Item) -> Result[None, WikiError]:
         if child in self.__children:
             return Failure(WikiError.DUPLICATE_FILE_NAME)
 
@@ -80,7 +79,7 @@ class UnnamedFolderItem(Item):
         for child in self.__children:
             if isinstance(child, FileItem):
                 out.append(f"{disp}/{child.name()}")
-            if isinstance(child, UnnamedFolderItem):
+            if isinstance(child, FolderItem):
                 out.extend(child.to_str_list(disp))
         return out
     
@@ -88,10 +87,10 @@ class UnnamedFolderItem(Item):
         return "\n".join(self.to_str_list())
         
         
-    def children(self) -> List[UnnamedItem]:
+    def children(self) -> List[Item]:
         return self.__children
 
-    def folder_filter(self, cond: Callable[[UnnamedFolderItem], bool], *, include_files, dont_include_children_if_parent_is_filtered_out=False):
+    def folder_filter(self, cond: Callable[[FolderItem], bool], *, include_files, dont_include_children_if_parent_is_filtered_out=False):
         """
             Filters folders based on criteria.
 
@@ -102,14 +101,14 @@ class UnnamedFolderItem(Item):
         for child in self.children():
             if isinstance(child, FileItem) and include_files:
                 root.add_child(FileItem(child.name()))
-            if isinstance(child, UnnamedFolderItem):
+            if isinstance(child, FolderItem):
                 meets_cond = cond(child)
                 if dont_include_children_if_parent_is_filtered_out and not meets_cond:
                     continue
-                elif not meets_cond and len([c for c in child.children() if isinstance(c, UnnamedFolderItem)]) == 0:
+                elif not meets_cond and len([c for c in child.children() if isinstance(c, FolderItem)]) == 0:
                     continue
                 child_folder = child.folder_filter(cond, include_files=include_files, dont_include_children_if_parent_is_filtered_out=False)
-                if len([c for c in child_folder.children() if isinstance(c, UnnamedFolderItem)]) > 0 or meets_cond:
+                if len([c for c in child_folder.children() if isinstance(c, FolderItem)]) > 0 or meets_cond:
                     root.add_child(child_folder)
         return root
 
@@ -122,7 +121,7 @@ class UnnamedFolderItem(Item):
         for child in self.children():
             if isinstance(child, FileItem):
                 root.add_child(FileItem(child.name()))
-            if isinstance(child, UnnamedFolderItem):
+            if isinstance(child, FolderItem):
                 if len(child.children()) == 0:
                     continue
                 child_folder = child.filter_out_empty_folders()
@@ -145,8 +144,8 @@ class UnnamedFolderItem(Item):
             for child in folder.orig.children():
                 if isinstance(child, FileItem) and f(child):
                     folder.filtered.add_child(FileItem(child.name()))
-                if isinstance(child, UnnamedFolderItem):
-                    child_folder = UnnamedFolderItem(child.name())
+                if isinstance(child, FolderItem):
+                    child_folder = FolderItem(child.name())
                     folder.filtered.add_child(child_folder)
                     queue.append(FilterFolder(child, child_folder))
         #print(root)
@@ -155,7 +154,7 @@ class UnnamedFolderItem(Item):
 
         return root
 
-    def sorted(self, key: Callable[[UnnamedItem], Any], reverse=False):
+    def sorted(self, key: Callable[[Item], Any], reverse=False):
         root = self.create_root()
 
         queue = Deque([FilterFolder(self, root)])
@@ -165,79 +164,14 @@ class UnnamedFolderItem(Item):
             for child in sorted(folder.orig.children(), key=key, reverse=reverse):
                 if isinstance(child, FileItem):
                     folder.filtered.add_child(FileItem(child.name()))
-                if isinstance(child, UnnamedFolderItem):
-                    child_folder = UnnamedFolderItem(child.name())
+                if isinstance(child, FolderItem):
+                    child_folder = FolderItem(child.name())
                     folder.filtered.add_child(child_folder)
                     queue.append(FilterFolder(child, child_folder))
         return root
 
 
     def create_root(self):
-        return UnnamedFolderItem(self.name())
+        return FolderItem(self.name())
 
-        
-class NamedFolderItem(Item):
-    def __init__(self, name: str):
-        super().__init__(name)
-        self._item_type = ItemType.FOLDER
-        self.__children: dict[str, NamedItem] = dict()
-
-    def add_child(self, child: NamedItem) -> Result[None, WikiError]:
-        if child in self.__children:
-            return Failure(WikiError.DUPLICATE_FILE_NAME)
-
-        self.__children[child.name()] = child
-        return Success(None)
-
-    def print(self, __prefix: str = ""):
-        """
-        Print the item
-        Do not use the prefix argument, it's for internal purposes
-        """
-        # TODO: make this non-recursive
-        slash = "" if __prefix == "" else "/"
-        name = f"{__prefix}{slash}{self.name()}"
-        print(name)
-        for child in self.__children.values():
-            if isinstance(child, FileItem):
-                print(f"{name}/{child.name()}")
-            if isinstance(child, NamedFolderItem):
-                child.print(f"{name}")
-
-    def get(self, name: str) -> Optional[NamedItem]:
-        """
-            Get the item by name. Returns None if not found
-        """
-        return self.__children.get(name, None)
-
-    def get_path(self, path: pathlib.Path) -> Result[NamedItem, WikiError]:
-        """
-            Get the item by path.
-            e.g. `folder.get_path(pathlib.Path("a/b/c"))` is equal to folder.get("a").get("b").get("c")
-            If, for example, a and b, is a file, returns `ItemError.NOT_A_FOLDER_ITEM`.
-        """
-        if len(path.parts) == 0:
-
-            return Success(self)
-        cur_folder: NamedFolderItem = self
-
-        for part in path.parts[:-1]:
-            item = cur_folder.get(part)
-            if item is None:
-                return Failure(WikiError.ITEM_NOT_FOUND)
-            if isinstance(item, FileItem):
-                return Failure(WikiError.NOT_A_FOLDER_ITEM)
-            cur_folder = item
-        if (final_item := cur_folder.get(path.name)) is None:
-            return Failure(WikiError.ITEM_NOT_FOUND)
-        return Success(final_item)
-
-    def to_unnamed_folder_item(self) -> UnnamedFolderItem:
-        # TODO: make this non-recursive
-        root = UnnamedFolderItem(self.name())
-        for child in self.__children.values():
-            if isinstance(child, FileItem):
-                root.add_child(child)
-            if isinstance(child, NamedFolderItem):
-                root.add_child(child.to_unnamed_folder_item())
-        return root
+ 
