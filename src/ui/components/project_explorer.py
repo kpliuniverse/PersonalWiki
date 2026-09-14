@@ -247,10 +247,16 @@ class ProjectExplorer(QWidget):
         self.__move_item(move_info)
 
     def __toggle_search(self):
+        is_visible = self.__search_toolbar.isVisible()
+        if is_visible:
+            self.__search_term = ""
+        else:
+            self.__on_search_update()
 
-        self.__search_toolbar.setVisible(not self.__search_toolbar.isVisible())
-        self.__search_term = ""
-
+        self.__search_toolbar.setVisible(not is_visible)
+        
     def __on_search_update(self):
         self.__search_term = self.__search_toolbar.search_input.text().strip()
-        logging.debug("Search term: %s", self.__search_term)
+
+        self.__project_tree.load_folder(self.__get_folder().file_filter(lambda f: f.name().find(self.__search_term) != -1))
+        #logging.debug("Search term: %s", self.__search_term)
