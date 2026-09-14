@@ -81,7 +81,7 @@ def to_model(folder: UnnamedFolderItem):
         subdir = subdirs.popleft()
         logging.debug("loading %s", subdir.path.as_posix())
         for child in subdir.folder.children():
-            print(subdir.folder)
+            #print(subdir.folder)
             rel_subdir = subdir.path
             rel_path = rel_subdir / child.name()
             item_info = ItemInfo(

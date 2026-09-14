@@ -196,7 +196,7 @@ class ProjectTree(QWidget):
                 raise GUIException(f"Attempted to insert a child on a file-type item: {item_info.path.parent.as_posix()}")
             parent_item.appendRow(project_item)
             self.__index_dict[item_info.path.as_posix()] = project_item
-            print(self.__index_dict)
+            #print(self.__index_dict)
         except KeyError as exc:
             raise GUIException(f"It seems like parent of '{item_info.path}'  doesn't exist") from exc
 

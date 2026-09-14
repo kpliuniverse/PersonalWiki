@@ -149,7 +149,7 @@ class UnnamedFolderItem(Item):
                     child_folder = UnnamedFolderItem(child.name())
                     folder.filtered.add_child(child_folder)
                     queue.append(FilterFolder(child, child_folder))
-        print(root)
+        #print(root)
         if filter_empty_folders:
             root = root.filter_out_empty_folders()
 
