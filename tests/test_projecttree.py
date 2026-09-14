@@ -43,11 +43,14 @@ def test_add_path(qtbot: QtBot,):
     ))
     tree.load_folder(FolderItem("root"))
     tree.add_item(ItemInfo(path=path_dot() / "a", item_type=ItemType.FOLDER))
+
+    with pytest.raises(GUIException, match=f"add an already existing path: {(path_dot() / "a").as_posix()}"):
+        tree.add_item(ItemInfo(path=path_dot() / "a", item_type=ItemType.FOLDER))
+
     tree.add_item(ItemInfo(path=path_dot() / "a" / "b", item_type=ItemType.FILE))
 
     with pytest.raises(GUIException, match="child on a file-type item"):
         tree.add_item(ItemInfo(path_dot() / "a" / "b" / "c", item_type=ItemType.FILE))
-
 
     with pytest.raises(GUIException, match="parent of .* doesn't exist"):
         tree.add_item(ItemInfo(path_dot() / "c" / "d", item_type=ItemType.FILE))

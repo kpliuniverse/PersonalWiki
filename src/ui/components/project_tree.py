@@ -188,6 +188,9 @@ class ProjectTree(QWidget):
             Add a path to the project tree. Note that it doesn't actually create the item in the filesystem.
         """
         logging.debug("Adding tree entry for %s", item_info.path)
+        key = item_info.path.as_posix()
+        if key in self.__index_dict:
+            raise GUIException(f"Attempted to add an already existing path: {key}")
         project_item = ProjectItem(item_info)
         try:
             parent_item = self.__index_dict[item_info.path.parent.as_posix()]
@@ -195,7 +198,7 @@ class ProjectTree(QWidget):
             if isinstance(parent_item, ProjectItem) and parent_item.info.item_type != ItemType.FOLDER:
                 raise GUIException(f"Attempted to insert a child on a file-type item: {item_info.path.parent.as_posix()}")
             parent_item.appendRow(project_item)
-            self.__index_dict[item_info.path.as_posix()] = project_item
+            self.__index_dict[key] = project_item
             #print(self.__index_dict)
         except KeyError as exc:
             raise GUIException(f"It seems like parent of '{item_info.path}'  doesn't exist") from exc
