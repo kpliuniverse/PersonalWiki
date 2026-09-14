@@ -79,7 +79,7 @@ def to_model(folder: FolderItem):
     dir_to_item[dot] = root_node
     while len(subdirs) > 0:
         subdir = subdirs.popleft()
-        logging.debug("loading %s", subdir.path.as_posix())
+        #logging.debug("loading %s", subdir.path.as_posix())
         for child in subdir.folder.children():
             #print(subdir.folder)
             rel_subdir = subdir.path
