@@ -3,7 +3,7 @@
 
 args = []
 
-EXECUTABLES = ["main.py", "webserver_main.py"]
+EXECUTABLES = ["main.py"]
 
 for exec in EXECUTABLES:
     a = Analysis(
@@ -12,7 +12,8 @@ for exec in EXECUTABLES:
         binaries=[],
         datas=[
             ("resources", "resources"),
-            ("src/ui/stylesheets/app_stylesheet.scss", "src/ui/stylesheets")
+            ("src/ui/stylesheets/app_stylesheet.scss", "src/ui/stylesheets"),
+            ("src/static", "src/static")
         ],
         hiddenimports=[],
         hookspath=[],
