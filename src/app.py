@@ -63,8 +63,8 @@ class App:
             self.__cleanup()
             raise e
         
-    def __cleanup(self):
-        MultiprocessingManager().kill_all()
+    # def __cleanup(self):
+    #     MultiprocessingManager().kill_all()
             
     def run(self):
         """
