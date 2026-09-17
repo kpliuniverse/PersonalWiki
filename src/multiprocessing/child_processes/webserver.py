@@ -33,7 +33,7 @@ class WebServer(object):
             "body": parse_md(md)
         }
         
-        return Response(parse_md(md), mimetype="text/html")
+        return Response(MainHTMLTemplater().render(context), mimetype="text/html")
 
     def wsgi_app(self, environ, start_response):
         self.url_map = Map([
