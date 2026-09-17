@@ -62,6 +62,7 @@ class App:
         except Exception as e:
             self.cleanup()
             raise e
+        
     def cleanup(self):
         MultiprocessingManager().kill_all()
             
