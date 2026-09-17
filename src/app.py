@@ -44,16 +44,16 @@ class App:
     def __cleanup(self):
         MultiprocessingManager().close_all()
 
-    def run_main(self, wiki: pathlib.Path):
+    def run_main(self, pwi_file: pathlib.Path):
         """
             Runs the main windows.
         """
-
-        match MultiprocessingManager().run_process(WebserverProcess()):
+        match MultiprocessingManager().run_process(WebserverProcess(pwi_file.parent)):
             case Failure(_):
                 raise MultiprocessingException("Failed to start web server")
+        
         self.main_window = MainWindow(initcontext=InitContext(
-            path_to_pwi_file=pathlib.Path(wiki)
+            path_to_pwi_file=pathlib.Path(pwi_file)
         ))
         self.main_window.show() 
         self.main_window.on_close.connect(self.__cleanup)

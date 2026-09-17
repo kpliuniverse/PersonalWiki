@@ -24,9 +24,19 @@ from src.utils.encoding import url_b64_decode
 
 
 class WebServer(object):
+    """
+        The WebServer object
+
+        args:
+        root_path: pathlib.Path that links to the root path. Highly reccommend that this is absolute
+    """
+    def __init__(self, root_path: pathlib.Path):
+        self.root_path = root_path
+        
     def view(self, args):
-        path: str = url_b64_decode(args["path"]).decode(WIKI_ENCODING)
-        with open(f"/{path.replace("\\", "/")}", encoding=WIKI_ENCODING) as f:
+        rel_path = pathlib.Path(url_b64_decode(args["path"]).decode(WIKI_ENCODING).replace("\\", "/"))
+        path = self.root_path / rel_path
+        with open(path, encoding=WIKI_ENCODING) as f:
             md = f.read()
 
         context = {
@@ -62,8 +72,8 @@ class WebServer(object):
 # create_environ(".testenv/wikis/basic", "http://localhost:8080")
 
 
-def create_app():
-    app = WebServer()
+def create_app(path: pathlib.Path):
+    app = WebServer(root_path=path)
     app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
         '/default_static':  (PROJECT_ROOT / "src/static").as_posix()
     })
@@ -72,12 +82,13 @@ def create_app():
 WEBSERVER_PORT = 8080
 
 class WebserverProcess(ChildProcess):
-    def __init__(self):
+    def __init__(self, path: pathlib.Path):
         self.port = WEBSERVER_PORT
         self.host = LOOPBACK_IP_ADD
+        self.path = path
 
     @override
     def run(self):
-        waitress.serve(create_app(), host=self.host, port=self.port)
+        waitress.serve(create_app(self.path), host=self.host, port=self.port)
 
     
