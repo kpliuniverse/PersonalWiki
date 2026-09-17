@@ -60,10 +60,10 @@ class App:
             self.main_window.show() 
             self.main_window.on_close.connect(self.__cleanup)
         except Exception as e:
-            self.cleanup()
+            self.__cleanup()
             raise e
         
-    def cleanup(self):
+    def __cleanup(self):
         MultiprocessingManager().kill_all()
             
     def run(self):
