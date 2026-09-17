@@ -13,7 +13,8 @@ for exec in EXECUTABLES:
         datas=[
             ("resources", "resources"),
             ("src/ui/stylesheets/app_stylesheet.scss", "src/ui/stylesheets"),
-            ("src/static", "src/static")
+            ("src/static", "src/static"),
+            ("src/templating", "src/templating")
         ],
         hiddenimports=[],
         hookspath=[],
