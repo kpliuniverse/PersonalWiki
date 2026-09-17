@@ -18,5 +18,5 @@ class RedirectorWorker(QObject):
         logging.debug("Rendering")
         #parsed = markdown_parser.parse_chunk(pwe)
         self.finished.emit(parsed)
-        markdown_parser.parse_chunk(pwe)
+        markdown_parser.parse_md(pwe)
         logging.debug("Done rendering")

@@ -1,4 +1,5 @@
 import base64
+import logging
 import os
 import pathlib
 import sys
@@ -12,7 +13,7 @@ from werkzeug.serving import run_simple
 from werkzeug.middleware.shared_data import SharedDataMiddleware
 from src.consts import LOOPBACK_IP_ADD, PROJECT_ROOT, WIKI_ENCODING
 from src.multiprocessing.child_process import ChildProcess
-from src.parser.markdown_parser import parse_chunk
+from src.parser.markdown_parser import parse_md
 from src.templating.templating import MainHTMLTemplater
 
 import importlib
@@ -29,9 +30,10 @@ class WebServer(object):
             md = f.read()
 
         context = {
-            "body": parse_chunk(md)
+            "body": parse_md(md)
         }
-        return Response(MainHTMLTemplater().render(context), mimetype="text/html")
+        
+        return Response(parse_md(md), mimetype="text/html")
 
     def wsgi_app(self, environ, start_response):
         self.url_map = Map([
