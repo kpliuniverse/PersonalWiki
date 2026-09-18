@@ -42,7 +42,7 @@ class App:
             logging.info("Added font file: %s", path.as_posix())
 
     def __cleanup(self):
-        MultiprocessingManager().close_all()
+        MultiprocessingManager().kill_all()
 
     def run_main(self, pwi_file: pathlib.Path):
         """
