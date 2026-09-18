@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-uv run pyinstaller main.spec -y
+uv run pyinstaller main.spec -y 

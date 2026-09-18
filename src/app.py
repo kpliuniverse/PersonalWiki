@@ -48,16 +48,24 @@ class App:
         """
             Runs the main windows.
         """
-        match MultiprocessingManager().run_process(WebserverProcess(pwi_file.parent)):
-            case Failure(_):
-                raise MultiprocessingException("Failed to start web server")
+        try:
         
-        self.main_window = MainWindow(initcontext=InitContext(
-            path_to_pwi_file=pathlib.Path(pwi_file)
-        ))
-        self.main_window.show() 
-        self.main_window.on_close.connect(self.__cleanup)
-
+            match MultiprocessingManager().run_process(WebserverProcess(pwi_file.parent)):
+                case Failure(_):
+                    raise MultiprocessingException("Failed to start web server")
+            logging.info("Webserver started at %s", pwi_file.parent.as_posix())
+            self.main_window = MainWindow(initcontext=InitContext(
+                path_to_pwi_file=pathlib.Path(pwi_file)
+            ))
+            self.main_window.show() 
+            self.main_window.on_close.connect(self.__cleanup)
+        except Exception as e:
+            self.__cleanup()
+            raise e
+        
+    # def __cleanup(self):
+    #     MultiprocessingManager().kill_all()
+            
     def run(self):
         """
             Runs the app
@@ -67,11 +75,13 @@ class App:
         self.init_resources()
         QQuickWindow.setGraphicsApi(QSGRendererInterface.GraphicsApi.OpenGL)
         QCoreApplication.setAttribute(Qt.ApplicationAttribute.AA_UseStyleSheetPropagationInWidgetStyles, True)
+        
         if len(self.app.arguments()) == 1:
             wiki_window = WikiWindow()
             wiki_window.wiki_opened.connect(self.run_main)
             wiki_window.show()
         else:
             self.run_main(pathlib.Path(self.app.arguments()[1]).resolve())
+        sys.exit(self.app.exec())
 
-        sys.exit(self.app.exec())    
+             

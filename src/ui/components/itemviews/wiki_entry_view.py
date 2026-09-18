@@ -6,10 +6,10 @@ from typing import Optional, override
 from PyQt6.QtWebEngineCore import QWebEngineProfile
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtGui import QFont
-from PyQt6.QtCore import Q_ARG, QMetaObject, QThread, QUrl, Qt, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import Q_ARG, QMetaObject, QThread, QTimer, QUrl, Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import QLabel, QSplitter, QTextEdit, QVBoxLayout, QWidget
 
-from src.consts import LOOPBACK_IP_ADD, WIKI_ENCODING
+from src.consts import LOOPBACK_IP_ADD, SAVE_DELAY_MS, WIKI_ENCODING
 from src.multiprocessing.child_processes.webserver import WEBSERVER_PORT
 from src.ui.components.entry_ribbon import EntryRibbon
 from src.ui.pages.custom_page import CustomPage
@@ -36,7 +36,7 @@ class WikiEntryView(BaseItemView):
 
         entry_ribbon = EntryRibbon(self)
         layout.addWidget(entry_ribbon, stretch=1)
-        entry_ribbon.render_button.clicked.connect(self.__on_render_button)
+        entry_ribbon.render_button.clicked.connect(self.__save_and_render)
 
 
         editor_splitter: QSplitter = QSplitter(parent=self)
@@ -59,13 +59,22 @@ class WikiEntryView(BaseItemView):
         editor_splitter.setHandleWidth(16)
         editor_splitter.setSizes([100, 100])
 
+        self.save_timer = QTimer(self)
+        self.save_timer.setSingleShot(True)
+        self.save_timer.setInterval(SAVE_DELAY_MS)
+        self.save_timer.timeout.connect(self.__save_and_render)
         self.setStyleSheet(MainStylesheetManager().get_rule("WikiEntryView"))
+        self.__text_edit.textChanged.connect(self.__on_text_changed)
 
     def load_item(self, item: pathlib.Path):
         self.__cur_item_path = item
         with open(item, encoding=WIKI_ENCODING) as file:
             self.__text_edit.setText(file.read())
         self.__render_markdown()
+
+    def __on_text_changed(self):
+        if not self.save_timer.isActive():
+            self.save_timer.start()
 
     @pyqtSlot()
     def __render_markdown(self):
@@ -84,6 +93,7 @@ class WikiEntryView(BaseItemView):
         url = QUrl(f"http://{LOOPBACK_IP_ADD}:{WEBSERVER_PORT}/view/{b64}")
         self.__text_view.setUrl(url)
         logging.info("Going to %s", url.toString())
+        
         # # TODO: Abstract thread creation.
         # renderer_worker = RedirectorWorker()
         # renderer_worker.moveToThread(self.__rendering_thread)
@@ -122,6 +132,6 @@ class WikiEntryView(BaseItemView):
         with open(self.__cur_item_path, "w", encoding=WIKI_ENCODING) as file:
             file.write(self.__text_edit.toPlainText())
     
-    def __on_render_button(self):
+    def __save_and_render(self):
         self.save_cur_item()
         self.__render_markdown()

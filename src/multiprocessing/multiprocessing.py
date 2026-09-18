@@ -1,6 +1,7 @@
 
 
 from enum import IntEnum, StrEnum, auto
+import logging
 from multiprocessing import Process
 from typing import Callable, Dict, Self
 from uuid import UUID, uuid7
@@ -89,13 +90,20 @@ class MultiprocessingManager(metaclass=Singleton):
         """
             returns ResultE
         """
+        logging.info("closing %s", i_d)
         self.__processes[i_d].close_function()
         self.__processes[i_d].process.terminate()
+        logging.info("closed %s", i_d)
 
     @safe
     def close_all(self):
         for i_d in self.__processes.keys():
             self.close_process(i_d)
-    
-        
+            
+    @safe
+    def kill_all(self):
+        logging.info("Force closing processes")
+        for i_d, process in self.__processes.items():
+            process.process.kill()
+            logging.info("Killed %s", i_d)
         
