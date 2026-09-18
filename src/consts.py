@@ -16,3 +16,5 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 RESOURCE_PATH = PROJECT_ROOT / "resources"
 
 LOOPBACK_IP_ADD = "127.0.0.1"
+
+SAVE_DELAY_MS = 500
