@@ -84,6 +84,7 @@ class WikiEntryView(BaseItemView):
         url = QUrl(f"http://{LOOPBACK_IP_ADD}:{WEBSERVER_PORT}/view/{b64}")
         self.__text_view.setUrl(url)
         logging.info("Going to %s", url.toString())
+        
         # # TODO: Abstract thread creation.
         # renderer_worker = RedirectorWorker()
         # renderer_worker.moveToThread(self.__rendering_thread)
