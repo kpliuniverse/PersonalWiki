@@ -74,7 +74,7 @@ class MainWindow(QMainWindow):
         self.__project_explorer.item_operation_requested.connect(self.__app_state.cur_wiki.do_operations)
         editor_splitter.addWidget(self.__project_explorer)
 
-        self.__item_panel = ItemPanel(editor_splitter, self.__app_state.cur_wiki.get_wiki_dir_path())
+        self.__item_panel = ItemPanel(editor_splitter, self.__app_state)
         editor_splitter.addWidget(self.__item_panel)
 
         editor_splitter.setHandleWidth(16)
@@ -114,10 +114,9 @@ class MainWindow(QMainWindow):
             file_menu.addAction(action)
 
     def __load_item(self, item_path: pathlib.Path):
-        item_path_abs = self.__app_state.cur_wiki.get_wiki_proper_path() / item_path
         self.__app_state.cur_wiki.set_cur_item(item_path)
-        self.__item_panel.load(guess_view_type(item_path_abs), item_path_abs)
-
+        self.__item_panel.refresh()
+        #self.__item_panel.load(guess_view_type(item_path), item_path)
     def __on_project_item_double_clicked(self, val: QModelIndex):
         item_path: ItemInfo = val.data(ITEM_DATA_ROLE)
         item_path_abs = self.__app_state.cur_wiki.get_wiki_proper_path() / item_path.path

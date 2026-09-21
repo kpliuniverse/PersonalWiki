@@ -35,7 +35,7 @@ class WebServer(object):
         
     def view(self, args):
         rel_path = pathlib.Path(url_b64_decode(args["path"]).decode(WIKI_ENCODING).replace("\\", "/"))
-        path = self.root_path / rel_path
+        path = self.root_path / "proper" / rel_path
         with open(path, encoding=WIKI_ENCODING) as f:
             md = f.read()
 

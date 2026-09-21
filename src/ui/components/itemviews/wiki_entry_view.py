@@ -1,7 +1,7 @@
 import base64
 import logging
 import pathlib
-from typing import Optional, override
+from typing import Optional
 
 from PyQt6.QtWebEngineCore import QWebEngineProfile
 from PyQt6.QtWebEngineWidgets import QWebEngineView
@@ -11,13 +11,15 @@ from PyQt6.QtWidgets import QLabel, QSplitter, QTextEdit, QVBoxLayout, QWidget
 
 from src.consts import LOOPBACK_IP_ADD, SAVE_DELAY_MS, WIKI_ENCODING
 from src.multiprocessing.child_processes.webserver import WEBSERVER_PORT
+from src.states.appstate import AppState
 from src.ui.components.entry_ribbon import EntryRibbon
 from src.ui.pages.custom_page import CustomPage
 from src.ui.stylesheets.app_stylesheet import MainStylesheetManager
 from src.ui.utils.item_view_base import BaseItemView
-from src.ui.workers.renderer_worker import RedirectorWorker
 from src.utils.encoding import url_b64_encode
 from src.utils.navigation_info import NavigationInfo
+
+
 
 class WikiEntryView(BaseItemView):
     """
@@ -25,11 +27,13 @@ class WikiEntryView(BaseItemView):
     """
     switch_signal = pyqtSignal(pathlib.Path)
 
-    def __init__(self, parent, wiki_dir: pathlib.Path) -> None:
+    def __init__(self, parent, app_state: AppState) -> None:
         self.__cur_item_path: Optional[pathlib.Path] = None
         super().__init__(parent)
-        self.__wiki_dir = wiki_dir
+        #self.__wiki_dir = wiki_dir
         # self.__rendering_thread: Optional[QThread] = None
+
+        self.__app_state = app_state
 
         layout = QVBoxLayout()
         self.setLayout(layout)
@@ -68,7 +72,7 @@ class WikiEntryView(BaseItemView):
 
     def load_item(self, item: pathlib.Path):
         self.__cur_item_path = item
-        with open(item, encoding=WIKI_ENCODING) as file:
+        with open(self.__app_state.cur_wiki.get_wiki_proper_path() / item, encoding=WIKI_ENCODING) as file:
             self.__text_edit.setText(file.read())
         self.__render_markdown()
 
@@ -88,7 +92,8 @@ class WikiEntryView(BaseItemView):
         #     self.__rendering_thread.requestInterruption()
         pwe_string = self.__text_edit.toPlainText()
         logging.debug("Preparing to render...")
-        path = self.__cur_item_path.relative_to(self.__wiki_dir).as_posix()
+        path = self.__cur_item_path.as_posix()
+        logging.debug("path: %s", path)
         b64 = url_b64_encode(path.encode())
         url = QUrl(f"http://{LOOPBACK_IP_ADD}:{WEBSERVER_PORT}/view/{b64}")
         self.__text_view.setUrl(url)

@@ -6,18 +6,19 @@ from PyQt6.QtOpenGLWidgets import QOpenGLWidget
 from PyQt6.QtCore import QTimer, Qt, pyqtBoundSignal, pyqtSignal
 from PyQt6.QtWidgets import QVBoxLayout, QWidget
 
+from src.exceptions import GUIException
 from src.ui.components.itemviews.blank_view import BlankView
 from src.ui.components.itemviews.test_view import TestView
 from src.ui.components.itemviews.wiki_entry_view import WikiEntryView
 from src.ui.utils.item_view_base import BaseItemView
 from src.ui.utils.item_view_protocols import CanSwitchToOtherItems, Loadable, Savable
 from src.ui.utils.view_utils import ViewType, guess_view_type
+from src.states.appstate import AppState
 
-    
 
 class ItemPanel(QWidget):
 
-    def __init__(self, parent: QWidget, wiki_dir: pathlib.Path):
+    def __init__(self, parent: QWidget, app_state: AppState):
         super().__init__(parent)
         self.setLayout(QVBoxLayout())
         self.__item_view: Optional[BaseItemView] = None
@@ -27,19 +28,21 @@ class ItemPanel(QWidget):
         self.__dummy_widget = QOpenGLWidget(self)
         self.__dummy_widget.hide()
 
+        self.__app_state = app_state
+
         # Had to preload all widgets because dynamically loading QWebEngineView causes flickering.
         self.__widget_dict: Dict[str, BaseItemView] = {
-                    ViewType.ENTRY: WikiEntryView(self, wiki_dir),
+                    ViewType.ENTRY: WikiEntryView(self, app_state),
                     ViewType.TEST: TestView(self),
                     ViewType.BLANK: BlankView(self),
         }
 
         for widget in self.__widget_dict.values():
             if isinstance(widget, CanSwitchToOtherItems):
-                widget.switch_signal.connect(lambda x: self.load(guess_view_type(x), x))
+                widget.switch_signal.connect(lambda x: self.__load(guess_view_type(x), x))
             widget.hide()
 
-        self.load(self.__view_type, pathlib.Path("."))
+        self.__load(self.__view_type, pathlib.Path("."))
 
     def __clear_view(self):
         if self.__item_view is None:
@@ -56,7 +59,7 @@ class ItemPanel(QWidget):
             self.__item_view.load_item(item)
         
 
-    def load(self, view_type: ViewType, item: pathlib.Path):
+    def __load(self, view_type: ViewType, item: pathlib.Path):
         """
             Loads an item into the panel
         """
@@ -82,3 +85,9 @@ class ItemPanel(QWidget):
         self.__item_view = view
         if (l := self.layout()) is not None:
             l.addWidget(self.__item_view)
+
+    def refresh(self):
+        item = self.__app_state.cur_wiki.get_cur_item()
+        if item is None:
+            raise GUIException("Attempted to load null item")
+        self.__load(guess_view_type(item), item)
