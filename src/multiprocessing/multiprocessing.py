@@ -93,6 +93,7 @@ class MultiprocessingManager(metaclass=Singleton):
         logging.info("closing %s", i_d)
         self.__processes[i_d].close_function()
         self.__processes[i_d].process.terminate()
+        self.__processes[i_d].status = ProcessStatus.TERMINATED
         logging.info("closed %s", i_d)
 
     @safe
@@ -104,6 +105,8 @@ class MultiprocessingManager(metaclass=Singleton):
     def kill_all(self):
         logging.info("Force closing processes")
         for i_d, process in self.__processes.items():
-            process.process.kill()
-            logging.info("Killed %s", i_d)
+            if process.status != ProcessStatus.TERMINATED and process.process.is_alive():
+                process.process.kill()
+                self.__processes[i_d].status = ProcessStatus.TERMINATED
+                logging.info("Killed %s", i_d)
         
