@@ -1,3 +1,4 @@
+from copy import deepcopy
 from importlib import resources as impresources
 import sys
 import pathlib 
@@ -12,6 +13,7 @@ from PyQt6.QtWidgets import (
 )
 
 from PyQt6.QtGui import QFontDatabase
+import dill
 from returns.result import Failure
 from src.consts import RESOURCE_PATH
 from src.initcontext import InitContext
@@ -54,16 +56,24 @@ class App:
             Runs the main windows.
         """
         try:
-        
-            match MultiprocessingManager().run_process(WebserverProcess(pwi_file.parent)):
-                case Failure(_):
-                    raise MultiprocessingException("Failed to start web server")
-            logging.info("Webserver started at %s", pwi_file.parent.as_posix())
+
             self.main_window = MainWindow(initcontext=InitContext(
                 path_to_pwi_file=pathlib.Path(pwi_file)
             ))
+
+            # app_state = to_pickleable(self.main_window.app_state())
+            # if not dill.pickles(app_state):
+            #     raise Exception("App state not pickleable")
+            # else:
+            #     logging.debug("App state is pickleable")
+
+            match MultiprocessingManager().run_process(WebserverProcess(self.main_window.app_state())):
+                case Failure(_):
+                    raise MultiprocessingException("Failed to start web server")
+            logging.info("Webserver started at %s", pwi_file.parent.as_posix())
             self.main_window.show() 
             self.main_window.on_close.connect(self.__cleanup)
+
         except Exception as e:
             self.__cleanup()
             raise e
@@ -88,5 +98,3 @@ class App:
         else:
             self.run_main(pathlib.Path(self.app.arguments()[1]).resolve())
         sys.exit(self.app.exec())
-
-             

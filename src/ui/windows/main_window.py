@@ -154,3 +154,6 @@ class MainWindow(QMainWindow):
     def closeEvent(self, a0: QCloseEvent | None) -> None:
         self.on_close.emit()
         return super().closeEvent(a0)
+
+    def app_state(self):
+        return self.__app_state

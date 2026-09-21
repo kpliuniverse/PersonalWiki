@@ -14,6 +14,7 @@ from werkzeug.middleware.shared_data import SharedDataMiddleware
 from src.consts import LOOPBACK_IP_ADD, PROJECT_ROOT, WIKI_ENCODING
 from src.multiprocessing.child_process import ChildProcess
 from src.parser.markdown_parser import parse_md
+from src.states.appstate import AppState
 from src.templating.templating import MainHTMLTemplater
 
 import importlib
@@ -30,17 +31,14 @@ class WebServer(object):
         args:
         root_path: pathlib.Path that links to the root path. Highly reccommend that this is absolute
     """
-    def __init__(self, root_path: pathlib.Path):
-        self.root_path = root_path
+    def __init__(self, app_state: AppState):
+        self.app_state = app_state
         
     def view(self, args):
         rel_path = pathlib.Path(url_b64_decode(args["path"]).decode(WIKI_ENCODING).replace("\\", "/"))
-        path = self.root_path / "proper" / rel_path
-        with open(path, encoding=WIKI_ENCODING) as f:
-            md = f.read()
 
         context = {
-            "body": parse_md(md)
+            "body": parse_md(self.app_state.cur_wiki.read_item(rel_path))
         }
         
         return Response(MainHTMLTemplater().render(context), mimetype="text/html")
@@ -72,23 +70,25 @@ class WebServer(object):
 # create_environ(".testenv/wikis/basic", "http://localhost:8080")
 
 
-def create_app(path: pathlib.Path):
-    app = WebServer(root_path=path)
+
+
+WEBSERVER_PORT = 8080
+
+def create_app(app_state: AppState):
+    app = WebServer(app_state=app_state)
     app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
         '/default_static':  (PROJECT_ROOT / "src/static").as_posix()
     })
     return app
 
-WEBSERVER_PORT = 8080
-
 class WebserverProcess(ChildProcess):
-    def __init__(self, path: pathlib.Path):
+    def __init__(self, app_state: AppState):
         self.port = WEBSERVER_PORT
         self.host = LOOPBACK_IP_ADD
-        self.path = path
+        self.app_state = app_state
 
     @override
     def run(self):
-        waitress.serve(create_app(self.path), host=self.host, port=self.port)
+        waitress.serve(create_app(self.app_state), host=self.host, port=self.port)
 
     
