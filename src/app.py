@@ -30,6 +30,7 @@ class App:
         self.main_window: MainWindow | None  = None
         self.app = QApplication(sys.argv)
         atexit.register(self.__cleanup)
+
     def add_paths(self):
         QDir.addSearchPath("res", "resources/")
 
@@ -44,7 +45,7 @@ class App:
         for path in (RESOURCE_PATH / "fonts").iterdir():
             QFontDatabase.addApplicationFont(path.as_posix())
             logging.info("Added font file: %s", path.as_posix())
-
+        logging.debug("Font families: %s", ", ".join(QFontDatabase.families()))
     def __cleanup(self):
         MultiprocessingManager().close_all()
 
