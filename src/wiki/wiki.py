@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import dataclasses
-from enum import IntEnum, auto
+from enum import IntEnum, StrEnum, auto
+from io import TextIOWrapper
 import json
 import logging
 import os
@@ -17,7 +18,14 @@ from src.states.wikistate import Session, Settings, WikiState
 from src.utils.file_utils import create_empty_file
 from src.utils.item_validity import valid_item_name
 from src.utils.item_actions import Action, CopyAction, MoveAction, DeleteAction, NewItemAction
-        
+
+class WikiFileMode(StrEnum):
+    READ = "r"
+    WRITE = "w"
+
+class WikiFile(TextIOWrapper):
+    pass
+
 class Wiki:
     """
         Do not use the class directly. Use open_wiki and new_wiki instead
@@ -84,11 +92,14 @@ class Wiki:
             return None
         return self.get_wiki_proper_path() / cur_item
 
+    
     def read_item(self, item: pathlib.Path):
         with open(self.get_wiki_proper_path() / item, encoding=WIKI_ENCODING) as file:
             return file.read()
 
-
+    def open_wikifile(self, item: pathlib.Path, mode: WikiFileMode, string: str) -> WikiFile:
+        return open(self.get_wiki_proper_path() / item, mode, encoding=WIKI_ENCODING)
+    
     def fetch_items_from_source(self):
         pass
 

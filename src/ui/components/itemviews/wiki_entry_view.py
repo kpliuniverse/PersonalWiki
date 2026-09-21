@@ -134,8 +134,7 @@ class WikiEntryView(BaseItemView):
             Save the currently open item
         """
         assert self.__cur_item_path is not None
-        with open(self.__cur_item_path, "w", encoding=WIKI_ENCODING) as file:
-            file.write(self.__text_edit.toPlainText())
+        with self.cur_wi
     
     def __save_and_render(self):
         self.save_cur_item()
