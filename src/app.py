@@ -2,6 +2,8 @@ from importlib import resources as impresources
 import sys
 import pathlib 
 import logging
+import atexit
+
 
 from PyQt6.QtCore import QCoreApplication, QDir, Qt
 from PyQt6.QtQuick import QQuickWindow, QSGRendererInterface
@@ -20,12 +22,14 @@ from src.ui.stylesheets.app_stylesheet import MainStylesheetManager
 from src.ui.windows.main_window import MainWindow
 from src.ui.windows.wiki_window import WikiWindow
 
+
+
 class App:
 
     def __init__(self):
         self.main_window: MainWindow | None  = None
         self.app = QApplication(sys.argv)
-
+        atexit.register(self.__cleanup)
     def add_paths(self):
         QDir.addSearchPath("res", "resources/")
 
