@@ -72,8 +72,8 @@ class WikiEntryView(BaseItemView):
 
     def load_item(self, item: pathlib.Path):
         self.__cur_item_path = item
-        with open(self.__app_state.cur_wiki.get_wiki_proper_path() / item, encoding=WIKI_ENCODING) as file:
-            self.__text_edit.setText(file.read())
+        #with open(self.__app_state.cur_wiki.get_wiki_proper_path() / item, encoding=WIKI_ENCODING) as file:
+        self.__text_edit.setText(self.__app_state.cur_wiki.read_item(item))
         self.__render_markdown()
 
     def __on_text_changed(self):

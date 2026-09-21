@@ -84,6 +84,10 @@ class Wiki:
             return None
         return self.get_wiki_proper_path() / cur_item
 
+    def read_item(self, item: pathlib.Path):
+        with open(self.get_wiki_proper_path() / item, encoding=WIKI_ENCODING) as file:
+            return file.read()
+
 
     def fetch_items_from_source(self):
         pass
