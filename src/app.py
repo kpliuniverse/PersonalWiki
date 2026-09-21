@@ -47,7 +47,7 @@ class App:
             logging.info("Added font file: %s", path.as_posix())
         logging.debug("Font families: %s", ", ".join(QFontDatabase.families()))
     def __cleanup(self):
-        MultiprocessingManager().close_all()
+        MultiprocessingManager().kill_all()
 
     def run_main(self, pwi_file: pathlib.Path):
         """
