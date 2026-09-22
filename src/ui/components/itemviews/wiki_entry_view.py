@@ -18,7 +18,6 @@ from src.ui.components.entry_ribbon import EntryRibbon
 from src.ui.pages.custom_page import CustomPage
 from src.ui.stylesheets.app_stylesheet import MainStylesheetManager
 from src.ui.utils.item_view_base import BaseItemView
-from src.ui.workers.renderer_worker import RedirectorWorker
 from src.utils.encoding import url_b64_encode
 from src.utils.navigation_info import NavigationInfo
 

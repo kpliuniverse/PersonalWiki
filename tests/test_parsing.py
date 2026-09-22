@@ -1,7 +1,7 @@
 import html
 import logging
 
-from src.parser.markdown_parser import parse_md
+from src.parser.markdown_parser import parse_md_to_html
 
 def test_escape_tags_and_html_escaping():
     """
@@ -9,7 +9,7 @@ def test_escape_tags_and_html_escaping():
     """
 
     def parse(md):
-        return parse_md(md).strip()
+        return parse_md_to_html(md).strip()
 
     def enclose(h):
         return f"<p>{h}</p>"
@@ -28,5 +28,5 @@ def test_escape_tags_and_html_escaping():
     #     assert html_out.strip() == f"<p>{html.escape(md)}</p>"
 
 def test_false_harmful_link():
-    assert parse_md("[hello](wiki://hello)").strip("\n") == '<p><a href="wiki://hello">hello</a></p>'
+    assert parse_md_to_html("[hello](wiki://hello)").strip("\n") == '<p><a href="wiki://hello">hello</a></p>'
 

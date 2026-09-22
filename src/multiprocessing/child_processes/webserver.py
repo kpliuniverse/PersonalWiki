@@ -13,7 +13,7 @@ from werkzeug.serving import run_simple
 from werkzeug.middleware.shared_data import SharedDataMiddleware
 from src.consts import LOOPBACK_IP_ADD, PROJECT_ROOT, WIKI_ENCODING
 from src.multiprocessing.child_process import ChildProcess
-from src.parser.markdown_parser import parse_md
+from src.parser.markdown_parser import parse_md_to_html
 from src.templating.templating import MainHTMLTemplater
 
 import importlib
@@ -40,7 +40,7 @@ class WebServer(object):
             md = f.read()
 
         context = {
-            "body": parse_md(md)
+            "body": parse_md_to_html(md)
         }
         
         return Response(MainHTMLTemplater().render(context), mimetype="text/html")
