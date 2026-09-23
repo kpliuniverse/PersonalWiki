@@ -116,18 +116,19 @@ class WikiEntryView(BaseItemView):
     #         self.__rendering_thread = None
 
     def __intercept_navigation(self, nav_info: NavigationInfo):
-        scheme = nav_info.url.scheme()
-        if scheme == "data":
-            return
-        if scheme == "wiki":
-            # QUrl.path() truncates first member
-            url_copy = QUrl(nav_info.url)
-            url_copy.setScheme("")
-            url_str = url_copy.toString().lstrip("/")
-            logging.debug("url_str=%s", url_str)
-            if (abs_path := self.__wiki_dir / "proper" / url_str).exists():
-                self.switch_signal.emit(pathlib.Path(abs_path))
-        logging.debug("Going to %s", nav_info.url.toString())
+        pass
+        # scheme = nav_info.url.scheme()
+        # if scheme == "data":
+        #     return
+        # if scheme == "wiki":
+        #     # QUrl.path() truncates first member
+        #     url_copy = QUrl(nav_info.url)
+        #     url_copy.setScheme("")
+        #     url_str = url_copy.toString().lstrip("/")
+        #     logging.debug("url_str=%s", url_str)
+        #     if (abs_path := self.__wiki_dir / "proper" / url_str).exists():
+        #         self.switch_signal.emit(pathlib.Path(abs_path))
+        # logging.debug("Going to %s", nav_info.url.toString())
 
     def save_cur_item(self):
         """
