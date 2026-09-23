@@ -18,6 +18,8 @@ from src.states.wikistate import Session, Settings, WikiState
 from src.utils.file_utils import create_empty_file
 from src.utils.item_validity import valid_item_name
 from src.utils.item_actions import Action, CopyAction, MoveAction, DeleteAction, NewItemAction
+from src.utils.orm_utils import Engine
+
 
 class WikiFileMode(StrEnum):
     READ = "r"
@@ -50,6 +52,7 @@ class WikiFile:
         if self.mode != WikiFileMode.WRITE:
             raise IOError("Attempted to write a file meant for reading.")
         return self.f.write(s)
+
 class Wiki:
     """
         Do not use the class directly. Use open_wiki and new_wiki instead
@@ -174,9 +177,10 @@ def create_wiki(dir_path: pathlib.Path, name: str):
         raise InvalidNameException("Invalid name.")
     wiki_dir = dir_path / name
     wiki_dir.mkdir()
-    (wiki_dir / "proper").mkdir()
+    (wiki_dir / "assets").mkdir()
 
     wiki_pwi = wiki_dir / "wiki.pwi"
     create_empty_file(wiki_pwi)
 
+    Engine().cur_engine()
     return open_wiki(wiki_pwi)
