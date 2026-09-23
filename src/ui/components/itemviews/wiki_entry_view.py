@@ -97,7 +97,7 @@ class WikiEntryView(BaseItemView):
 
     def __scroll(self):
         if self.__last_scroll_position is not None:
-            code = f"setScrollPosition({self.__last_scroll_position.left}, {self.__last_scroll_position.top})"
+            code = f"builtin.utils.setScrollPosition({self.__last_scroll_position.left}, {self.__last_scroll_position.top})"
             logging.debug("Running code: %s", code)
             self.__text_view.page().runJavaScript(code) # type: ignore
     
@@ -106,7 +106,7 @@ class WikiEntryView(BaseItemView):
         if self.__cur_item_path is None:
             logging.warning("Tried to call __render_markdown while no file is opened")
             return
-        self.__text_view.page().runJavaScript("getScrollPosition()", resultCallback=self.__set_last_scroll_position) # type: ignore
+        self.__text_view.page().runJavaScript("builtin.utils.getScrollPosition()", resultCallback=self.__set_last_scroll_position) # type: ignore
         # if self.__rendering_thread is None:
         #     self.__rendering_thread = QThread()
         self.__text_view.setHtml("Loading...")
