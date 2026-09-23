@@ -1,15 +1,17 @@
 import base64
 import logging
 import pathlib
-from typing import Optional
+from typing import Optional, override
 
 from PyQt6.QtWebEngineCore import QWebEngineProfile
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtGui import QFont
-from PyQt6.QtCore import Q_ARG, QMetaObject, QThread, QTimer, QUrl, Qt, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import Q_ARG, QMetaObject, QPointF, QThread, QTimer, QUrl, Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import QLabel, QSplitter, QTextEdit, QVBoxLayout, QWidget
+from attr import frozen
 
 from src.consts import LOOPBACK_IP_ADD, SAVE_DELAY_MS, WIKI_ENCODING
+from src.exceptions import GUIException
 from src.multiprocessing.child_processes.webserver import WEBSERVER_PORT
 from src.states.appstate import AppState
 from src.ui.components.entry_ribbon import EntryRibbon
@@ -20,7 +22,10 @@ from src.utils.encoding import url_b64_encode
 from src.utils.navigation_info import NavigationInfo
 from src.wiki.wiki import WikiFileMode
 
-
+@frozen
+class ScrollPosition:
+    left: int
+    top: int
 
 class WikiEntryView(BaseItemView):
     """
@@ -54,10 +59,12 @@ class WikiEntryView(BaseItemView):
         editor_splitter.addWidget(self.__text_edit)
         
         self.__text_view = QWebEngineView(editor_splitter)
+        
         self.profile = QWebEngineProfile()
         
         webpage = CustomPage(self.profile, self.__text_view)
         webpage.navigation_requested.connect(self.__intercept_navigation)
+        webpage.loadFinished.connect(self.__scroll)
         self.__text_view.setPage(webpage)
         self.__text_view.show()
         editor_splitter.addWidget(self.__text_view)
@@ -71,6 +78,8 @@ class WikiEntryView(BaseItemView):
         self.setStyleSheet(MainStylesheetManager().get_rule("WikiEntryView"))
         self.__text_edit.textChanged.connect(self.__on_text_changed)
 
+        self.__last_scroll_position: Optional[ScrollPosition] = None
+
     def load_item(self, item: pathlib.Path):
         self.__cur_item_path = item
         with self.__app_state.cur_wiki.open_wikifile(self.__cur_item_path, WikiFileMode.READ) as file:
@@ -79,23 +88,42 @@ class WikiEntryView(BaseItemView):
 
     def __on_text_changed(self):
         if not self.save_timer.isActive():
+            
             self.save_timer.start()
 
+    def __set_last_scroll_position(self, pos: Optional[dict]):
+        if pos is None:
+            return
+        self.__last_scroll_position = ScrollPosition(**pos)
+        logging.debug("Set last scroll position to %i, %i", self.__last_scroll_position.left, self.__last_scroll_position.top)
+
+    def __scroll(self):
+        if self.__last_scroll_position is not None:
+            code = f"builtin.utils.setScrollPosition({self.__last_scroll_position.left}, {self.__last_scroll_position.top})"
+            logging.debug("Running code: %s", code)
+            self.__text_view.page().runJavaScript(code) # type: ignore
+    
     @pyqtSlot()
     def __render_markdown(self):
         if self.__cur_item_path is None:
             logging.warning("Tried to call __render_markdown while no file is opened")
             return
+        self.__text_view.page().runJavaScript("builtin.utils.getScrollPosition()", resultCallback=self.__set_last_scroll_position) # type: ignore
         # if self.__rendering_thread is None:
         #     self.__rendering_thread = QThread()
         self.__text_view.setHtml("Loading...")
         # if self.__rendering_thread.isRunning():
         #     self.__rendering_thread.requestInterruption()
-        pwe_string = self.__text_edit.toPlainText()
+        block = self.__text_edit.textCursor().block()
+        if (doc := self.__text_edit.document()) is None:
+            raise GUIException("TextEdit's document is None. This is not normal")
+        progress = block.position() / doc.blockCount()
         logging.debug("Preparing to render...")
         path = self.__cur_item_path.as_posix()
         logging.debug("path: %s", path)
         b64 = url_b64_encode(path.encode())
+        #self.__text_view.setHtml("")
+        #url = QUrl(f"http://{LOOPBACK_IP_ADD}:{WEBSERVER_PORT}/view/{b64}")
         url = QUrl(f"http://{LOOPBACK_IP_ADD}:{WEBSERVER_PORT}/view/{b64}")
         self.__text_view.setUrl(url)
         logging.info("Going to %s", url.toString())

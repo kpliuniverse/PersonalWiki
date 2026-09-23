@@ -173,7 +173,7 @@ class ProjectExplorer(QWidget):
         if len((index := self.__project_tree.get_selected_indexes())) < 1:
             return
         selected_item: ItemInfo = index[0].data(ITEM_DATA_ROLE)
-        assert isinstance(selected_item, pathlib.Path)
+        assert isinstance(selected_item, ItemInfo)
         dialog = ItemRenameDialog(self, selected_item, self.__get_workdir())
         dialog.on_name_selected.connect(self.__rename_item)
         dialog.exec()

@@ -13,7 +13,7 @@ from werkzeug.serving import run_simple
 from werkzeug.middleware.shared_data import SharedDataMiddleware
 from src.consts import LOOPBACK_IP_ADD, PROJECT_ROOT, WIKI_ENCODING
 from src.multiprocessing.child_process import ChildProcess
-from src.parser.markdown_parser import parse_md
+from src.parser.markdown_parser import parse_md_to_html
 from src.states.appstate import AppState
 from src.templating.templating import MainHTMLTemplater
 
@@ -41,7 +41,7 @@ class WebServer(object):
         with self.app_state.cur_wiki.open_wikifile(rel_path, WikiFileMode.READ) as f:
             md_content: str = f.read()
         context = {
-            "body": parse_md(md_content)
+            "body": parse_md_to_html(md_content)
         }
         
         return Response(MainHTMLTemplater().render(context), mimetype="text/html")

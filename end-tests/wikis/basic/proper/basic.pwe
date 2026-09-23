@@ -7,7 +7,7 @@ Hello *world* ok aaaaaaaaaaaaaaaaaaaaaaaaa
 
 This should autosave.
 
-*<b>This does now escapes now</b>*
+*<lt>b<gt>This does now escapes now<lt>/b<gt>*
 
 "You're a freak. A daughter of a tyrant", they said.
 
@@ -16,9 +16,10 @@ Here is a markdown example: [Here](wiki://example/headings.pwe)
 This should not work [Here](wiki://../hacked.txt)
 
 Neithr should [this](wiki://../long.pwe)
-san gen banye sabixi de wo
-ji tinghian oghisan chighe danche maije mantou
-yoghi han des ni ghughin sai nari
-nandao ni you sai curabu heje nakaxi you
+
+san gen banye sabixi de wo<br>
+ji tinghian oghisan chighe danche maije mantou<br>
+yoghi han des ni ghughin sai nari<br>
+nandao ni you sai curabu heje nakaxi you<br>
 
 <lt>this is a tag<gt>
