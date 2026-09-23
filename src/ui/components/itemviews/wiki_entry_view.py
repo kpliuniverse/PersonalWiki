@@ -18,6 +18,7 @@ from src.ui.stylesheets.app_stylesheet import MainStylesheetManager
 from src.ui.utils.item_view_base import BaseItemView
 from src.utils.encoding import url_b64_encode
 from src.utils.navigation_info import NavigationInfo
+from src.wiki.wiki import WikiFileMode
 
 
 
@@ -72,8 +73,8 @@ class WikiEntryView(BaseItemView):
 
     def load_item(self, item: pathlib.Path):
         self.__cur_item_path = item
-        #with open(self.__app_state.cur_wiki.get_wiki_proper_path() / item, encoding=WIKI_ENCODING) as file:
-        self.__text_edit.setText(self.__app_state.cur_wiki.read_item(item))
+        with self.__app_state.cur_wiki.open_wikifile(self.__cur_item_path, WikiFileMode.READ) as file:
+            self.__text_edit.setText(file.read())
         self.__render_markdown()
 
     def __on_text_changed(self):
@@ -116,26 +117,27 @@ class WikiEntryView(BaseItemView):
     #         self.__rendering_thread = None
 
     def __intercept_navigation(self, nav_info: NavigationInfo):
-        scheme = nav_info.url.scheme()
-        if scheme == "data":
-            return
-        if scheme == "wiki":
-            # QUrl.path() truncates first member
-            url_copy = QUrl(nav_info.url)
-            url_copy.setScheme("")
-            url_str = url_copy.toString().lstrip("/")
-            logging.debug("url_str=%s", url_str)
-            if (abs_path := self.__wiki_dir / "proper" / url_str).exists():
-                self.switch_signal.emit(pathlib.Path(abs_path))
-        logging.debug("Going to %s", nav_info.url.toString())
+        pass
+        # scheme = nav_info.url.scheme()
+        # if scheme == "data":
+        #     return
+        # if scheme == "wiki":
+        #     # QUrl.path() truncates first member
+        #     url_copy = QUrl(nav_info.url)
+        #     url_copy.setScheme("")
+        #     url_str = url_copy.toString().lstrip("/")
+        #     logging.debug("url_str=%s", url_str)
+        #     if (abs_path := self.__wiki_dir / "proper" / url_str).exists():
+        #         self.switch_signal.emit(pathlib.Path(abs_path))
+        # logging.debug("Going to %s", nav_info.url.toString())
 
     def save_cur_item(self):
         """
             Save the currently open item
         """
         assert self.__cur_item_path is not None
-        with open(self.__cur_item_path, "w", encoding=WIKI_ENCODING) as file:
-            file.write(self.__text_edit.toPlainText())
+        with self.__app_state.cur_wiki.open_wikifile(self.__cur_item_path, WikiFileMode.WRITE) as f:
+            f.write(self.__text_edit.toPlainText())
     
     def __save_and_render(self):
         self.save_cur_item()

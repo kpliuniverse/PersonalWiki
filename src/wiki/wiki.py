@@ -1,12 +1,13 @@
 from dataclasses import dataclass
 import dataclasses
-from enum import IntEnum, auto
+from enum import IntEnum, StrEnum, auto
+from io import TextIOWrapper
 import json
 import logging
 import os
 import pathlib
 import shutil
-from typing import List
+from typing import IO, Any, List, Optional
 
 from attr import define, field, setters
 from returns.result import Failure, Result, Success, attempt, safe
@@ -17,7 +18,38 @@ from src.states.wikistate import Session, Settings, WikiState
 from src.utils.file_utils import create_empty_file
 from src.utils.item_validity import valid_item_name
 from src.utils.item_actions import Action, CopyAction, MoveAction, DeleteAction, NewItemAction
-        
+
+class WikiFileMode(StrEnum):
+    READ = "r"
+    WRITE = "w"
+
+class WikiFile:
+    def __init__(self, path: pathlib.Path, mode: WikiFileMode):
+        self.f: Optional[IO[Any]] = None
+        self.path = path
+        self.mode = mode
+
+    def __enter__(self):
+        self.f = open(self.path, mode=self.mode, encoding=WIKI_ENCODING)
+        return self
+
+    def __exit__(self, *args):
+        if self.f is not None:
+            self.f.close()
+    
+    def read(self):
+        if self.f is None:
+            raise IOError("No file opened")
+        if self.mode != WikiFileMode.READ:
+            raise IOError("Attempted to read a file meant for writing.")
+        return self.f.read()
+
+    def write(self, s: Any):
+        if self.f is None:
+            raise IOError("No file opened")
+        if self.mode != WikiFileMode.WRITE:
+            raise IOError("Attempted to write a file meant for reading.")
+        return self.f.write(s)
 class Wiki:
     """
         Do not use the class directly. Use open_wiki and new_wiki instead
@@ -84,11 +116,10 @@ class Wiki:
             return None
         return self.get_wiki_proper_path() / cur_item
 
-    def read_item(self, item: pathlib.Path):
-        with open(self.get_wiki_proper_path() / item, encoding=WIKI_ENCODING) as file:
-            return file.read()
 
-
+    def open_wikifile(self, item: pathlib.Path, mode: WikiFileMode) -> WikiFile:
+        return WikiFile(self.get_wiki_proper_path() / item, mode)
+    
     def fetch_items_from_source(self):
         pass
 

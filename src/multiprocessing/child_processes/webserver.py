@@ -21,6 +21,7 @@ import importlib
 
 from src import consts
 from src.utils.encoding import url_b64_decode
+from src.wiki.wiki import WikiFileMode
 
 
 
@@ -37,8 +38,10 @@ class WebServer(object):
     def view(self, args):
         rel_path = pathlib.Path(url_b64_decode(args["path"]).decode(WIKI_ENCODING).replace("\\", "/"))
 
+        with self.app_state.cur_wiki.open_wikifile(rel_path, WikiFileMode.READ) as f:
+            md_content: str = f.read()
         context = {
-            "body": parse_md(self.app_state.cur_wiki.read_item(rel_path))
+            "body": parse_md(md_content)
         }
         
         return Response(MainHTMLTemplater().render(context), mimetype="text/html")
