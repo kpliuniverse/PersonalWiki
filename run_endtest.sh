@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-sh ./setuptests.sh
 
+sh ./setuptests.sh
+./prebuild.sh
 if [ "$1" = '' ]; then
     uv run main.py
 else 
