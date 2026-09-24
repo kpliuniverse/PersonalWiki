@@ -2,17 +2,25 @@
 
 from enum import IntEnum, StrEnum, auto
 import logging
-from multiprocessing import Process
+from multiprocessing import Lock, Process
 from typing import Callable, Dict, Self
 from uuid import UUID, uuid7
 
 import attrs
 
+import dill
 from returns.result import Failure, Result, ResultE, Success, safe
 
 from src.multiprocessing.child_process import ChildProcess
 from src.utils.singleton import Singleton
 
+
+class GlobalLock(metaclass=Singleton):
+    def __init__(self):
+        self.__lock = Lock()
+
+    def lock(self):
+        return self.lock()
 class MultiprocessingException(BaseException):
     pass
 class ProcessStatus(IntEnum):
@@ -55,7 +63,7 @@ class MultiprocessingManager(metaclass=Singleton):
         
         self.__processes[i_d] = ChildProcessInfo(
             close_function=process.close,
-            process=Process(target=process.run),
+            process=Process(target=process.run, ),
             status=ProcessStatus.READY
         )
         return i_d
@@ -69,6 +77,7 @@ class MultiprocessingManager(metaclass=Singleton):
         
         if (child_process_info := self.__processes.get(i_d, None)) is None:
             return Failure(MultiprocessingError.ProcessNotFound)
+  
         child_process_info.process.start()
 #child_process_info.process.join()
         if child_process_info.process.exitcode is not None:

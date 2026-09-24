@@ -10,14 +10,21 @@ import shutil
 from typing import IO, Any, List, Optional
 
 from attr import define, field, setters
+import attrs
 from returns.result import Failure, Result, Success, attempt, safe
+from sqlalchemy import Engine, create_engine
 
 from src.consts import WIKI_ENCODING
 from src.exceptions import InvalidNameException
+from src.multiprocessing.multiprocessing import GlobalLock
 from src.states.wikistate import Session, Settings, WikiState
 from src.utils.file_utils import create_empty_file
 from src.utils.item_validity import valid_item_name
 from src.utils.item_actions import Action, CopyAction, MoveAction, DeleteAction, NewItemAction
+from src.wiki.datamodel import WikiBase
+
+
+NAME_OF_DB_FILE = "wiki.db"
 
 class WikiFileMode(StrEnum):
     READ = "r"
@@ -50,10 +57,23 @@ class WikiFile:
         if self.mode != WikiFileMode.WRITE:
             raise IOError("Attempted to write a file meant for reading.")
         return self.f.write(s)
+
+
+
+class WikiEngine(Engine):
+    def __enter__ (self):
+        return create_engine(self.url, echo=True)
+
+    def __exit__(self):
+        self.dispose()
+
 class Wiki:
     """
         Do not use the class directly. Use open_wiki and new_wiki instead
     """
+
+    def __engine(self):
+        return create_engine(f"duckdb:///{self.db_loc.as_posix()}", echo=True)
     def __init__(self, path_dir: pathlib.Path, session: Session, settings: Settings):
         self.__wikistate = WikiState(
             cur_session=session,
@@ -61,7 +81,12 @@ class Wiki:
             cur_settings=dataclasses.replace(settings),
             path_dir=path_dir
         )
-        
+
+        self.db_loc = self.__wikistate.path_dir / NAME_OF_DB_FILE
+        GlobalLock().lock()
+        # with self.__engine() as e:
+        #     WikiBase.metadata.create_all(self.__engine)
+
     def get_wiki_dir_path(self):
         return self.__wikistate.path_dir
 
@@ -123,6 +148,12 @@ class Wiki:
     def fetch_items_from_source(self):
         pass
 
+    def is_file(self, item: pathlib.Path):
+        return (self.get_wiki_proper_path() / item).is_file()
+
+    def get_wiki_state(self):
+        return self.__wikistate
+
 def open_wiki(path_to_wiki_pwi_file: pathlib.Path) -> Wiki:
 
     """
@@ -174,7 +205,7 @@ def create_wiki(dir_path: pathlib.Path, name: str):
         raise InvalidNameException("Invalid name.")
     wiki_dir = dir_path / name
     wiki_dir.mkdir()
-    (wiki_dir / "proper").mkdir()
+    (wiki_dir / "assets").mkdir()
 
     wiki_pwi = wiki_dir / "wiki.pwi"
     create_empty_file(wiki_pwi)
