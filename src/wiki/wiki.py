@@ -100,7 +100,9 @@ class WikiFile:
         return self.__f.write(s)
 
 
-
+def gen_db_url(path_dir: pathlib.Path):
+    db_loc = path_dir / NAME_OF_DB_FILE
+    return f"duckdb:///{db_loc.as_posix()}"
 
 class Wiki:
     """
@@ -115,12 +117,7 @@ class Wiki:
             path_dir=path_dir
         )
 
-        self.db_loc = self.__wikistate.path_dir / NAME_OF_DB_FILE
-        self.db_url = f"duckdb:///{self.db_loc.as_posix()}"
-        GlobalLock().lock()
-        with WikiEngine(self.db_url) as e:
-            with e.connect() as c:
-                WikiBase.metadata.create_all(c)
+        self.db_loc = gen_db_url(self.__wikistate.path_dir)
         # with self.__engine() as e:
         #     WikiBase.metadata.create_all(self.__engine)
 
@@ -246,5 +243,13 @@ def create_wiki(dir_path: pathlib.Path, name: str):
 
     wiki_pwi = wiki_dir / "wiki.pwi"
     create_empty_file(wiki_pwi)
+
+
+    with GlobalLock().lock():
+        with WikiEngine(gen_db_url(wiki_dir)) as e:
+            with e.connect() as c:
+                WikiBase.metadata.create_all(c)
+                c.commit()
+
 
     return open_wiki(wiki_pwi)
