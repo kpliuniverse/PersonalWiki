@@ -16,7 +16,7 @@ from src.wiki.wiki_items import FileItem, FolderItem, Item, sort_alphabetically_
 
 def test_open_path(): 
 
-    wiki_dir = pathlib.Path("end-tests/wikis/basic")
+    wiki_dir = pathlib.Path(".testenv/wikis/basic")
     wiki = open_wiki(wiki_dir / "wiki.pwi")
     with open(wiki_dir / ".pw" / "session.json", "r", encoding=WIKI_ENCODING) as session:
         session_json = json.load(session)
