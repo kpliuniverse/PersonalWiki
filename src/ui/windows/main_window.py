@@ -116,18 +116,17 @@ class MainWindow(QMainWindow):
         self.__app_state.cur_wiki.set_cur_item(item_path)
         self.__item_panel.refresh()
         #self.__item_panel.load(guess_view_type(item_path), item_path)
+
     def __on_project_item_double_clicked(self, val: QModelIndex):
         item_path: ItemInfo = val.data(ITEM_DATA_ROLE)
-        item_path_abs = self.__app_state.cur_wiki.get_wiki_proper_path() / item_path.path
-        logging.debug("Item double clicked to %s", item_path)
-        if item_path_abs.is_file():
+        logging.debug("Item double clicked to %s", item_path.path)
+        if self.__app_state.cur_wiki.is_file(item_path.path):
             self.__load_item(item_path.path)
   
     def __refresh_project_tree(self):
-        proper_path = (self.__app_state.cur_wiki.get_wiki_dir_path() / "proper")
-        self.__project_explorer.load(proper_path)
+        self.__project_explorer.load(self.__app_state.cur_wiki)
         
-    def __update_status_bar(self, message: str, timeout_msec: int | None =None):
+    def __update_status_bar(self, message: str, timeout_msec: int | None = None):
         if (status_bar := self.statusBar()) is not None:
             if timeout_msec is None:
                 status_bar.showMessage(message)
@@ -137,7 +136,7 @@ class MainWindow(QMainWindow):
             raise GUIException("Error loading status bar")
     
     def __save_cur_item(self):
-        if (item := self.__app_state.cur_wiki.get_cur_item_abs()) is None:
+        if (item := self.__app_state.cur_wiki.get_cur_item()) is None:
             return
         self.__item_panel.trigger_save()
         time = datetime.time.isoformat(datetime.datetime.today().time(), "seconds")

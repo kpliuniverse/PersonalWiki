@@ -24,6 +24,7 @@ from src.exceptions import GUIException
 from src.items.items import ItemCreationResult, ItemRecognizedType
 from src.resources import ResourceManager
 from src.utils.wiki_utils import walk_and_return_folder_item
+from src.wiki.wiki import Wiki
 from src.wiki.wiki_items import ItemType, sort_alphabetically_key
 
 
@@ -233,11 +234,11 @@ class ProjectExplorer(QWidget):
             raise ValueError("__get_folder called while self.__workdir is None")
         return walk_and_return_folder_item(self.__workdir).sorted(key=sort_alphabetically_key)
 
-    def load(self, directory: pathlib.Path):
+    def load(self, wiki: Wiki):
         """
             Loads the widget with a specific path
         """
-        self.__workdir = directory
+        self.__workdir = wiki.get_wiki_proper_path()
         self.__project_tree.load_folder(self.__get_folder())
 
     def test_move_item(self, move_info: MoveInfo):

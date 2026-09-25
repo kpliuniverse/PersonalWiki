@@ -41,7 +41,7 @@ def test_create_wiki(tmp_path: pathlib.Path):
 
     wiki = create_wiki(gen_file_path.parent, gen_file_path.name)
     assert gen_file_path.is_dir()
-    assert (gen_file_path / "proper").is_dir()
+    assert (gen_file_path / "assets").is_dir()
     assert (gen_file_path / "wiki.pwi").is_file()
 
 

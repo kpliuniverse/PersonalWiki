@@ -13,6 +13,7 @@ from attr import frozen
 from src.consts import LOOPBACK_IP_ADD, SAVE_DELAY_MS, WIKI_ENCODING
 from src.exceptions import GUIException
 from src.multiprocessing.child_processes.webserver import WEBSERVER_PORT
+from src.multiprocessing.multiprocessing import GlobalLock
 from src.states.appstate import AppState
 from src.ui.components.entry_ribbon import EntryRibbon
 from src.ui.pages.custom_page import CustomPage
@@ -82,8 +83,11 @@ class WikiEntryView(BaseItemView):
 
     def load_item(self, item: pathlib.Path):
         self.__cur_item_path = item
-        with self.__app_state.cur_wiki.open_wikifile(self.__cur_item_path, WikiFileMode.READ) as file:
-            self.__text_edit.setText(file.read())
+
+        with GlobalLock().lock():
+            with self.__app_state.cur_wiki.open_wikifile(self.__cur_item_path, WikiFileMode.READ) as file:
+                self.__text_edit.setText(file.read())
+
         self.__render_markdown()
 
     def __on_text_changed(self):
@@ -164,9 +168,10 @@ class WikiEntryView(BaseItemView):
             Save the currently open item
         """
         assert self.__cur_item_path is not None
-        with self.__app_state.cur_wiki.open_wikifile(self.__cur_item_path, WikiFileMode.WRITE) as f:
-            f.write(self.__text_edit.toPlainText())
-    
+        with GlobalLock().lock():
+            with self.__app_state.cur_wiki.open_wikifile(self.__cur_item_path, WikiFileMode.WRITE) as f:
+                f.write(self.__text_edit.toPlainText())
+        
     def __save_and_render(self):
         self.save_cur_item()
         self.__render_markdown()

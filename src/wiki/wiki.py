@@ -10,50 +10,103 @@ import shutil
 from typing import IO, Any, List, Optional
 
 from attr import define, field, setters
+import attrs
 from returns.result import Failure, Result, Success, attempt, safe
+from sqlalchemy import URL, Engine, create_engine
 
 from src.consts import WIKI_ENCODING
 from src.exceptions import InvalidNameException
+from src.multiprocessing.multiprocessing import GlobalLock
 from src.states.wikistate import Session, Settings, WikiState
 from src.utils.file_utils import create_empty_file
 from src.utils.item_validity import valid_item_name
 from src.utils.item_actions import Action, CopyAction, MoveAction, DeleteAction, NewItemAction
+from src.wiki.datamodel import WikiBase
+
+
+NAME_OF_DB_FILE = "wiki.db"
 
 class WikiFileMode(StrEnum):
     READ = "r"
     WRITE = "w"
 
-class WikiFile:
-    def __init__(self, path: pathlib.Path, mode: WikiFileMode):
-        self.f: Optional[IO[Any]] = None
-        self.path = path
-        self.mode = mode
+class DatabaseError(BaseException):
+    pass
 
+class WikiEngine():
+    """
+        Do not use WikiFile directly, except as an argument to WikiFile. Instead use a context manager
+    """
+    def __init__(self, url: str, read_only: bool = False):
+        self.__url = url
+        self.__read_only = read_only
+        self.__engine: Optional[Engine] = None
+
+    def engine(self):
+        if self.__engine is None:
+            raise DatabaseError("Engine is not initialized yet.")
+        return self.__engine
+
+    def connect(self):
+        if self.__engine is None:
+            raise DatabaseError("Engine is not initialized yet.") 
+        return self.__engine.connect()
+    
+    def __enter__ (self):
+        self.__engine: Optional[Engine] = create_engine(self.__url, echo=True, connect_args={
+            "read_only": self.__read_only
+        })
+        return create_engine(self.__url, echo=True)
+
+    def __exit__(self, *args):
+        if self.__engine is not None:
+            self.__engine.dispose()
+
+class WikiFile:
+    """
+        Do not use WikiFile directly. Instead use a context manager.
+    """
+
+    def __init__(self, path: pathlib.Path, mode: WikiFileMode, engine: WikiEngine):
+        self.__f: Optional[IO[Any]] = None
+        self.__path = path
+        self.__mode = mode
+        self.__engine = engine
+
+    
     def __enter__(self):
-        self.f = open(self.path, mode=self.mode, encoding=WIKI_ENCODING)
+        self.__f = open(self.__path, mode=self.__mode, encoding=WIKI_ENCODING)
+        self.__engine.__enter__()
         return self
 
     def __exit__(self, *args):
-        if self.f is not None:
-            self.f.close()
+        if self.__f is not None:
+            self.__f.close()
+        if self.__engine is not None:
+            self.__engine.__exit__()
     
     def read(self):
-        if self.f is None:
-            raise IOError("No file opened")
-        if self.mode != WikiFileMode.READ:
+        if self.__f is None or self.__engine is None:
+            raise IOError("No file or database opened")
+        if self.__mode != WikiFileMode.READ:
             raise IOError("Attempted to read a file meant for writing.")
-        return self.f.read()
+        return self.__f.read()
 
     def write(self, s: Any):
-        if self.f is None:
+        if self.__f is None:
             raise IOError("No file opened")
-        if self.mode != WikiFileMode.WRITE:
+        if self.__mode != WikiFileMode.WRITE:
             raise IOError("Attempted to write a file meant for reading.")
-        return self.f.write(s)
+        return self.__f.write(s)
+
+
+
+
 class Wiki:
     """
         Do not use the class directly. Use open_wiki and new_wiki instead
     """
+
     def __init__(self, path_dir: pathlib.Path, session: Session, settings: Settings):
         self.__wikistate = WikiState(
             cur_session=session,
@@ -61,7 +114,16 @@ class Wiki:
             cur_settings=dataclasses.replace(settings),
             path_dir=path_dir
         )
-        
+
+        self.db_loc = self.__wikistate.path_dir / NAME_OF_DB_FILE
+        self.db_url = f"duckdb:///{self.db_loc.as_posix()}"
+        GlobalLock().lock()
+        with WikiEngine(self.db_url) as e:
+            with e.connect() as c:
+                WikiBase.metadata.create_all(c)
+        # with self.__engine() as e:
+        #     WikiBase.metadata.create_all(self.__engine)
+
     def get_wiki_dir_path(self):
         return self.__wikistate.path_dir
 
@@ -118,10 +180,16 @@ class Wiki:
 
 
     def open_wikifile(self, item: pathlib.Path, mode: WikiFileMode) -> WikiFile:
-        return WikiFile(self.get_wiki_proper_path() / item, mode)
+        return WikiFile(self.get_wiki_proper_path() / item, mode, WikiEngine(self.db_url, read_only=mode == WikiFileMode.READ))
     
     def fetch_items_from_source(self):
         pass
+
+    def is_file(self, item: pathlib.Path):
+        return (self.get_wiki_proper_path() / item).is_file()
+
+    def get_wiki_state(self):
+        return self.__wikistate
 
 def open_wiki(path_to_wiki_pwi_file: pathlib.Path) -> Wiki:
 
@@ -174,7 +242,7 @@ def create_wiki(dir_path: pathlib.Path, name: str):
         raise InvalidNameException("Invalid name.")
     wiki_dir = dir_path / name
     wiki_dir.mkdir()
-    (wiki_dir / "proper").mkdir()
+    (wiki_dir / "assets").mkdir()
 
     wiki_pwi = wiki_dir / "wiki.pwi"
     create_empty_file(wiki_pwi)

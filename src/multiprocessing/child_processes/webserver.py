@@ -1,10 +1,14 @@
 import base64
 import logging
+
+from multiprocessing import Lock
+import multiprocessing.synchronize as sync
 import os
 import pathlib
 import sys
 from typing import override
 
+import dill
 import waitress
 from werkzeug import Request, Response
 from werkzeug.exceptions import HTTPException, NotFound
@@ -13,15 +17,16 @@ from werkzeug.serving import run_simple
 from werkzeug.middleware.shared_data import SharedDataMiddleware
 from src.consts import LOOPBACK_IP_ADD, PROJECT_ROOT, WIKI_ENCODING
 from src.multiprocessing.child_process import ChildProcess
+from src.multiprocessing.multiprocessing import GlobalLock
 from src.parser.markdown_parser import parse_md_to_html
-from src.states.appstate import AppState
+from src.states.appstate import AppState, PickleableAppState
 from src.templating.templating import MainHTMLTemplater
 
 import importlib
 
 from src import consts
 from src.utils.encoding import url_b64_decode
-from src.wiki.wiki import WikiFileMode
+from src.wiki.wiki import Wiki, WikiFileMode
 
 
 
@@ -32,14 +37,23 @@ class WebServer(object):
         args:
         root_path: pathlib.Path that links to the root path. Highly reccommend that this is absolute
     """
-    def __init__(self, app_state: AppState):
-        self.app_state = app_state
+    def __init__(self, app_state: PickleableAppState, lock: sync.Lock):
+        
+        self.app_state = AppState()
+        self.app_state.cur_wiki = Wiki(
+            path_dir=app_state.wiki_state.path_dir, 
+            session=app_state.wiki_state.cur_session, 
+            settings=app_state.wiki_state.cur_settings
+        )
+        self.lock = lock
         
     def view(self, args):
         rel_path = pathlib.Path(url_b64_decode(args["path"]).decode(WIKI_ENCODING).replace("\\", "/"))
 
-        with self.app_state.cur_wiki.open_wikifile(rel_path, WikiFileMode.READ) as f:
-            md_content: str = f.read()
+        with self.lock:
+            with self.app_state.cur_wiki.open_wikifile(rel_path, WikiFileMode.READ) as f:
+                md_content: str = f.read()
+            
         context = {
             "body": parse_md_to_html(md_content)
         }
@@ -77,21 +91,26 @@ class WebServer(object):
 
 WEBSERVER_PORT = 8080
 
-def create_app(app_state: AppState):
-    app = WebServer(app_state=app_state)
-    app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
-        '/default_static':  (PROJECT_ROOT / "src/static").as_posix()
-    })
-    return app
+# def create_app(app_state: PickleableAppState):
+#     app = WebServer(app_state=app_state)
+#     app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
+#         '/default_static':  (PROJECT_ROOT / "src/static").as_posix()
+#     })
+#     return app
 
 class WebserverProcess(ChildProcess):
-    def __init__(self, app_state: AppState):
+    def __init__(self, app_state: PickleableAppState, lock: sync.Lock):
         self.port = WEBSERVER_PORT
         self.host = LOOPBACK_IP_ADD
         self.app_state = app_state
+        self.lock = lock
 
     @override
     def run(self):
-        waitress.serve(create_app(self.app_state), host=self.host, port=self.port)
+        app = WebServer(app_state=self.app_state, lock=self.lock)
+        app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
+            '/default_static':  (PROJECT_ROOT / "src/static").as_posix()
+        })
+        waitress.serve(app, host=self.host, port=self.port)
 
     
