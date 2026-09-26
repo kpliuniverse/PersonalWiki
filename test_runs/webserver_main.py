@@ -1,4 +1,5 @@
 import os
+import pathlib
 import sys
 
 from werkzeug import run_simple
@@ -13,7 +14,7 @@ from src.multiprocessing.child_processes.webserver import WebserverProcess
 
 if __name__ == "__main__": 
 
-    WebserverProcess().run()
+    WebserverProcess(pathlib.Path(sys.argv[1])).run()
     # run_simple("127.0.0.1", 8080, create_app(), use_reloader=True)
 
     # waitress.serve(create_app(), host="127.0.0.1", port=8080)
