@@ -29,11 +29,14 @@ from src.ui.windows.wiki_window import WikiWindow
 
 class App:
 
+    def __except_hook(self, *args):
+        self.__cleanup()
+        sys.__excepthook__(*args)
     def __init__(self):
         self.main_window: MainWindow | None  = None
         self.app = QApplication(sys.argv)
         atexit.register(self.__cleanup)
-
+        sys.excepthook = self.__except_hook
     def add_paths(self):
         QDir.addSearchPath("res", "resources/")
 
