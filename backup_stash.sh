@@ -1,6 +1,4 @@
 #usr/bin/env bash
 
-git stash export --to-ref "ref/stashes/$1"
-git push origin "refs/stashes/$1" --force
-
-
+git stash export --to-ref "refs/stashes/$1"
+git push origin "refs/stashes/$1:refs/stashes$1" --force
