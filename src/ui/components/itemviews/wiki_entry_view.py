@@ -13,7 +13,7 @@ from attr import frozen
 from src.consts import LOOPBACK_IP_ADD, SAVE_DELAY_MS, WIKI_ENCODING
 from src.exceptions import GUIException
 from src.multiprocessing.child_processes.webserver import WEBSERVER_PORT
-from src.multiprocessing.multiprocessing import GlobalLock
+from src.multiprocessing.multiprocessing import DatabaseLock
 from src.states.appstate import AppState
 from src.ui.components.entry_ribbon import EntryRibbon
 from src.ui.pages.custom_page import CustomPage
@@ -21,7 +21,7 @@ from src.ui.stylesheets.app_stylesheet import MainStylesheetManager
 from src.ui.utils.item_view_base import BaseItemView
 from src.utils.encoding import url_b64_encode
 from src.utils.navigation_info import NavigationInfo
-from src.wiki.wiki import WikiFileMode
+from src.wiki.wiki import WikiOpMode
 
 @frozen
 class ScrollPosition:
@@ -84,8 +84,8 @@ class WikiEntryView(BaseItemView):
     def load_item(self, item: pathlib.Path):
         self.__cur_item_path = item
 
-        with GlobalLock().lock():
-            with self.__app_state.cur_wiki.open_wikifile(self.__cur_item_path, WikiFileMode.READ) as file:
+        with DatabaseLock().lock():
+            with self.__app_state.cur_wiki.open_wikifile(self.__cur_item_path, WikiOpMode.READ) as file:
                 self.__text_edit.setText(file.read())
 
         self.__render_markdown()
@@ -168,8 +168,8 @@ class WikiEntryView(BaseItemView):
             Save the currently open item
         """
         assert self.__cur_item_path is not None
-        with GlobalLock().lock():
-            with self.__app_state.cur_wiki.open_wikifile(self.__cur_item_path, WikiFileMode.WRITE) as f:
+        with DatabaseLock().lock():
+            with self.__app_state.cur_wiki.open_wikifile(self.__cur_item_path, WikiOpMode.WRITE) as f:
                 f.write(self.__text_edit.toPlainText())
         
     def __save_and_render(self):

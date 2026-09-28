@@ -7,3 +7,6 @@ from src.consts import WIKI_ENCODING
 def create_empty_file(path):
     with open(path, "x", encoding=WIKI_ENCODING):
         pass
+
+
+RAW_FILE_EXTENSIONS = {".pwe"}

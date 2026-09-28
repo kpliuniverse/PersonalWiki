@@ -15,7 +15,7 @@ from src.multiprocessing.child_process import ChildProcess
 from src.utils.singleton import Singleton
 
 
-class GlobalLock(metaclass=Singleton):
+class DatabaseLock(metaclass=Singleton):
     
     def __init__(self):
         self.__lock = Lock()
