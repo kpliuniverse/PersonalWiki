@@ -10,11 +10,11 @@ from returns.result import Result, Failure, Success
 class WikiError(StrEnum):
     DUPLICATE_FILE_NAME = auto()
     ITEM_NOT_FOUND = auto()
-    NOT_A_FOLDER_ITEM = auto()
+    NOT_A_DIRECTORY_ITEM = auto()
 
 class ItemType(IntEnum):
     FILE = 0
-    FOLDER = 1
+    DIRECTORY = 1
 
 
 class Item:
@@ -53,7 +53,7 @@ class FolderItem(Item):
     """
     def __init__(self, name: str):
         super().__init__(name)
-        self._item_type = ItemType.FOLDER
+        self._item_type = ItemType.DIRECTORY
         self.__children: List[Item] = []
 
     def add_child(self, child: Item) -> Result[None, WikiError]:
