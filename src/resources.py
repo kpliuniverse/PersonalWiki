@@ -56,6 +56,9 @@ class ResourceManager(metaclass=Singleton):
                 res = None
                 if res_type == ResourceType.ICON:
                     res = QIcon(f"res:{path}")
+                else:
+                    logging.warning(f"Unknown resource type of '{path}' : {res_type}")
+                    continue
                 self.__resources[path] = Resource(
                     type=res_type,
                     res=res
