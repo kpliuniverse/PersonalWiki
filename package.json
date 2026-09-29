@@ -1,0 +1,26 @@
+{
+  "name": "personalwiki",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/kpliuniverse/PersonalWiki#readme",
+  "bugs": {
+    "url": "https://github.com/kpliuniverse/PersonalWiki/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kpliuniverse/PersonalWiki.git"
+  },
+  "license": "GPL-3.0-or-later",
+  "author": "kpliuniverse",
+  "type": "commonjs",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "build-builtin": "rollup -c"
+  },
+  "dependencies": {
+    "rollup": "^4.63.4"
+  }
+}

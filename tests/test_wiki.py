@@ -4,11 +4,14 @@ import logging
 import pathlib
 import shutil
 import tempfile
+from typing import Callable
 
 import pytest
 
 from src.consts import WIKI_ENCODING
+from src.utils.wiki_utils import walk_and_return_folder_item
 from src.wiki.wiki import create_wiki, open_wiki
+from src.wiki.wiki_items import FileItem, FolderItem, Item, sort_alphabetically_key
 
 
 def test_open_path(): 
@@ -40,4 +43,77 @@ def test_create_wiki(tmp_path: pathlib.Path):
     assert gen_file_path.is_dir()
     assert (gen_file_path / "proper").is_dir()
     assert (gen_file_path / "wiki.pwi").is_file()
+
+
+class TestFilterOutEmptyFolders:
+
+    def test_basic(self):
+        # Test empty e
+        root = FolderItem("root")
+        x = FolderItem("a")
+        x.add_child(FileItem("b"))
+        root.add_child(x)
+        x = FolderItem("c")
+        x.add_child(FileItem("d"))
+        root.add_child(x)
+        root.add_child(FolderItem("e"))
+        inp = root
+
+        root = FolderItem("root")
+        x = FolderItem("a")
+        x.add_child(FileItem("b"))
+        root.add_child(x)
+        x = FolderItem("c")
+        x.add_child(FileItem("d"))
+        root.add_child(x)
+        exp_result = root
+
+        assert inp.filter_out_empty_folders().sorted(sort_alphabetically_key).to_str_list() == exp_result.to_str_list()
+
+    def test_empty(self):
+        root = FolderItem("root")
+        x = FolderItem("a")
+        root.add_child(x)
+        x = FolderItem("c")
+        root.add_child(x)
+        root.add_child(FolderItem("e"))
+        inp = root
+
+        root = FolderItem("root")
+        exp_result = root
+
+        assert inp.filter_out_empty_folders().sorted(sort_alphabetically_key).to_str_list() == exp_result.to_str_list()
+
+    def test_nested(self):
+        root = FolderItem("root")
+        x = FolderItem("a")
+        x.add_child(FileItem("b"))
+        root.add_child(x)
+        x = FolderItem("c")
+        x.add_child(FileItem("d"))
+        x.add_child(FolderItem("e"))
+        root.add_child(x)
+        inp = root
+
+        root = FolderItem("root")
+        x = FolderItem("a")
+        x.add_child(FileItem("b"))
+        root.add_child(x)
+        x = FolderItem("c")
+        x.add_child(FileItem("d"))
+        root.add_child(x)
+        exp_result = root
+
+        assert inp.filter_out_empty_folders().sorted(sort_alphabetically_key).to_str_list() == exp_result.sorted(sort_alphabetically_key).to_str_list()
+    
+
+def test_file_filter():
+    by_alphabet: Callable[[Item], str] = lambda x: x.name()
+    # base
+    base = walk_and_return_folder_item(pathlib.Path("end-tests/folders/walktest")).sorted(key=by_alphabet)
+    
+    # True case
+    assert base.file_filter(lambda _ : True, filter_empty_folders=False).sorted(key=by_alphabet).to_str_list() == base.to_str_list()
+    # False case
+    assert base.file_filter(lambda _: False).to_str_list() == ["root"]
 

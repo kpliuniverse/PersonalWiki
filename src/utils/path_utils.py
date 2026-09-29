@@ -15,7 +15,7 @@ def gen_path_string(item_path: pathlib.Path, wiki_directory: pathlib.Path):
 
 
 
-def path_root():
+def path_dot():
     """
         Return pathlib.Path(".")
     """

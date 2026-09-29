@@ -6,5 +6,5 @@ class EntryRibbon(QWidget):
         super().__init__(parent)
         self.setLayout(QHBoxLayout())
         
-        self.render_button =  QPushButton(parent=self, text="&Render")
+        self.render_button =  QPushButton(parent=self, text="&Save and Render")
         self.layout().addWidget(self.render_button) # pyright: ignore[reportOptionalMemberAccess] 

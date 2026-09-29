@@ -2,6 +2,8 @@ from importlib import resources as impresources
 import sys
 import pathlib 
 import logging
+import atexit
+
 
 from PyQt6.QtCore import QCoreApplication, QDir, Qt
 from PyQt6.QtQuick import QQuickWindow, QSGRendererInterface
@@ -10,13 +12,15 @@ from PyQt6.QtWidgets import (
 )
 
 from PyQt6.QtGui import QFontDatabase
+from returns.result import Failure
 from src.consts import RESOURCE_PATH
 from src.initcontext import InitContext
+from src.multiprocessing.child_processes.webserver import WebserverProcess
+from src.multiprocessing.multiprocessing import MultiprocessingManager, MultiprocessingException
 from src.resources import ResourceManager
 from src.ui.stylesheets.app_stylesheet import MainStylesheetManager
 from src.ui.windows.main_window import MainWindow
 from src.ui.windows.wiki_window import WikiWindow
-
 
 
 
@@ -25,6 +29,7 @@ class App:
     def __init__(self):
         self.main_window: MainWindow | None  = None
         self.app = QApplication(sys.argv)
+        atexit.register(self.__cleanup)
 
     def add_paths(self):
         QDir.addSearchPath("res", "resources/")
@@ -40,16 +45,32 @@ class App:
         for path in (RESOURCE_PATH / "fonts").iterdir():
             QFontDatabase.addApplicationFont(path.as_posix())
             logging.info("Added font file: %s", path.as_posix())
+        logging.debug("Font families: %s", ", ".join(QFontDatabase.families()))
+    def __cleanup(self):
+        MultiprocessingManager().kill_all()
 
-    def run_main(self, wiki: pathlib.Path):
+    def run_main(self, pwi_file: pathlib.Path):
         """
             Runs the main windows.
         """
-        self.main_window = MainWindow(initcontext=InitContext(
-            path_to_pwi_file=pathlib.Path(wiki)
-        ))
-        self.main_window.show()
-
+        try:
+        
+            match MultiprocessingManager().run_process(WebserverProcess(pwi_file.parent)):
+                case Failure(_):
+                    raise MultiprocessingException("Failed to start web server")
+            logging.info("Webserver started at %s", pwi_file.parent.as_posix())
+            self.main_window = MainWindow(initcontext=InitContext(
+                path_to_pwi_file=pathlib.Path(pwi_file)
+            ))
+            self.main_window.show() 
+            self.main_window.on_close.connect(self.__cleanup)
+        except Exception as e:
+            self.__cleanup()
+            raise e
+        
+    # def __cleanup(self):
+    #     MultiprocessingManager().kill_all()
+            
     def run(self):
         """
             Runs the app
@@ -59,11 +80,13 @@ class App:
         self.init_resources()
         QQuickWindow.setGraphicsApi(QSGRendererInterface.GraphicsApi.OpenGL)
         QCoreApplication.setAttribute(Qt.ApplicationAttribute.AA_UseStyleSheetPropagationInWidgetStyles, True)
+        
         if len(self.app.arguments()) == 1:
             wiki_window = WikiWindow()
             wiki_window.wiki_opened.connect(self.run_main)
             wiki_window.show()
         else:
-            self.run_main(pathlib.Path(self.app.arguments()[1]))
+            self.run_main(pathlib.Path(self.app.arguments()[1]).resolve())
+        sys.exit(self.app.exec())
 
-        sys.exit(self.app.exec())    
+             

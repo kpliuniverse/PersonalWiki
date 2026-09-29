@@ -2,7 +2,7 @@ import datetime
 import logging
 import pathlib
 from importlib import resources
-from typing import Optional
+from typing import Optional, override
 
 from PyQt6.QtOpenGLWidgets import QOpenGLWidget
 from PyQt6 import sip
@@ -15,7 +15,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtGui import QAction, QFont, QKeySequence, QShortcut
+from PyQt6.QtGui import QAction, QCloseEvent, QFont, QKeySequence, QShortcut
 from PyQt6.QtCore import (
     Q_ARG, 
     QMetaObject, 
@@ -23,11 +23,13 @@ from PyQt6.QtCore import (
     QTimer, 
     QUrl, 
     Qt, 
-    pyqtSlot, 
+    pyqtSignal, 
     QThread
 )
 # from PyQt6.QtWebEngineCore import QWebEngineProfile
 
+from src.consts import ITEM_DATA_ROLE
+from src.itemmodels.project_item import ItemInfo
 from src.ui.components.item_panel import ItemPanel, ViewType
 from src.ui.components.project_explorer import ProjectExplorer
 from src.exceptions import GUIException
@@ -37,15 +39,15 @@ from src.states.appstate import AppState
 from src.ui.components.entry_ribbon import EntryRibbon
 from src.ui.stylesheets.app_stylesheet import MainStylesheetManager
 from src.ui.utils.view_utils import guess_view_type
-from src.ui.workers.renderer_worker import RendererWorker
 from src.utils.navigation_info import NavigationInfo
 from src.wiki.wiki import open_wiki
 class MainWindow(QMainWindow):
-                    
+
+    on_close = pyqtSignal()
     def __init__(self, initcontext: InitContext):
         super().__init__()
 
-
+        
         self.setStyleSheet("")
         self.setObjectName("MainWindow")
         self.setGeometry(200, 200, 1200, 800)
@@ -116,11 +118,11 @@ class MainWindow(QMainWindow):
         self.__item_panel.load(guess_view_type(item_path_abs), item_path_abs)
 
     def __on_project_item_double_clicked(self, val: QModelIndex):
-        item_path: pathlib.Path = val.data(Qt.ItemDataRole.UserRole + 1)
-        item_path_abs = self.__app_state.cur_wiki.get_wiki_proper_path() / item_path
+        item_path: ItemInfo = val.data(ITEM_DATA_ROLE)
+        item_path_abs = self.__app_state.cur_wiki.get_wiki_proper_path() / item_path.path
         logging.debug("Item double clicked to %s", item_path)
         if item_path_abs.is_file():
-            self.__load_item(item_path)
+            self.__load_item(item_path.path)
   
     def __refresh_project_tree(self):
         proper_path = (self.__app_state.cur_wiki.get_wiki_dir_path() / "proper")
@@ -147,3 +149,8 @@ class MainWindow(QMainWindow):
     #         self.__text_edit.setText(file.read())
     #     self.__render_markdown()
     #     self.__save_timer.start()
+
+    @override
+    def closeEvent(self, a0: QCloseEvent | None) -> None:
+        self.on_close.emit()
+        return super().closeEvent(a0)

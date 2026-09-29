@@ -9,8 +9,18 @@ from PyQt6.QtGui import QIcon
 import attrs
 
 from src.consts import RESOURCE_PATH
-from src.exceptions import ResourceTypeException
 from src.utils.singleton import Singleton
+
+
+
+class ResourceTypeException(BaseException):
+    """
+        Not used for now.
+    """
+    pass
+
+class ResourceNotFoundError(BaseException):
+    pass
 
 class ResourceType(StrEnum):
     ICON = auto()
@@ -55,6 +65,6 @@ class ResourceManager(metaclass=Singleton):
     def get(self, path: str):
         try:
             return self.__resources[path]
-        except KeyError:
-            raise KeyError(f"Resource {path} not found or loaded.")
+        except KeyError as exc:
+            raise ResourceNotFoundError(f"Resource {path} not found or loaded.") from exc
 

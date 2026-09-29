@@ -11,25 +11,26 @@ from attrs import define
 
 
 from src.exceptions import GUIException
-from src.items.items import ItemType, ItemCreationResult
+from src.itemmodels.project_item import ItemInfo
+from src.items.items import ItemRecognizedType, ItemCreationResult
 from src.utils.item_validity import valid_item_name
 from src.utils.path_utils import gen_path_string
 
 
 @define(frozen=True)
 class RenameInfo:
-    file: pathlib.Path
+    item: ItemInfo
     new_name: str
 
-    def full_new_name(self):
-        return self.file.with_name(self.new_name)
+    def full_new_path(self):
+        return self.item.path.with_name(self.new_name)
 
 class ItemRenameDialog(QDialog):
 
     on_name_selected: pyqtSignal = pyqtSignal(RenameInfo)
 
     
-    def __init__(self, parent: QWidget,  item: pathlib.Path, wiki_proper_directory: pathlib.Path):
+    def __init__(self, parent: QWidget,  item: ItemInfo, wiki_proper_directory: pathlib.Path):
         
         self.__working_item = item
 
@@ -42,7 +43,7 @@ class ItemRenameDialog(QDialog):
         layout.addWidget(label)
 
         self.__line_edit = QLineEdit(self)
-        self.__line_edit.setText(item.with_suffix("").name)
+        self.__line_edit.setText(item.path.with_suffix("").name)
         self.__line_edit.textChanged.connect(self.__validate)
         layout.addWidget(self.__line_edit)
 
@@ -73,7 +74,7 @@ class ItemRenameDialog(QDialog):
 
     def __on_accept(self):
         self.on_name_selected.emit(RenameInfo(
-                file=self.__working_item,
+                item=self.__working_item,
                 new_name=self.gen_resultatnt_path().name
             )
         )
@@ -81,8 +82,8 @@ class ItemRenameDialog(QDialog):
     def gen_resultatnt_path(self):
         line_edit_txt = self.__line_edit.text()
         txt_stripped = line_edit_txt.strip()
-        ending = self.__working_item.suffix
-        return self.__working_item.with_name(f"{txt_stripped}{ending}")
+        ending = self.__working_item.path.suffix
+        return self.__working_item.path.with_name(f"{txt_stripped}{ending}")
 
     def __validate(self):
         valid = True
