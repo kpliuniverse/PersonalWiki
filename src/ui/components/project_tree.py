@@ -16,7 +16,7 @@ import attrs
 
 from src.consts import ITEM_DATA_ROLE
 from src.exceptions import GUIException
-from src.itemmodels.project_item import ItemInfo, ProjectItem
+from src.ui.itemmodels.project_item import ItemInfo, ProjectItem
 from src.utils.path_utils import path_dot
 from src.utils.wiki_utils import to_model
 from src.wiki.wiki_items import FolderItem, ItemType

@@ -7,7 +7,7 @@ from pytestqt.qtbot import QtBot
 from PyQt6.QtWidgets import QDialog, QHBoxLayout, QMainWindow, QWidget
 
 from src.exceptions import GUIException
-from src.itemmodels.project_item import ItemInfo
+from src.ui.itemmodels.project_item import ItemInfo
 from src.ui.components.project_explorer import ProjectExplorer
 from src.ui.components.project_tree import ProjectTree, ProjectTreeArgs
 

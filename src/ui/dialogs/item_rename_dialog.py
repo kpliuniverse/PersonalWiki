@@ -11,7 +11,7 @@ from attrs import define
 
 
 from src.exceptions import GUIException
-from src.itemmodels.project_item import ItemInfo
+from src.ui.itemmodels.project_item import ItemInfo
 from src.items.items import ItemRecognizedType, ItemCreationResult
 from src.utils.item_validity import valid_item_name
 from src.utils.path_utils import gen_path_string
