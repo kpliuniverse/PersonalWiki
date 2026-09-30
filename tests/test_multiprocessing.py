@@ -13,7 +13,7 @@ def test_close():
     mgr = multiprocessing.MultiprocessingManager()
     app_state = AppState()
     app_state.cur_wiki = open_wiki(pathlib.Path(__file__).parent.parent / ".testenv/wikis/blank")
-    match mgr.run_process(WebserverProcess(to_pickleable(app_state), multiprocessing.GlobalLock().lock())):
+    match mgr.run_process(WebserverProcess(to_pickleable(app_state), multiprocessing.DatabaseLock().lock())):
         case Failure(e):
             raise multiprocessing.MultiprocessingException(e)
         case Success(i_d):

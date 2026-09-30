@@ -1,7 +1,7 @@
 import logging
 import pathlib
 from enum import IntEnum, auto, StrEnum
-from typing import Any, Deque, List, Protocol, Union, Optional, Callable
+from typing import Any, Deque, List, Protocol, Self, Union, Optional, Callable
 
 import attrs
 from returns.result import Result, Failure, Success
@@ -10,11 +10,11 @@ from returns.result import Result, Failure, Success
 class WikiError(StrEnum):
     DUPLICATE_FILE_NAME = auto()
     ITEM_NOT_FOUND = auto()
-    NOT_A_FOLDER_ITEM = auto()
+    NOT_A_DIRECTORY_ITEM = auto()
 
 class ItemType(IntEnum):
     FILE = 0
-    FOLDER = 1
+    DIRECTORY = 1
 
 
 class Item:
@@ -53,7 +53,7 @@ class FolderItem(Item):
     """
     def __init__(self, name: str):
         super().__init__(name)
-        self._item_type = ItemType.FOLDER
+        self._item_type = ItemType.DIRECTORY
         self.__children: List[Item] = []
 
     def add_child(self, child: Item) -> Result[None, WikiError]:
@@ -67,10 +67,11 @@ class FolderItem(Item):
         """
             Converts to str list.
             Is used for testing
-        """
-        """
+
         Print the item
         Do not use the prefix argument, it's for internal purposes
+
+        For empty folders, prints the folder name instead of children
         """
         # TODO: make this non-recursive
         slash = "" if __prefix == "" else "/"
@@ -80,13 +81,17 @@ class FolderItem(Item):
             if isinstance(child, FileItem):
                 out.append(f"{disp}/{child.name()}")
             if isinstance(child, FolderItem):
+                if len(child.children()) == 0:
+                    out.append(f"{disp}/{child.name()}")
                 out.extend(child.to_str_list(disp))
         return out
     
     def __str__(self):
         return "\n".join(self.to_str_list())
         
-        
+    def __eq__(self, other):
+        return isinstance(other, FolderItem) and self.to_str_list() == other.to_str_list()
+    
     def children(self) -> List[Item]:
         return self.__children
 

@@ -42,10 +42,10 @@ def test_add_path(qtbot: QtBot,):
         dir_only=False
     ))
     tree.load_folder(FolderItem("root"))
-    tree.add_item(ItemInfo(path=path_dot() / "a", item_type=ItemType.FOLDER))
+    tree.add_item(ItemInfo(path=path_dot() / "a", item_type=ItemType.DIRECTORY))
 
     with pytest.raises(GUIException, match=f"add an already existing path: {(path_dot() / "a").as_posix()}"):
-        tree.add_item(ItemInfo(path=path_dot() / "a", item_type=ItemType.FOLDER))
+        tree.add_item(ItemInfo(path=path_dot() / "a", item_type=ItemType.DIRECTORY))
 
     tree.add_item(ItemInfo(path=path_dot() / "a" / "b", item_type=ItemType.FILE))
 
