@@ -9,7 +9,7 @@ from PyQt6.QtGui import QStandardItemModel, QStandardItem
 from pygments.lexers import q
 from returns.result import Failure, Success
 
-from src.itemmodels.project_item import ItemInfo, ProjectItem
+from src.ui.itemmodels.project_item import ItemInfo, ProjectItem
 from src.wiki.wiki_items import FolderItem, FileItem, Item, ItemType
 from src.wiki.wiki_items import WikiError
 from src.utils.path_utils import path_dot

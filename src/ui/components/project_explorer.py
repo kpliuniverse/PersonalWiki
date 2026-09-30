@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
 )
 
 from src.consts import ITEM_DATA_ROLE
-from src.itemmodels.project_item import ItemInfo
+from src.ui.itemmodels.project_item import ItemInfo
 from src.ui.dialogs.item_move_dialog import ItemMoveDialog
 from src.ui.dialogs.item_rename_dialog import ItemRenameDialog, RenameInfo
 from src.ui.stylesheets.app_stylesheet import MainStylesheetManager

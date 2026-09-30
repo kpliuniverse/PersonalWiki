@@ -29,7 +29,7 @@ from PyQt6.QtCore import (
 # from PyQt6.QtWebEngineCore import QWebEngineProfile
 
 from src.consts import ITEM_DATA_ROLE
-from src.itemmodels.project_item import ItemInfo
+from src.ui.itemmodels.project_item import ItemInfo
 from src.ui.components.item_panel import ItemPanel, ViewType
 from src.ui.components.project_explorer import ProjectExplorer
 from src.exceptions import GUIException

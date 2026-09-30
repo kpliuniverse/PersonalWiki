@@ -5,7 +5,7 @@ from typing import List
 
 from attrs import define
 
-from src.itemmodels.project_item import ItemInfo
+from src.ui.itemmodels.project_item import ItemInfo
 from src.wiki.wiki_items import ItemType
 
 @define(frozen=True)
