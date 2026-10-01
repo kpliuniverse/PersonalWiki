@@ -1,14 +1,14 @@
 import pathlib
 from typing import Optional, override
 
-from PyQt6.QtGui import QFont, QStandardItem, QStandardItemModel
+from PyQt6.QtGui import QFont, QIcon, QStandardItem, QStandardItemModel
 from PyQt6.QtCore import Qt
 import attrs
 
 from src.consts import ITEM_DATA_ROLE
 from src.resources import ResourceManager, ResourceType
+from src.ui.utils.get_file_icon import get_icon_from_extension
 from src.wiki.wiki_items import ItemType
-
 
 
 @attrs.define
@@ -25,7 +25,10 @@ class ProjectItem(QStandardItem):
         else:
             self.setText(name)
         self.setData(info, ITEM_DATA_ROLE)
-        icon = ResourceManager().get(f"icons/48px/{'folder' if info.item_type == ItemType.FOLDER else 'file'}.png")
-        assert icon.type == ResourceType.ICON
-        self.setIcon(icon.res)
+        # Load icons lazily to avoid constructing QIcon/QPixmap before a QGuiApplication exists
+        if info.item_type == ItemType.FOLDER:
+            icon = ResourceManager().assert_get_res("icons/48px/folder.png", assert_type=QIcon)
+        else:
+            icon = get_icon_from_extension(info.path.suffix)
+        self.setIcon(icon)
         self.info = info

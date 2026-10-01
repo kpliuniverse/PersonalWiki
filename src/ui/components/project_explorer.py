@@ -10,6 +10,7 @@ from PyQt6.QtWidgets import (
     QToolBar,
     QPushButton, QPlainTextEdit, QHBoxLayout, QLineEdit
 )
+from PyQt6.QtGui import QIcon
 
 from src.consts import ITEM_DATA_ROLE
 from src.ui.itemmodels.project_item import ItemInfo
@@ -47,23 +48,28 @@ class ProjectExplorerToolbar(QToolBar):
 
 
         res_mgr = ResourceManager()
-        self.new_btn = QPushButton(parent=self, text="", icon=res_mgr.get("icons/96px/plus.png").res)
+        # Create buttons with explicit text/parent and set icons explicitly for compatibility
+        self.new_btn = QPushButton("", self)
+        self.new_btn.setIcon(res_mgr.assert_get_res("icons/96px/plus.png", assert_type=QIcon))
         self.new_btn.setToolTip("New Item")
         self.addWidget(self.new_btn)
 
-        self.move_btn = QPushButton(parent=self, text="", icon=res_mgr.get("icons/96px/move.png").res)
+        self.move_btn = QPushButton("", self)
+        self.move_btn.setIcon(res_mgr.assert_get_res("icons/96px/move.png", assert_type=QIcon))
         self.move_btn.setToolTip("Move Items")
         self.addWidget(self.move_btn)
 
-        self.del_btn = QPushButton(parent=self, text="", icon=res_mgr.get("icons/96px/delete.png").res)
+        self.del_btn = QPushButton("", self)
+        self.del_btn.setIcon(res_mgr.assert_get_res("icons/96px/delete.png", assert_type=QIcon))
         self.del_btn.setToolTip("Delete Items")
         self.addWidget(self.del_btn)
 
-        self.rename_btn = QPushButton(parent=self, text="", icon=res_mgr.get("icons/96px/rename.png").res)
+        self.rename_btn = QPushButton("", self)
+        self.rename_btn.setIcon(res_mgr.assert_get_res("icons/96px/rename.png", assert_type=QIcon))
         self.rename_btn.setToolTip("Rename Item")
         self.addWidget(self.rename_btn)
 
-        self.search_btn = QPushButton(parent=self, text="Search")
+        self.search_btn = QPushButton("Search", self)
         self.search_btn.setToolTip("Search")
         self.addWidget(self.search_btn)
 

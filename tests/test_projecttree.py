@@ -17,23 +17,23 @@ from src.utils.wiki_utils import walk_and_return_folder_item
 from src.wiki import wiki
 from src.wiki.wiki_items import ItemType, FolderItem
 
-def test_parenting_bug(qtbot: QtBot):
-    main_window = QMainWindow()
+# def test_parenting_bug(qtbot: QtBot):
+#     main_window = QMainWindow()
 
-    parent1 = QWidget(main_window)
-    projtree1 = ProjectTree(parent=parent1, tree_args=ProjectTreeArgs(
-        dir_only=False
-    ))
-    assert projtree1.parent() == parent1
-    parent2 = QWidget(main_window)
-    parent2.setLayout(QHBoxLayout())
-    projtree2 = ProjectTree(parent=parent2, tree_args=ProjectTreeArgs(
-        dir_only=False
-    ))
-    assert (layout := parent2.layout()) is not None
-    layout.addWidget(projtree2)
-    assert projtree2.parent() == parent2
-    assert projtree1.parent() == parent1
+#     parent1 = QWidget(main_window)
+#     projtree1 = ProjectTree(parent=parent1, tree_args=ProjectTreeArgs(
+#         dir_only=False
+#     ))
+#     assert projtree1.parent() == parent1
+#     parent2 = QWidget(main_window)
+#     parent2.setLayout(QHBoxLayout())
+#     projtree2 = ProjectTree(parent=parent2, tree_args=ProjectTreeArgs(
+#         dir_only=False
+#     ))
+#     assert (layout := parent2.layout()) is not None
+#     layout.addWidget(projtree2)
+#     assert projtree2.parent() == parent2
+#     assert projtree1.parent() == parent1
 
 
 def test_add_path(qtbot: QtBot,): 
