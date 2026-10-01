@@ -118,10 +118,9 @@ class WikiEntryView(BaseItemView):
         progress = block.position() / doc.blockCount()
         logging.debug("Preparing to render...")
         path = self.__cur_item_path.relative_to(self.__wiki_dir).as_posix()
-        b64 = url_b64_encode(path.encode())
         #self.__text_view.setHtml("")
         #url = QUrl(f"http://{LOOPBACK_IP_ADD}:{WEBSERVER_PORT}/view/{b64}")
-        url = QUrl(f"http://{LOOPBACK_IP_ADD}:{WEBSERVER_PORT}/view/{b64}")
+        url = QUrl(f"http://{LOOPBACK_IP_ADD}:{WEBSERVER_PORT}/view/{path}")
         self.__text_view.setUrl(url)
         logging.info("Going to %s", url.toString())
         

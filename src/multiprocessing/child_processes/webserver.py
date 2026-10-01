@@ -34,7 +34,7 @@ class WebServer(object):
         self.root_path = root_path
         
     def view(self, args):
-        rel_path = pathlib.Path(url_b64_decode(args["path"]).decode(WIKI_ENCODING).replace("\\", "/"))
+        rel_path = pathlib.Path(args["path"])
         path = self.root_path / rel_path
         with open(path, encoding=WIKI_ENCODING) as f:
             md = f.read()
@@ -47,7 +47,7 @@ class WebServer(object):
 
     def wsgi_app(self, environ, start_response):
         self.url_map = Map([
-            Rule('/view/<path>', endpoint='view'),
+            Rule('/view/<path:path>', endpoint='view'),
             Rule('/exit', endpoint='exit')
         ])
         request = Request(environ)
