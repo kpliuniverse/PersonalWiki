@@ -74,23 +74,25 @@ class FolderItem(Item):
 
     def to_flat_list(self, __dir: pathlib.Path = path_dot()):
         """
-            Converts to list of FlatItemEntry
-            Is used for comparisons
+        Converts to list of FlatItemEntry
+        Is used for comparisons
 
-        Print the item
         Do not use the prefix argument, it's for internal purposes
         """
         # TODO: make this non-recursive
         disp_path = __dir / self.name()
         out: List[FlatItemEntry] = []
+
+        if not self.__children:
+            return [FlatItemEntry(path=disp_path, type=self.item_type())]
         for child in self.__children:
-            if isinstance(child, FileItem) or (isinstance(child, FolderItem) and not child.children()):
+            if isinstance(child, FileItem):
                 out.append(FlatItemEntry(
                         path=disp_path / child.name(),
                         type=child.item_type()
                     )
                 )
-            elif isinstance(child, FolderItem) and child.children():
+            elif isinstance(child, FolderItem):
                 out.extend(child.to_flat_list(disp_path))
         return out
 
