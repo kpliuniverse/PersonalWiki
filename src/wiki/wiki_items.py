@@ -82,7 +82,7 @@ class FolderItem(Item):
         """
         # TODO: make this non-recursive
         disp_path = __dir / self.name()
-        out: List[FlatItemEntry] = [FlatItemEntry(path=disp_path, type=self.item_type())]
+        out: List[FlatItemEntry] = []
         for child in self.__children:
             if isinstance(child, FileItem) or (isinstance(child, FolderItem) and not child.children()):
                 out.append(FlatItemEntry(
@@ -90,7 +90,7 @@ class FolderItem(Item):
                         type=child.item_type()
                     )
                 )
-            if isinstance(child, FolderItem):
+            elif isinstance(child, FolderItem) and child.children():
                 out.extend(child.to_flat_list(disp_path))
         return out
 
