@@ -190,18 +190,22 @@ class FolderItem(Item):
     def create_root(self):
         return FolderItem(self.name())
 
-    def walk(self, fn: Callable[[Item]]):
+    def walk(self, fn: Callable[[Item]], file_fn: Optional[Callable[[FileItem]]]=None):
         """
             Apply function to self, then for each children, if it's a file, apply function to file, if it's a folder, call this function on that folder
-        
+
+            if file_fn is supplied, fn is called on folders, file_fn is called on files
         """
-        #TODO: make this non-recursive
-        fn(self)
-        for child in self.children():
-            if isinstance(child, FileItem):
-                fn(child)
-            elif isinstance(child, FolderItem):
-                child.walk(fn)
+        stack: List[FolderItem] = [self]
+
+        while stack:
+            item = stack.pop()
+            fn(item)
+            for child in reversed(item.children()):
+                if isinstance(child, FileItem):
+                    (file_fn or fn)(child)
+                elif isinstance(child, FolderItem):
+                    stack.append(child)
 
 
  
