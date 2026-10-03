@@ -195,7 +195,7 @@ class ProjectTree(QWidget):
         try:
             parent_item = self.__index_dict[item_info.path.parent.as_posix()]
 
-            if isinstance(parent_item, ProjectItem) and parent_item.info.item_type != ItemType.FOLDER:
+            if isinstance(parent_item, ProjectItem) and parent_item.info.item_type != ItemType.DIRECTORY:
                 raise GUIException(f"Attempted to insert a child on a file-type item: {item_info.path.parent.as_posix()}")
             parent_item.appendRow(project_item)
             self.__index_dict[key] = project_item
@@ -221,7 +221,7 @@ class ProjectTree(QWidget):
         if self.__args.add_root_as_folder:
             item_info = ItemInfo(
                 path=path_dot(), 
-                item_type=ItemType.FOLDER
+                item_type=ItemType.DIRECTORY
             )
             root_node.appendRow(ProjectItem(item_info, name="(root)"))
 

@@ -17,7 +17,7 @@ from werkzeug.serving import run_simple
 from werkzeug.middleware.shared_data import SharedDataMiddleware
 from src.consts import LOOPBACK_IP_ADD, PROJECT_ROOT, WIKI_ENCODING
 from src.multiprocessing.child_process import ChildProcess
-from src.multiprocessing.multiprocessing import GlobalLock
+from src.multiprocessing.multiprocessing import DatabaseLock
 from src.parser.markdown_parser import parse_md_to_html
 from src.states.appstate import AppState, PickleableAppState
 from src.templating.templating import MainHTMLTemplater
@@ -26,7 +26,7 @@ import importlib
 
 from src import consts
 from src.utils.encoding import url_b64_decode
-from src.wiki.wiki import Wiki, WikiFileMode
+from src.wiki.wiki import Wiki, WikiOpMode
 
 
 
@@ -51,7 +51,7 @@ class WebServer(object):
         rel_path = pathlib.Path(url_b64_decode(args["path"]).decode(WIKI_ENCODING).replace("\\", "/"))
 
         with self.lock:
-            with self.app_state.cur_wiki.open_wikifile(rel_path, WikiFileMode.READ) as f:
+            with self.app_state.cur_wiki.open_wikifile(rel_path, WikiOpMode.READ) as f:
                 md_content: str = f.read()
             
         context = {
