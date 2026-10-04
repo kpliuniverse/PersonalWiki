@@ -9,7 +9,7 @@ from PyQt6.QtCore import QTimer, Qt, pyqtSignal
 from src.exceptions import GUIException
 from src.items.items import ItemRecognizedType, ItemCreationResult
 from src.ui.components.dir_preview import ProjectDirPreview
-from src.utils.item_validity import valid_item_name
+from src.utils.item_validity import is_valid_item_name
 
 class ItemNewDialog(QDialog):
 
@@ -80,7 +80,7 @@ class ItemNewDialog(QDialog):
         valid = True
         error_msg = ""
         line_edit_txt = self.__line_edit.text()
-        if not valid_item_name(line_edit_txt):
+        if not is_valid_item_name(line_edit_txt):
             valid = False
             error_msg = "Not a valid item name."
         elif self.__dir_preview.get_chosen_dir() is None:

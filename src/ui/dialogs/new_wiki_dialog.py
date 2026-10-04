@@ -8,7 +8,7 @@ from PyQt6.QtCore import pyqtSignal
 
 from src.exceptions import GUIException
 from src.ui.components.dir_preview import SystemDirPreview
-from src.utils.item_validity import valid_item_name
+from src.utils.item_validity import is_valid_item_name
 
 class NewWikiDialog(QDialog):
 
@@ -66,7 +66,7 @@ class NewWikiDialog(QDialog):
         valid = True
         error_msg = ""
         line_edit_txt = self.__line_edit.text()
-        if not valid_item_name(line_edit_txt):
+        if not is_valid_item_name(line_edit_txt):
             valid = False
             error_msg = "Not a valid item name."
         elif (p := self.get_resultant_path()) is not None:
