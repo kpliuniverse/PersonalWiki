@@ -33,7 +33,7 @@ class MoveInfo:
 
                 for (root, _, files) in os.walk(item, topdown=True):
                     pl_root = pathlib.Path(root)
-                    items_created.append(ItemInfo(path=dst / pl_root.relative_to(item.parent), item_type=ItemType.FOLDER))
+                    items_created.append(ItemInfo(path=dst / pl_root.relative_to(item.parent), item_type=ItemType.DIRECTORY))
                     items_created.extend((ItemInfo(path=dst / pl_root.relative_to(item.parent) / f, item_type=ItemType.FILE) for f in files ))
             
             if item.is_file():

@@ -1,21 +1,30 @@
 import logging
 import pathlib
 from enum import IntEnum, auto, StrEnum
-from typing import Any, Deque, List, Protocol, Union, Optional, Callable
+from typing import Any, Deque, List, Protocol, Self, Union, Optional, Callable
 
 import attrs
 from returns.result import Result, Failure, Success
 
+from src.utils.path_utils import path_dot
 
 class WikiError(StrEnum):
     DUPLICATE_FILE_NAME = auto()
     ITEM_NOT_FOUND = auto()
-    NOT_A_FOLDER_ITEM = auto()
+    NOT_A_DIRECTORY_ITEM = auto()
 
 class ItemType(IntEnum):
     FILE = 0
-    FOLDER = 1
+    DIRECTORY = 1
 
+
+@attrs.define
+class FlatItemEntry:
+    """
+        Used for comparisons.
+    """
+    path: pathlib.Path
+    type:  ItemType
 
 class Item:
     _item_type: ItemType
@@ -51,10 +60,10 @@ class FolderItem(Item):
     """
         An item that contains child items that are stored in a list.
     """
-    def __init__(self, name: str):
+    def __init__(self, name: str, *items: Item):
         super().__init__(name)
-        self._item_type = ItemType.FOLDER
-        self.__children: List[Item] = []
+        self._item_type = ItemType.DIRECTORY
+        self.__children: List[Item] = list(items)
 
     def add_child(self, child: Item) -> Result[None, WikiError]:
         if child in self.__children:
@@ -63,30 +72,42 @@ class FolderItem(Item):
         self.__children.append(child)
         return Success(None)
 
-    def to_str_list(self, __prefix: str = ""):
+    def to_flat_list(self, __dir: pathlib.Path = path_dot()):
         """
-            Converts to str list.
-            Is used for testing
-        """
-        """
-        Print the item
+        Converts to list of FlatItemEntry
+        Is used for comparisons
+
         Do not use the prefix argument, it's for internal purposes
         """
         # TODO: make this non-recursive
-        slash = "" if __prefix == "" else "/"
-        disp = f"{__prefix}{slash}{self.name()}"
-        out: List[str] = [disp]
+        disp_path = __dir / self.name()
+        out: List[FlatItemEntry] = []
+
+        if not self.__children:
+            return [FlatItemEntry(path=disp_path, type=self.item_type())]
         for child in self.__children:
             if isinstance(child, FileItem):
-                out.append(f"{disp}/{child.name()}")
-            if isinstance(child, FolderItem):
-                out.extend(child.to_str_list(disp))
+                out.append(FlatItemEntry(
+                        path=disp_path / child.name(),
+                        type=child.item_type()
+                    )
+                )
+            elif isinstance(child, FolderItem):
+                out.extend(child.to_flat_list(disp_path))
         return out
+
+    def to_str_list(self):
+        def str_item(item: FlatItemEntry):
+            item_type = "FILE" if item.type == ItemType.FILE else "DIR"
+            return f"{item_type} {item.path.as_posix()}"
+        return [str_item(item) for item in self.to_flat_list()]
     
     def __str__(self):
         return "\n".join(self.to_str_list())
         
-        
+    def __eq__(self, other):
+        return isinstance(other, FolderItem) and self.to_flat_list() == other.to_flat_list()
+    
     def children(self) -> List[Item]:
         return self.__children
 
@@ -174,4 +195,19 @@ class FolderItem(Item):
     def create_root(self):
         return FolderItem(self.name())
 
- 
+    def walk(self, fn: Callable[[Item]], file_fn: Optional[Callable[[FileItem]]]=None):
+        """
+            Apply function to self, then for each children, if it's a file, apply function to file, if it's a folder, call this function on that folder
+
+            if file_fn is supplied, fn is called on folders, file_fn is called on files
+        """
+        stack: List[FolderItem] = [self]
+
+        while stack:
+            item = stack.pop()
+            fn(item)
+            for child in reversed(item.children()):
+                if isinstance(child, FileItem):
+                    (file_fn or fn)(child)
+                elif isinstance(child, FolderItem):
+                    stack.append(child)

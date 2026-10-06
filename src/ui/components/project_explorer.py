@@ -191,7 +191,7 @@ class ProjectExplorer(QWidget):
 
     def __create_new_item(self, item: ItemCreationResult):
         self.item_operation_requested.emit([NewItemAction(item.path, item.recognized_type == ItemRecognizedType.FOLDER)])
-        item_type = ItemType.FOLDER if item.recognized_type == ItemRecognizedType.FOLDER else ItemType.FILE
+        item_type = ItemType.DIRECTORY if item.recognized_type == ItemRecognizedType.FOLDER else ItemType.FILE
         self.__project_tree.add_item(ItemInfo(item.path, item_type))
         self.__validate_btns()
         # self.__index_dict[item.path.parent.as_posix()].appendRow(project_item)
