@@ -1,0 +1,15 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.7, pytest-9.1.1, pluggy-1.6.0
+PyQt6 6.11.0 -- Qt runtime 6.11.2 -- Qt compiled 6.11.0
+rootdir: C:\Users\PC\projects\PersonalWiki
+configfile: pytest.toml
+plugins: platformdirs-4.12.3, dependency-0.6.1, qt-4.5.0, returns-0.29.0
+collected 0 items
+
+============================== warnings summary ===============================
+.venv\Lib\site-packages\dateutil\tz\tz.py:37
+  C:\Users\PC\projects\PersonalWiki\.venv\Lib\site-packages\dateutil\tz\tz.py:37: DeprecationWarning: datetime.datetime.utcfromtimestamp() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.fromtimestamp(timestamp, datetime.UTC).
+    EPOCH = datetime.datetime.utcfromtimestamp(0)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================= 1 warning in 0.01s ==============================
