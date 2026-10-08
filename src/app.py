@@ -18,7 +18,7 @@ from returns.result import Failure
 from src.consts import RESOURCE_PATH
 from src.initcontext import InitContext
 from src.multiprocessing.child_processes.webserver import WebserverProcess
-from src.multiprocessing.multiprocessing import GlobalLock, MultiprocessingManager, MultiprocessingException
+from src.multiprocessing.multiprocessing import DatabaseLock, MultiprocessingManager, MultiprocessingException
 from src.resources import ResourceManager
 from src.states.appstate import to_pickleable
 from src.ui.stylesheets.app_stylesheet import MainStylesheetManager
@@ -71,7 +71,7 @@ class App:
             # else:
             #     logging.debug("App state is pickleable")
 
-            match MultiprocessingManager().run_process(WebserverProcess(to_pickleable(self.main_window.app_state()), lock=GlobalLock().lock())):
+            match MultiprocessingManager().run_process(WebserverProcess(to_pickleable(self.main_window.app_state()), lock=DatabaseLock().lock())):
                 case Failure(_):
                     raise MultiprocessingException("Failed to start web server")
             logging.info("Webserver started at %s", pwi_file.parent.as_posix())
