@@ -3,3 +3,7 @@ class GUIException(BaseException):
 
 class InvalidNameException(BaseException):
     pass
+
+class WikiDatabaseError(Exception):
+    pass
+

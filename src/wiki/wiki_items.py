@@ -97,7 +97,10 @@ class FolderItem(Item):
         return out
 
     def to_str_list(self):
-        return [item.path.as_posix() for item in self.to_flat_list()]
+        def str_item(item: FlatItemEntry):
+            item_type = "FILE" if item.type == ItemType.FILE else "DIR"
+            return f"{item_type} {item.path.as_posix()}"
+        return [str_item(item) for item in self.to_flat_list()]
     
     def __str__(self):
         return "\n".join(self.to_str_list())
@@ -208,6 +211,3 @@ class FolderItem(Item):
                     (file_fn or fn)(child)
                 elif isinstance(child, FolderItem):
                     stack.append(child)
-
-
- 
