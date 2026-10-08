@@ -63,7 +63,10 @@ class FolderItem(Item):
     def __init__(self, name: str, *items: Item):
         super().__init__(name)
         self._item_type = ItemType.DIRECTORY
-        self.__children: List[Item] = list(items)
+        self.__children: List[Item] = []
+
+        for item in items:
+            self.add_child(item)
 
     def add_child(self, child: Item) -> Result[None, WikiError]:
         if child in self.__children:
@@ -97,7 +100,10 @@ class FolderItem(Item):
         return out
 
     def to_str_list(self):
-        return [item.path.as_posix() for item in self.to_flat_list()]
+        def str_item(item: FlatItemEntry):
+            item_type = "FILE" if item.type == ItemType.FILE else "DIR"
+            return f"{item_type} {item.path.as_posix()}"
+        return [str_item(item) for item in self.to_flat_list()]
     
     def __str__(self):
         return "\n".join(self.to_str_list())
@@ -208,6 +214,3 @@ class FolderItem(Item):
                     (file_fn or fn)(child)
                 elif isinstance(child, FolderItem):
                     stack.append(child)
-
-
- 
