@@ -3,16 +3,22 @@ import os
 import pathlib
 from collections import deque
 from typing import Optional, List, Deque, Dict
+from uuid import UUID
 
 import attrs
 from PyQt6.QtGui import QStandardItemModel, QStandardItem
 from pygments.lexers import q
 from returns.result import Failure, Success
+from sqlalchemy import Connection, select
+from sqlalchemy.orm import Session
 
 from src.itemmodels.project_item import ItemInfo, ProjectItem
+from src.utils.db_utils import get_directory_uuid_query, get_wikidirectory_query
+from src.wiki.datamodel import WikiDirectoryEntry, WikiFileEntry, ROOT_DIR_UUID
 from src.wiki.wiki_items import FolderItem, FileItem, Item, ItemType
 from src.wiki.wiki_items import WikiError
 from src.utils.path_utils import path_dot
+from src.exceptions import WikiDatabaseError
 
 
 # def walk_and_return_folder_item(root_path: pathlib.Path):
@@ -39,20 +45,20 @@ class FolderIterEntry:
     path: pathlib.Path
     folder: FolderItem
 
-def walk_and_return_folder_item(root_path: pathlib.Path):
+def walk_and_return_folder_item(root_path: pathlib.Path) -> FolderItem:
     """
         Loads the widget with a specific path
     """
-    # TODO: separate file scanning logic
     root_item = FolderItem("root")
 
     queue: Deque[FolderIterEntry] = deque()
     queue.append(FolderIterEntry(
-        path=root_path.relative_to(root_path),
+        path=path_dot(),
         folder=root_item
     ))
+
     while queue:
-        cur_folder = queue.popleft()
+        cur_folder: FolderIterEntry = queue.popleft()
         for path in (root_path / cur_folder.path).iterdir():
             if path.is_file():
                 cur_folder.folder.add_child(FileItem(path.name))
@@ -65,25 +71,61 @@ def walk_and_return_folder_item(root_path: pathlib.Path):
                 ))
     return root_item
 
+def iterdir_db_dir_sess(session: Session, path: pathlib.Path) -> List[WikiDirectoryEntry | WikiFileEntry]:
+    
+    dir_entry = get_dir_sess(session, path)
+    assert dir_entry is not None
+    folders: List[WikiDirectoryEntry] = dir_entry.dir_children
+    files: List[WikiFileEntry] = dir_entry.file_children
+    out : List[WikiDirectoryEntry | WikiFileEntry] = [*folders, *files]
+    return out
+    
+def iterdir_db_dir(connection: Connection, path: pathlib.Path) -> List[WikiDirectoryEntry | WikiFileEntry]:
+    with Session(connection) as session:
+        return iterdir_db_dir_sess(session, path)
 
+def walk_db_and_return_folder_item(connection: Connection) -> FolderItem:
+    root_item = FolderItem("root")
 
-def to_model(folder: FolderItem):
+    stack: Deque[FolderIterEntry] = deque([
+        FolderIterEntry(
+            path=path_dot(),
+            folder=root_item
+        )
+    ])
+
+    while stack:
+        cur_folder: FolderIterEntry = stack.pop()
+        for entry in iterdir_db_dir(connection, cur_folder.path):
+            if isinstance(entry, WikiFileEntry):
+                cur_folder.folder.add_child(FileItem(entry.name))
+            if isinstance(entry, WikiDirectoryEntry):
+                folder = FolderItem(entry.name)
+                cur_folder.folder.add_child(folder)
+                stack.append(FolderIterEntry(
+                    path=cur_folder.path / entry.name,
+                    folder=folder
+                ))
+    return root_item
+                
+
+def to_model(folder: FolderItem) -> QStandardItemModel:
     item_system_model = QStandardItemModel()
-    root_node = item_system_model.invisibleRootItem()
+    root_node: QStandardItem | None = item_system_model.invisibleRootItem()
     if root_node is None:
         raise ValueError("item_system_model.invisibleRootItem() is None. This is not normal.")
     dir_to_item: Dict[str, QStandardItem] = dict()
     item_system_model.setHorizontalHeaderLabels([])
     subdirs: Deque[FolderIterEntry] = deque([FolderIterEntry(path_dot(), folder)])
-    dot = path_dot().as_posix()
+    dot: str = path_dot().as_posix()
     dir_to_item[dot] = root_node
     while len(subdirs) > 0:
-        subdir = subdirs.popleft()
+        subdir: FolderIterEntry = subdirs.popleft()
         #logging.debug("loading %s", subdir.path.as_posix())
         for child in subdir.folder.children():
             #print(subdir.folder)
-            rel_subdir = subdir.path
-            rel_path = rel_subdir / child.name()
+            rel_subdir: pathlib.Path = subdir.path
+            rel_path: pathlib.Path = rel_subdir / child.name()
             item_info = ItemInfo(
                 path = rel_path,
                 item_type=child.item_type()
@@ -96,3 +138,51 @@ def to_model(folder: FolderItem):
             if isinstance(child, FileItem):
                 dir_to_item[rel_subdir.as_posix()].appendRow(project_item)
     return item_system_model
+
+def get_file_sess(session: Session, item: pathlib.Path) -> None | WikiFileEntry:
+    if item == path_dot():
+        return None
+
+    return (session.query(WikiFileEntry)
+                .where(WikiFileEntry.name == item.name)
+                .where(WikiFileEntry.directory_uuid == get_directory_uuid_query(item.parent).scalar_subquery())
+        ).one_or_none()
+
+def get_file(connection: Connection, item: pathlib.Path) -> None | WikiFileEntry:
+    with Session(connection) as session:
+        return get_file_sess(session, item)
+
+
+def get_dir_sess(session: Session, item: pathlib.Path) -> WikiDirectoryEntry | None:
+    if item == path_dot():
+        return session.get(WikiDirectoryEntry, ROOT_DIR_UUID)
+    return (session.query(WikiDirectoryEntry)
+            .where(WikiDirectoryEntry.name == item.name)
+            .where(WikiDirectoryEntry.parent_uuid == get_directory_uuid_query(item.parent).scalar_subquery())
+        ).one_or_none()
+    
+def get_dir(connection: Connection, item: pathlib.Path) -> WikiDirectoryEntry | None:
+    with Session(connection) as session:
+        return get_dir_sess(session, item)
+
+def get_item_sess(session: Session, item: pathlib.Path) -> WikiFileEntry | WikiDirectoryEntry | None:
+    return get_file_sess(session, item) or get_dir_sess(session, item)
+
+def get_item(connection: Connection, item: pathlib.Path) -> WikiFileEntry | WikiDirectoryEntry | None:
+    return get_file(connection, item) or get_dir(connection, item)
+
+def ensure_get_item(connection: Connection, item: pathlib.Path) -> WikiFileEntry | WikiDirectoryEntry:
+    if (x := get_item(connection, item)) is None:
+        raise WikiDatabaseError(f"Item '{item.as_posix()}' not found.")
+    return x
+
+def ensure_get_item_sess(session: Session, item: pathlib.Path) -> WikiFileEntry | WikiDirectoryEntry:
+    if (x := get_item_sess(session, item)) is None:
+        raise WikiDatabaseError(f"Item '{item.as_posix}()' not found.")
+    return x
+
+def is_file(connection: Connection, item: pathlib.Path) -> bool:
+    return get_file(connection, item) is not None
+
+def is_dir(connection: Connection, item: pathlib.Path) -> bool:
+    return get_dir(connection, item) is not None

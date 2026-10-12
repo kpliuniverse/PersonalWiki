@@ -4,6 +4,7 @@ import sys
 import pathlib 
 import logging
 import atexit
+from typing import NoReturn
 
 
 from PyQt6.QtCore import QCoreApplication, QDir, Qt
@@ -18,7 +19,7 @@ from returns.result import Failure
 from src.consts import RESOURCE_PATH
 from src.initcontext import InitContext
 from src.multiprocessing.child_processes.webserver import WebserverProcess
-from src.multiprocessing.multiprocessing import GlobalLock, MultiprocessingManager, MultiprocessingException
+from src.multiprocessing.multiprocessing import DatabaseLock, MultiprocessingManager, MultiprocessingException
 from src.resources import ResourceManager
 from src.states.appstate import to_pickleable
 from src.ui.stylesheets.app_stylesheet import MainStylesheetManager
@@ -29,22 +30,22 @@ from src.ui.windows.wiki_window import WikiWindow
 
 class App:
 
-    def __except_hook(self, *args):
+    def __except_hook(self, *args) -> None:
         self.__cleanup()
         sys.__excepthook__(*args)
-    def __init__(self):
+    def __init__(self) -> None:
         self.main_window: MainWindow | None  = None
         self.app = QApplication(sys.argv)
         atexit.register(self.__cleanup)
         sys.excepthook = self.__except_hook
-    def add_paths(self):
+    def add_paths(self) -> None:
         QDir.addSearchPath("res", "resources/")
 
-    def init_resources(self):
+    def init_resources(self) -> None:
         ResourceManager()
         MainStylesheetManager()
 
-    def init_fonts(self):
+    def init_fonts(self) -> None:
         """
             Initialize font to the application's resident QFontDatabase
         """
@@ -52,10 +53,10 @@ class App:
             QFontDatabase.addApplicationFont(path.as_posix())
             logging.info("Added font file: %s", path.as_posix())
         logging.debug("Font families: %s", ", ".join(QFontDatabase.families()))
-    def __cleanup(self):
+    def __cleanup(self) -> None:
         MultiprocessingManager().kill_all()
 
-    def run_main(self, pwi_file: pathlib.Path):
+    def run_main(self, pwi_file: pathlib.Path) -> None:
         """
             Runs the main windows.
         """
@@ -71,7 +72,7 @@ class App:
             # else:
             #     logging.debug("App state is pickleable")
 
-            match MultiprocessingManager().run_process(WebserverProcess(to_pickleable(self.main_window.app_state()), lock=GlobalLock().lock())):
+            match MultiprocessingManager().run_process(WebserverProcess(to_pickleable(self.main_window.app_state()), lock=DatabaseLock().lock())):
                 case Failure(_):
                     raise MultiprocessingException("Failed to start web server")
             logging.info("Webserver started at %s", pwi_file.parent.as_posix())
@@ -85,7 +86,7 @@ class App:
     # def __cleanup(self):
     #     MultiprocessingManager().kill_all()
             
-    def run(self):
+    def run(self) -> NoReturn:
         """
             Runs the app
         """

@@ -3,18 +3,18 @@ from typing import override
 
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QCloseEvent
-from PyQt6.QtWidgets import QMainWindow, QPushButton, QVBoxLayout, QWidget, QFileDialog
+from PyQt6.QtWidgets import QLayout, QMainWindow, QPushButton, QVBoxLayout, QWidget, QFileDialog
 
 from src.ui.dialogs.new_wiki_dialog import NewWikiDialog
 from src.ui.stylesheets.app_stylesheet import MainStylesheetManager
-from src.wiki.wiki import create_wiki
+from src.wiki.wiki import Wiki, create_wiki
 
 
 class WikiWindow(QMainWindow):
 
     wiki_opened = pyqtSignal(pathlib.Path)
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         self.setWindowTitle("PersonalWiki Wiki Manager")
@@ -35,22 +35,22 @@ class WikiWindow(QMainWindow):
 
         self.setStyleSheet(MainStylesheetManager().get_rule("*"))
 
-    def __on_new_btn_clicked(self):
+    def __on_new_btn_clicked(self) -> None:
         new_wiki_dialog = NewWikiDialog(self)
         new_wiki_dialog.on_name_selected.connect(self.__create_wiki_and_open)
         new_wiki_dialog.exec()
 
-    def __on_open_btn_clicked(self):
+    def __on_open_btn_clicked(self) -> None:
         file_dialog = QFileDialog(parent=self)
         file_dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
         file_dialog.setNameFilter("wiki.pwi")
         file_dialog.fileSelected.connect(lambda p: self.__open_wiki(pathlib.Path(p)))
         file_dialog.exec()
 
-    def __create_wiki_and_open(self, final_path: pathlib.Path):
-        wiki = create_wiki(final_path.parent, final_path.name)
+    def __create_wiki_and_open(self, final_path: pathlib.Path) -> None:
+        wiki: Wiki = create_wiki(final_path.parent, final_path.name)
         self.__open_wiki(wiki.get_wiki_dir_path() / "wiki.pwi")
 
-    def __open_wiki(self, pwi_file: pathlib.Path):
+    def __open_wiki(self, pwi_file: pathlib.Path) -> None:
         self.close()
         self.wiki_opened.emit(pwi_file)
