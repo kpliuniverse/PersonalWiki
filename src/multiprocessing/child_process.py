@@ -11,7 +11,7 @@ class ChildProcess(Protocol):
     """
 
     @abstractmethod
-    def run(self): ...
+    def run(self) -> None: ...
 
-    def close(self):
+    def close(self) -> None:
         pass
