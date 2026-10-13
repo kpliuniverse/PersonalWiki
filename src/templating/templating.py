@@ -11,14 +11,14 @@ from src.utils.singleton import Singleton
 
 class MainHTMLTemplater(metaclass=Singleton):
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.__environment = jinja2.Environment()
         self.__environment.filters["res_path"] = res_path
         logging.info("Loading template.html")
-        self.__template = self.__environment.from_string(get_data_and_raise_if_none("src.templating", "template.html").decode())
+        self.__template: jinja2.Template = self.__environment.from_string(get_data_and_raise_if_none("src.templating", "template.html").decode())
         # self.__css_template = self.__environment.from_string(get_data_and_raise_if_none("src.stati", "default_wiki.css").decode())
 
-    def render(self, context: Dict[str, Any]):
+    def render(self, context: Dict[str, Any]) -> str:
         """
             Render the HTML file
 

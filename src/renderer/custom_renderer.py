@@ -1,13 +1,13 @@
 import html
 import logging
-from typing import Any, ClassVar, Dict, Iterable, Optional, Tuple, Union, Literal
+from typing import Any, Callable, ClassVar, Dict, Iterable, Optional, Tuple, Union, Literal
 from urllib.parse import unquote
 
 from mistune import create_markdown
 from mistune.core import BaseRenderer, BlockState
 from mistune.util import safe_entity, striptags
 
-def escape_text(s: str, quote: bool = True):
+def escape_text(s: str, quote: bool = True) -> str:
     return html.escape(s, quote)
 
 class CustomHTMLRenderer(BaseRenderer):
@@ -44,13 +44,13 @@ class CustomHTMLRenderer(BaseRenderer):
 
     def render_token(self, token: Dict[str, Any], state: BlockState) -> str:
         # backward compitable with v2
-        func = self._get_method(token["type"])
-        attrs = token.get("attrs")
+        func: Callable[..., str] = self._get_method(token["type"])
+        attrs: Any | None = token.get("attrs")
 
         if "raw" in token:
             text = token["raw"]
         elif "children" in token:
-            text = self.render_tokens(token["children"], state)
+            text: str = self.render_tokens(token["children"], state)
         else:
             if attrs:
                 return func(**attrs)
@@ -65,11 +65,11 @@ class CustomHTMLRenderer(BaseRenderer):
         """Ensure the given URL is safe. This method is used for rendering
         links, images, and etc.
         """
-        allow_harmful_protocols = self._allow_harmful_protocols
+        allow_harmful_protocols: bool | Iterable[str] | None = self._allow_harmful_protocols
         if allow_harmful_protocols is True:
             return escape_text(url)
 
-        _url = _unquote_url(url).lower().lstrip()
+        _url: str = _unquote_url(url).lower().lstrip()
 
         if _is_safe_url(_url, self.SAFE_PROTOCOLS, self.GOOD_DATA_PROTOCOLS):
             return escape_text(url)
@@ -88,15 +88,15 @@ class CustomHTMLRenderer(BaseRenderer):
         return "<strong>" + text + "</strong>"
 
     def link(self, text: str, url: str, title: Optional[str] = None) -> str:
-        s = '<a href="' + self.safe_url(url) + '"'
+        s: str = '<a href="' + self.safe_url(url) + '"'
         if title:
             s += ' title="' + safe_entity(title) + '"'
         return s + ">" + text + "</a>"
 
     def image(self, text: str, url: str, title: Optional[str] = None) -> str:
-        src = self.safe_url(url)
-        alt = striptags(text)
-        s = '<img src="' + src + '" alt="' + alt + '"'
+        src: str = self.safe_url(url)
+        alt: str = striptags(text)
+        s: str = '<img src="' + src + '" alt="' + alt + '"'
         if title:
             s += ' title="' + safe_entity(title) + '"'
         return s + " />"
@@ -119,9 +119,9 @@ class CustomHTMLRenderer(BaseRenderer):
         return "<p>" + text + "</p>\n"
 
     def heading(self, text: str, level: int, **attrs: Any) -> str:
-        tag = "h" + str(level)
-        html = "<" + tag
-        _id = attrs.get("id")
+        tag: str = "h" + str(level)
+        html: str = "<" + tag
+        _id: Any | None = attrs.get("id")
         if _id:
             html += ' id="' + escape_text(_id) + '"'
         return html + ">" + text + "</" + tag + ">\n"
@@ -140,7 +140,7 @@ class CustomHTMLRenderer(BaseRenderer):
         if info is not None:
             info = safe_entity(info.strip())
         if info:
-            lang = info.split(None, 1)[0]
+            lang: str = info.split(None, 1)[0]
             html += ' class="language-' + lang + '"'
         return html + ">" + escape_text(code) + "</code></pre>\n"
 
@@ -158,7 +158,7 @@ class CustomHTMLRenderer(BaseRenderer):
     def list(self, text: str, ordered: bool, **attrs: Any) -> str:
         if ordered:
             html = "<ol"
-            start = attrs.get("start")
+            start: Any | None = attrs.get("start")
             if start is not None:
                 html += ' start="' + str(start) + '"'
             return html + ">\n" + text + "</ol>\n"
@@ -170,7 +170,7 @@ class CustomHTMLRenderer(BaseRenderer):
 
 def _unquote_url(url: str) -> str:
     for _ in range(3):
-        decoded = unquote(url)
+        decoded: str = unquote(url)
         if decoded == url:
             break
         url = decoded
