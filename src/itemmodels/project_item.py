@@ -16,7 +16,7 @@ class ItemInfo:
     item_type: ItemType
     
 class ProjectItem(QStandardItem):
-    def __init__(self, info: ItemInfo, name: Optional[str] = None):
+    def __init__(self, info: ItemInfo, name: Optional[str] = None) -> None:
         super().__init__()
         self.setEditable(False)
         if name is None:
@@ -24,4 +24,4 @@ class ProjectItem(QStandardItem):
         else:
             self.setText(name)
         self.setData(info, ITEM_DATA_ROLE)
-        self.info = info
+        self.info: ItemInfo = info
