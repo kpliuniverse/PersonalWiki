@@ -15,8 +15,8 @@ from returns.result import Failure, Result, Success, attempt, safe
 from sqlalchemy import URL, Engine, create_engine
 
 from src.consts import WIKI_ENCODING
-from src.exceptions import InvalidNameException
-from src.multiprocessing.multiprocessing import GlobalLock
+from src.exceptions import DataIntegrityError, InvalidNameException, WikiOperationError
+from src.multiprocessing.multiprocessing import DatabaseLock
 from src.states.wikistate import Session, Settings, WikiState
 from src.utils.file_utils import create_empty_file
 from src.utils.item_validity import valid_item_name
@@ -26,9 +26,17 @@ from src.wiki.datamodel import WikiBase
 
 NAME_OF_DB_FILE = "wiki.db"
 
-class WikiFileMode(StrEnum):
-    READ = "r"
-    WRITE = "w"
+def item_type_mismatch_exception(_src, _dst) -> WikiOperationError:
+    return WikiOperationError(f"Cannot move/copy directory/file '{_src.as_posix()}' to a file/directory '{_dst.as_posix()}'")
+
+class DuplicateException(BaseException):
+    pass
+
+class WikiOpMode(StrEnum):
+    READ = auto()
+    WRITE = auto()
+    CREATE = auto()
+    OVERWRITE = auto()
 
 class DatabaseError(BaseException):
     pass
@@ -127,19 +135,161 @@ class Wiki:
     def get_wiki_proper_path(self):
         return self.get_wiki_dir_path() / "proper"
 
-    def do_operations(self, actions: List[Action]):
+    def __copy_file_to_dir(self, session: ORMSession, src_uuid: UUID, dir_uuid: UUID, new_name: Optional[str]=None) -> None:
+        src_file: WikiFileEntry = session.get_one(WikiFileEntry, src_uuid)
+        dst_name = Maybe.from_optional(new_name).value_or(src_file.name)
+        target_dir = session.get(WikiDirectoryEntry, dir_uuid)
+
+        if target_dir is None:
+            raise WikiDatabaseError(f"Directory uuid {dir_uuid} not found.")
+
+        #dir_dst = session.scalars(select(WikiDirectoryEntry).where(WikiDirectoryEntry.uuid == dir_uuid)).one_or_none()
+        
+        if (x := session.query(WikiFileEntry).where(WikiFileEntry.directory_uuid == dir_uuid).where(WikiFileEntry.name == dst_name).one_or_none()) is not None:
+            logging.debug("Duplicate detected, overwriting.")
+            x.copy_from(src_file)
+        else:
+                
+            session.add(
+                WikiFileEntry(
+                    name=dst_name,
+                    type=src_file.type,
+                    value=src_file.value,
+                    directory=target_dir,
+                    uuid=gen_uuid(session, WikiFileEntry)
+                )
+            ) 
+            
+        # with self.open_wikifile(dest, WikiOpMode.CREATE) as f:
+        #                     f.write(wiki_file.value)
+    
+    def __copy_dir(self, session: ORMSession, src_uuid: UUID, dst_uuid: UUID, new_name: Optional[str] = None) -> None:
+
+        uuid_queue: deque[tuple[UUID, UUID]] = deque([(src_uuid, dst_uuid)])
+        
+        while uuid_queue:
+            cur_dir_id, dest_dir_id = uuid_queue.pop()
+            cur_dir: WikiDirectoryEntry = session.scalars(select(WikiDirectoryEntry).where(WikiDirectoryEntry.uuid == cur_dir_id)).one()
+            cur_child_dirs: List[WikiDirectoryEntry] = cur_dir.dir_children
+            cur_child_files: List[WikiFileEntry] = cur_dir.file_children
+            
+            dest_name = Maybe.from_optional(new_name).value_or(cur_dir.name)
+
+            if (dest_dir := session.query(WikiDirectoryEntry).where(WikiDirectoryEntry.name == dest_name).where(WikiDirectoryEntry.parent_uuid == dest_dir_id).one_or_none()) is None:
+                dest_dir = WikiDirectoryEntry(
+                    name=new_name or cur_dir.name,
+                    parent=session.get(WikiDirectoryEntry, dest_dir_id),
+                    uuid=gen_uuid(session, WikiDirectoryEntry)
+                )
+
+                session.add(dest_dir)
+
+            for dir in cur_child_dirs:
+                uuid_queue.append((dir.uuid, dest_dir.uuid))
+
+            for file in cur_child_files:
+                self.__copy_file_to_dir(session, file.uuid, dest_dir.uuid)
+
+
+    def __copy_item_to_dir(self, session: ORMSession, item: WikiItem, directory: WikiDirectoryEntry, new_name: Optional[str] = None) -> None:
+        if isinstance(item, WikiFileEntry):
+            self.__copy_file_to_dir(session, item.uuid, directory.uuid, new_name)
+        elif isinstance(item, WikiDirectoryEntry):
+            self.__copy_dir(session, item.uuid, directory.uuid, new_name)
+
+
+
+    def do_operations(self, actions: List[Action]) -> None:
         """
             Given a list of actions, do move, copy, delete,
         """
+
+        
         match actions:
             case []:
                 return
             case [MoveAction(src, dst)]:
-                logging.debug("Moving from %s to %s", src.as_posix(), dst.as_posix())
-                shutil.move(self.get_wiki_proper_path() / src, self.get_wiki_proper_path() / dst)
+                logging.info("Moving %s ---> %s", src.as_posix(), dst.as_posix())
+                with WikiEngine(self.__db_url) as e, e.connect() as c:
+                    with ORMSession(c) as session, session.begin():
+                        src_item: WikiFileEntry | WikiDirectoryEntry = ensure_get_item_sess(session, src)
+                        dst_item: WikiFileEntry | WikiDirectoryEntry | None = get_item_sess(session, dst)
+
+                        if dst_item is None:
+                            dst_parent_item: WikiDirectoryEntry | None = self.get_dir(dst.parent)
+                            if dst_parent_item is None:
+                                raise WikiOperationError(f"path '{dst.parent}' not found")
+                            src_item.change_parent(dst_parent_item.uuid)
+                            src_item.rename(dst.name)
+                        elif isinstance(dst_item, WikiDirectoryEntry):
+                            dst_child: pathlib.Path = dst / src.name
+                            existing_child: WikiFileEntry | WikiDirectoryEntry | None = get_item_sess(session, dst_child)
+
+                            if existing_child:
+                                logging.info("While moving from %s to directory %s, dest child [dst]/%s detected", src.as_posix(), dst.as_posix(), src.name)
+                            if isinstance(src_item, WikiDirectoryEntry):
+                                if isinstance(existing_child, WikiFileEntry):
+                                    raise item_type_mismatch_exception(src, dst_child)
+                                elif isinstance(existing_child, WikiDirectoryEntry):
+                                    if iterdir_db_dir_sess(session, dst_child):
+                                        raise WikiOperationError(f"Cannot move '{src.as_posix()}' to '{(dst / src.name).as_posix()}', directory not empty")
+                                    session.delete(existing_child)
+                                    session.flush()
+                                src_item.parent_uuid = dst_item.uuid
+
+                            else:
+                                if isinstance(existing_child, WikiDirectoryEntry):
+                                    raise item_type_mismatch_exception(src, dst_child)
+                                if isinstance(existing_child, WikiFileEntry):
+                                    session.delete(existing_child)
+                                    session.flush()
+                                
+                                src_item.directory_uuid = dst_item.uuid
+                        elif isinstance(dst_item, WikiFileEntry):
+                            if isinstance(src_item, WikiDirectoryEntry):
+                                raise item_type_mismatch_exception(src, dst)
+                            session.delete(src_item)
+                            dst_item.copy_from(src_item, copy_uuid=False)
+                             
+                #     with DatabaseLock().lock(), WikiEngine(self.db_url) as e, e.connect() as c, ORMSession(c) as session, session.begin():
+                #         logging.debug("Moving from %s to %s", src.as_posix(), dst.as_posix())
+                #         # shutil.move(self.get_wiki_proper_path() / src, self.get_wiki_proper_path() / dst)
+                #         wiki_file = src_item
+                #         if self.is_dir(dst):
+                #             wiki_file.directory_uuid = session.scalars(get_directory_uuid_query(dst)).one().uuid
+                #         else:
+                #             with self.open_wikifile(dst, WikiFileMode(
+                #                 op_mode=WikiOpMode.CREATE,
+                #                 byte_mode=False,
+                #                 ensured_wikifileentry_type=WikiFileEntryType.RAW
+                #             )) as f:
+                #                 f.write(wiki_file.value)
+                # self.do_operations([DeleteAction(src)])
+
             case [CopyAction(src, dst)]:
-                logging.debug("Copying from %s to %s", src.as_posix(), dst.as_posix())
-                shutil.copy(self.get_wiki_proper_path() / src, self.get_wiki_proper_path() / dst)
+                logging.info("Copying '%s' ---> '%s'", src.as_posix(), dst.as_posix())
+                with WikiEngine(self.__db_url) as e, e.connect() as c, ORMSession(c) as session, session.begin():
+                    src_item: WikiFileEntry | WikiDirectoryEntry = ensure_get_item_sess(session, src)
+                    dst_item: WikiFileEntry | WikiDirectoryEntry | None = get_item_sess(session, dst)
+                    
+
+                    if dst_item is None:
+                        logging.debug("Destination '%s' doesn't exist, creating...", dst.as_posix())
+                        dst_parent_item: WikiDirectoryEntry | None = self.get_dir(dst.parent)
+                        if dst_parent_item is None:
+                            raise WikiDatabaseError(f"path '{dst.parent}' not found")
+                        self.__copy_item_to_dir(session, src_item, dst_parent_item, dst.name)
+                    elif isinstance(dst_item, WikiDirectoryEntry):
+                        if (x := get_item_sess(session, dst / src.name)) and not (type(x) is type(src_item)):
+                            raise item_type_mismatch_exception(src, dst / src.name)
+                        self.__copy_item_to_dir(session, src_item, dst_item)        
+                    elif isinstance(dst_item, WikiFileEntry):
+                        if isinstance(src_item, WikiDirectoryEntry):
+                            raise item_type_mismatch_exception(src, dst)
+                        dst_item.copy_from(src_item, copy_uuid=False)
+                   
+                                        
+                # shutil.copy(self.get_wiki_proper_path() / src, self.get_wiki_proper_path() / dst)
             case [DeleteAction(target)]:
                 logging.debug("Deleting %s", target)
                 if target.is_file():
@@ -157,7 +307,46 @@ class Wiki:
                 else:
                     create_empty_file(path)
 
-    def set_cur_item(self, item: pathlib.Path):
+    @safe(exceptions=(NoResultFound,))
+    def _mkdir(self, path: pathlib.Path) -> None:
+
+        if path == path_dot():
+            raise ValueError("Path points to root")
+        if not is_valid_item_name(path.name):
+            raise ValueError(f"'{path.name}' is not a valid name")
+        
+        with WikiEngine(self.__db_url) as e, e.connect() as c, ORMSession(c) as session, session.begin():
+            if (parent := get_dir_sess(session, path.parent)) is None:
+                raise NoResultFound()
+            session.add(
+                WikiDirectoryEntry(
+                    name=path.name,
+                    uuid=gen_uuid(session, WikiDirectoryEntry),
+                    parent=parent,
+                )
+            )
+
+    def mkdir(self, path: pathlib.Path, parents=False) -> None:
+        logging.debug("mkdir %s", path.as_posix())
+        stack: List[pathlib.Path] = [path]
+
+        while stack:
+            cur_path: pathlib.Path = stack[-1]
+            result: Result[None, Exception] = self._mkdir(cur_path)
+
+            match result:
+                case Success(_):
+                    stack.pop()
+                case Failure(NoResultFound()):
+                    stack.append(cur_path.parent)
+                case Failure(e):
+                    raise e
+
+
+
+
+
+    def set_cur_item(self, item: pathlib.Path) -> None:
         self.__wikistate.cur_session.cur_item = item
 
     def get_cur_item(self):
