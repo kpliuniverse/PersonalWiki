@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import QWidget, QHBoxLayout, QPushButton
 
 class EntryRibbon(QWidget):
 
-    def __init__(self, parent: QWidget | None):
+    def __init__(self, parent: QWidget | None) -> None:
         super().__init__(parent)
         self.setLayout(QHBoxLayout())
         

@@ -8,14 +8,14 @@ from PyQt6.QtCore import pyqtSignal
 
 from src.exceptions import GUIException
 from src.ui.components.dir_preview import SystemDirPreview
-from src.utils.item_validity import valid_item_name
+from src.utils.item_validity import is_valid_item_name
 
 class NewWikiDialog(QDialog):
 
     on_name_selected: pyqtSignal = pyqtSignal(pathlib.Path)
 
     
-    def __init__(self, parent: QWidget):
+    def __init__(self, parent: QWidget) -> None:
 
         super().__init__(parent)
         
@@ -45,12 +45,12 @@ class NewWikiDialog(QDialog):
         # Width of self.__location_label is inaccurate when retrieved in __init__, it must be running on the app for it to be accurate
         # QTimer.singleShot(10, Qt.TimerType.PreciseTimer, self.__update_item_label)
         
-    def __on_accept(self):
+    def __on_accept(self) -> None:
         if (p := self.get_resultant_path()) is None:
             raise GUIException("Accepted without selected path.")
         self.on_name_selected.emit(p)
 
-    def __on_select(self):
+    def __on_select(self) -> None:
         self.__validate()
 
     def get_resultant_path(self) -> Optional[pathlib.Path]:
@@ -59,14 +59,14 @@ class NewWikiDialog(QDialog):
         """
         if (d := self.__dir_preview.get_chosen_dir()) is None:
             return None
-        out = d / self.__line_edit.text()
+        out: pathlib.Path = d / self.__line_edit.text()
         return out
 
-    def __validate(self):
+    def __validate(self) -> None:
         valid = True
-        error_msg = ""
-        line_edit_txt = self.__line_edit.text()
-        if not valid_item_name(line_edit_txt):
+        error_msg: str = ""
+        line_edit_txt: str = self.__line_edit.text()
+        if not is_valid_item_name(line_edit_txt):
             valid = False
             error_msg = "Not a valid item name."
         elif (p := self.get_resultant_path()) is not None:

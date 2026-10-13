@@ -27,7 +27,7 @@ class ProjectDialog(QDialog):
 
     on_file_selected: pyqtSignal = pyqtSignal(pathlib.Path)
 
-    def __init__(self, parent: QWidget, wiki_dir: pathlib.Path, args: ProjectDialogArgs):
+    def __init__(self, parent: QWidget, wiki_dir: pathlib.Path, args: ProjectDialogArgs) -> None:
         self.__cur_file_selected: Optional[pathlib.Path] = None
         super().__init__(parent=parent)
         layout = QHBoxLayout()
@@ -48,10 +48,10 @@ class ProjectDialog(QDialog):
 
         self.accepted.connect(self.__on_accepted)
 
-    def __on_accepted(self):
+    def __on_accepted(self) -> None:
         if self.__cur_file_selected is not None:
             self.on_file_selected.emit(self.__cur_file_selected)
 
-    def __on_tree_select(self):
+    def __on_tree_select(self) -> None:
         self.__cur_file_selected = self.__tree.get_cur_selected_path()
         

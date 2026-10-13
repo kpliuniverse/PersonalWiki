@@ -9,17 +9,17 @@ from PyQt6.QtCore import QTimer, Qt, pyqtSignal
 from src.exceptions import GUIException
 from src.items.items import ItemRecognizedType, ItemCreationResult
 from src.ui.components.dir_preview import ProjectDirPreview
-from src.utils.item_validity import valid_item_name
+from src.utils.item_validity import is_valid_item_name
 
 class ItemNewDialog(QDialog):
 
     on_name_selected: pyqtSignal = pyqtSignal(ItemCreationResult)
 
     
-    def __init__(self, parent: QWidget, item_type: ItemRecognizedType, directory: pathlib.Path, wiki_proper_directory: pathlib.Path):
+    def __init__(self, parent: QWidget, item_type: ItemRecognizedType, directory: pathlib.Path, wiki_proper_directory: pathlib.Path) -> None:
         logging.debug("directory=%s, wiki_proper=%s", directory, wiki_proper_directory)
 
-        self.__working_directory = directory
+        self.__working_directory: pathlib.Path = directory
         super().__init__(parent)
         self.setWindowTitle("New Item")
 
@@ -47,47 +47,47 @@ class ItemNewDialog(QDialog):
 
         self.accepted.connect(self.__on_accept)
 
-        self.__item_type = item_type
-        self.__wiki_directory = wiki_proper_directory
+        self.__item_type: ItemRecognizedType = item_type
+        self.__wiki_directory: pathlib.Path = wiki_proper_directory
         self.__validate()
         # Width of self.__location_label is inaccurate when retrieved in __init__, it must be running on the app for it to be accurate
         # QTimer.singleShot(10, Qt.TimerType.PreciseTimer, self.__update_item_label)
         
-    def __on_accept(self):
+    def __on_accept(self) -> None:
         self.on_name_selected.emit(ItemCreationResult(
                 path=self.gen_resultant_path(),
                 recognized_type=self.__item_type
             )
         )
 
-    def __on_select(self):
-        if chosen_dir := self.__dir_preview.get_chosen_dir():
-            self.__working_directory = self.__wiki_directory / chosen_dir
+    def __on_select(self) -> None:
+        if (chosen_dir := self.__dir_preview.get_chosen_dir()) is not None:
+            self.__working_directory: pathlib.Path = self.__wiki_directory / chosen_dir
         self.__validate()
 
-    def gen_resultant_path(self):
+    def gen_resultant_path(self) -> pathlib.Path:
         """
             Get resultant path, relative to wiki proper
         """
-        line_edit_txt = self.__line_edit.text()
-        txt_stripped = line_edit_txt.strip()
-        ending = ""
+        line_edit_txt: str = self.__line_edit.text()
+        txt_stripped: str = line_edit_txt.strip()
+        ending: str = ""
         if self.__item_type == ItemRecognizedType.PWE:
             ending = ".pwe"
         return self.__working_directory / f"{txt_stripped}{ending}"
 
-    def __validate(self):
+    def __validate(self) -> None:
         valid = True
-        error_msg = ""
-        line_edit_txt = self.__line_edit.text()
-        if not valid_item_name(line_edit_txt):
+        error_msg: str = ""
+        line_edit_txt: str = self.__line_edit.text()
+        if not is_valid_item_name(line_edit_txt):
             valid = False
             error_msg = "Not a valid item name."
         elif self.__dir_preview.get_chosen_dir() is None:
             valid = False
         elif (self.__wiki_directory / self.gen_resultant_path()).exists():
             valid = False
-            error_msg = f"Item/folder already exists"
+            error_msg: str = f"Item/folder already exists"
         self.__error_label.setText(error_msg)
         self.__button.setDisabled(not valid)
         

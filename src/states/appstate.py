@@ -11,7 +11,7 @@ class AppState:
 class PickleableAppState:
     wiki_state: WikiState
 
-def to_pickleable(app_state: AppState):
+def to_pickleable(app_state: AppState) -> PickleableAppState:
     return PickleableAppState(
         wiki_state=app_state.cur_wiki.get_wiki_state()
     )
