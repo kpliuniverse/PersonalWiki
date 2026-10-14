@@ -12,7 +12,7 @@ class Loadable(Protocol):
         Implement by having a method as follows: def load_item(self, item: pathlib.Path)
     """
     @abstractmethod
-    def load_item(self, item: pathlib.Path): ...
+    def load_item(self, item: pathlib.Path) -> None: ...
 
 
 @runtime_checkable
@@ -23,7 +23,7 @@ class Savable(Protocol):
         Implement by having a method as follows: def save_cur_item(self)
     """
     @abstractmethod
-    def save_cur_item(self): ...
+    def save_cur_item(self) -> None: ...
 
 
 @runtime_checkable
