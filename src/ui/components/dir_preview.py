@@ -14,7 +14,7 @@ from src.utils.path_utils import gen_path_string
 class DirPreviewWidget(QWidget):
     button_clicked = pyqtSignal(int)
 
-    def __init__(self, parent: QWidget):
+    def __init__(self, parent: QWidget) -> None:
         super().__init__(parent=parent)
 
         self.__formating_function: Callable[[], str] = lambda: ""
@@ -30,18 +30,18 @@ class DirPreviewWidget(QWidget):
         dir_chooser_layout.addWidget(self.browse_button)
         
 
-    def set_location_text(self, text: str):
+    def set_location_text(self, text: str) -> None:
         metrics = QFontMetrics(self.__location_label.font())
-        elided_text = metrics.elidedText(text, Qt.TextElideMode.ElideMiddle, self.__location_label.width())
+        elided_text: str = metrics.elidedText(text, Qt.TextElideMode.ElideMiddle, self.__location_label.width())
         self.__location_label.setText(elided_text)
 
-    def set_button_enabled(self, b: bool):
+    def set_button_enabled(self, b: bool) -> None:
         self.browse_button.setDisabled(not b)
 
 
 class ProjectDirPreview(QWidget):
     file_selected = pyqtSignal()
-    def __init__(self, parent: QWidget, wiki_dir: pathlib.Path, pre_chosen_dir: Optional[pathlib.Path] = None):
+    def __init__(self, parent: QWidget, wiki_dir: pathlib.Path, pre_chosen_dir: Optional[pathlib.Path] = None) -> None:
         super().__init__(parent=parent)
 
         dir_chooser_layout = QHBoxLayout()
@@ -51,7 +51,7 @@ class ProjectDirPreview(QWidget):
         self.dir_preview_control.button_clicked.connect(self.__on_browse)
         dir_chooser_layout.addWidget(self.dir_preview_control)
 
-        self.__wiki_directory = wiki_dir
+        self.__wiki_directory: pathlib.Path = wiki_dir
         self.__chosen_path: Optional[pathlib.Path] = None
 
         if pre_chosen_dir is not None:
@@ -59,25 +59,25 @@ class ProjectDirPreview(QWidget):
 
         QTimer.singleShot(10, self.__update_label)
         
-    def __update_label(self):
+    def __update_label(self) -> None:
         if self.__chosen_path is None:
             self.dir_preview_control.set_location_text("(no path selected)")
             return
-        location_text = f"at {gen_path_string(self.__wiki_directory / self.__chosen_path, self.__wiki_directory)}"
+        location_text: str = f"at {gen_path_string(self.__wiki_directory / self.__chosen_path, self.__wiki_directory)}"
         self.dir_preview_control.set_location_text(location_text)
 
-    def __on_chosen(self, chosen_path: pathlib.Path):
+    def __on_chosen(self, chosen_path: pathlib.Path) -> None:
         self.__chosen_path = chosen_path
         self.__update_label()
         self.file_selected.emit()
 
-    def get_chosen_dir(self):
+    def get_chosen_dir(self) -> pathlib.Path | None:
         """
             Get chosen dir, relative to wiki proper.
         """
         return self.__chosen_path
 
-    def __on_browse(self):
+    def __on_browse(self) -> None:
         dialog = ProjectDialog(self, self.__wiki_directory, ProjectDialogArgs(
             dir_only=True,
             add_root_as_folder=True,
@@ -89,7 +89,7 @@ class ProjectDirPreview(QWidget):
 
 class SystemDirPreview(QWidget):
     file_selected = pyqtSignal()
-    def __init__(self, parent: QWidget):
+    def __init__(self, parent: QWidget) -> None:
         super().__init__(parent=parent)
 
         dir_chooser_layout = QHBoxLayout()
@@ -104,14 +104,14 @@ class SystemDirPreview(QWidget):
 
         QTimer.singleShot(10, self.__update_label)
         
-    def __update_label(self):
+    def __update_label(self) -> None:
         if self.__chosen_path is None:
             self.dir_preview_control.set_location_text("(no path selected)")
             return
-        location_text = f"at {self.__chosen_path}"
+        location_text: str = f"at {self.__chosen_path}"
         self.dir_preview_control.set_location_text(location_text)
 
-    def __on_chosen(self, chosen_path: pathlib.Path):
+    def __on_chosen(self, chosen_path: pathlib.Path) -> None:
         self.__chosen_path = chosen_path
         self.__update_label()
         self.file_selected.emit()
@@ -122,7 +122,7 @@ class SystemDirPreview(QWidget):
         """
         return self.__chosen_path
 
-    def __on_browse(self):
+    def __on_browse(self) -> None:
         dialog = QFileDialog(self)
         dialog.setFileMode(QFileDialog.FileMode.Directory)
         dialog.setOptions(QFileDialog.Option.ShowDirsOnly)

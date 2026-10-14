@@ -8,11 +8,11 @@ from src.renderer.custom_renderer import CustomHTMLRenderer
 
 
 
-def add_plugins(md: Markdown, plugins: List[Callable[[Markdown]]]):
+def add_plugins(md: Markdown, plugins: List[Callable[[Markdown]]]) -> None:
     for plugin in plugins:
         plugin(md)
 
-def parse_md_to_html(md: str):
+def parse_md_to_html(md: str) -> str:
 
     plugins: List[Callable[[Markdown]]] = [
         table,
@@ -20,7 +20,7 @@ def parse_md_to_html(md: str):
         special_tags
     ]
     
-    md_instance = create_markdown(
+    md_instance: Markdown = create_markdown(
         renderer=CustomHTMLRenderer(),
         escape=True,
         
@@ -28,14 +28,14 @@ def parse_md_to_html(md: str):
     add_plugins(md_instance, plugins)
     return str(md_instance(md))
 
-def parse_md_to_plain_text(md: str):
+def parse_md_to_plain_text(md: str) -> str:
     plugins: List[Callable[[Markdown]]] = [
         table,
         footnotes,
         special_tags
     ]
     
-    md_instance = create_markdown(
+    md_instance: Markdown = create_markdown(
         renderer=PlainMarkdownRenderer(),   
     )
     add_plugins(md_instance, plugins)

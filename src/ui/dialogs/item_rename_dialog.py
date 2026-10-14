@@ -13,7 +13,7 @@ from attrs import define
 from src.exceptions import GUIException
 from src.itemmodels.project_item import ItemInfo
 from src.items.items import ItemRecognizedType, ItemCreationResult
-from src.utils.item_validity import valid_item_name
+from src.utils.item_validity import is_valid_item_name
 from src.utils.path_utils import gen_path_string
 
 
@@ -22,7 +22,7 @@ class RenameInfo:
     item: ItemInfo
     new_name: str
 
-    def full_new_path(self):
+    def full_new_path(self) -> pathlib.Path:
         return self.item.path.with_name(self.new_name)
 
 class ItemRenameDialog(QDialog):
@@ -30,9 +30,9 @@ class ItemRenameDialog(QDialog):
     on_name_selected: pyqtSignal = pyqtSignal(RenameInfo)
 
     
-    def __init__(self, parent: QWidget,  item: ItemInfo, wiki_proper_directory: pathlib.Path):
+    def __init__(self, parent: QWidget,  item: ItemInfo, wiki_proper_directory: pathlib.Path) -> None:
         
-        self.__working_item = item
+        self.__working_item: ItemInfo = item
 
         super().__init__(parent)
         self.setWindowTitle("Rename Item")
@@ -60,42 +60,42 @@ class ItemRenameDialog(QDialog):
 
         self.accepted.connect(self.__on_accept)
         
-        self.__wiki_directory = wiki_proper_directory
+        self.__wiki_directory: pathlib.Path = wiki_proper_directory
 
         # Width of self.__location_label is inaccurate when retrieved in __init__, it must be running on the app for it to be accurate
         QTimer.singleShot(10, Qt.TimerType.PreciseTimer, self.__update_item_label)
         self.__validate()
         
-    def __update_item_label(self):
-        location_text = f"at {self.__working_item}"
+    def __update_item_label(self) -> None:
+        location_text: str = f"at {self.__working_item}"
         metrics = QFontMetrics(self.__location_label.font())
-        elided_text = metrics.elidedText(location_text, Qt.TextElideMode.ElideMiddle, self.__location_label.width())
+        elided_text: str = metrics.elidedText(location_text, Qt.TextElideMode.ElideMiddle, self.__location_label.width())
         self.__location_label.setText(elided_text)
 
-    def __on_accept(self):
+    def __on_accept(self) -> None:
         self.on_name_selected.emit(RenameInfo(
                 item=self.__working_item,
                 new_name=self.gen_resultatnt_path().name
             )
         )
 
-    def gen_resultatnt_path(self):
-        line_edit_txt = self.__line_edit.text()
-        txt_stripped = line_edit_txt.strip()
-        ending = self.__working_item.path.suffix
+    def gen_resultatnt_path(self) -> pathlib.Path:
+        line_edit_txt: str = self.__line_edit.text()
+        txt_stripped: str = line_edit_txt.strip()
+        ending: str = self.__working_item.path.suffix
         return self.__working_item.path.with_name(f"{txt_stripped}{ending}")
 
-    def __validate(self):
+    def __validate(self) -> None:
         valid = True
-        error_msg = ""
-        line_edit_txt = self.__line_edit.text()
-        if not valid_item_name(line_edit_txt):
+        error_msg: str = ""
+        line_edit_txt: str = self.__line_edit.text()
+        if not is_valid_item_name(line_edit_txt):
             valid = False
             error_msg = "Not a valid item name."
-        cur_path = self.__wiki_directory / self.gen_resultatnt_path()
+        cur_path: pathlib.Path = self.__wiki_directory / self.gen_resultatnt_path()
         if cur_path.exists():
             valid = False
-            error_msg = f"Item/folder already exists"
+            error_msg: str = f"Item/folder already exists"
 
         self.__error_label.setText(error_msg)
         self.__button.setDisabled(not valid)
