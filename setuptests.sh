@@ -2,4 +2,6 @@
 
 rm -rf .testenv
 mkdir .testenv
-cp -r end-tests/. .testenv
+mkdir .testenv/wikis
+uv run tools.py convert-endtest-wikis .testenv/wikis
+#uv run tools/gen_endtest.py

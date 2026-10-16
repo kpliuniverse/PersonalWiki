@@ -4,19 +4,19 @@
 
 from html import escape
 import logging
-from typing import Match
+from typing import Any, Match
 
 from mistune import InlineParser, InlineState, Markdown
 
 
-ESCAPE_DICT = {
+ESCAPE_DICT: dict[str, str] = {
     "br": "\n",
     "lt": "<",
     "gt": ">",
 }
-def parse_escapes(inline: InlineParser, m: Match[str], state: InlineState):
-    esc = m.group("tag").strip()
-    value = ESCAPE_DICT.get(esc, f"[Unknown escape: {esc}]")
+def parse_escapes(inline: InlineParser, m: Match[str], state: InlineState) -> int:
+    esc: str | Any = m.group("tag").strip()
+    value: str = ESCAPE_DICT.get(esc, f"[Unknown escape: {esc}]")
 
     if value == "\n":
         state.append_token({
@@ -29,7 +29,7 @@ def parse_escapes(inline: InlineParser, m: Match[str], state: InlineState):
         })
     return m.end()
 
-def special_tags(md: Markdown):
+def special_tags(md: Markdown) -> None:
     md.inline.register("special_tags", r"<(?P<tag>.*?)>", parse_escapes, before="inline_html")
     if md.renderer and md.renderer.NAME == "html":
         md.renderer.register("line_break", lambda _: "<br>")

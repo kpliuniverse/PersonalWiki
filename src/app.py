@@ -1,8 +1,10 @@
+from copy import deepcopy
 from importlib import resources as impresources
 import sys
 import pathlib 
 import logging
 import atexit
+from typing import NoReturn
 
 
 from PyQt6.QtCore import QCoreApplication, QDir, Qt
@@ -12,12 +14,14 @@ from PyQt6.QtWidgets import (
 )
 
 from PyQt6.QtGui import QFontDatabase
+import dill
 from returns.result import Failure
 from src.consts import RESOURCE_PATH
 from src.initcontext import InitContext
 from src.multiprocessing.child_processes.webserver import WebserverProcess
-from src.multiprocessing.multiprocessing import MultiprocessingManager, MultiprocessingException
+from src.multiprocessing.multiprocessing import DatabaseLock, MultiprocessingManager, MultiprocessingException
 from src.resources import ResourceManager
+from src.states.appstate import to_pickleable
 from src.ui.stylesheets.app_stylesheet import MainStylesheetManager
 from src.ui.windows.main_window import MainWindow
 from src.ui.windows.wiki_window import WikiWindow
@@ -26,19 +30,22 @@ from src.ui.windows.wiki_window import WikiWindow
 
 class App:
 
-    def __init__(self):
+    def __except_hook(self, *args) -> None:
+        self.__cleanup()
+        sys.__excepthook__(*args)
+    def __init__(self) -> None:
         self.main_window: MainWindow | None  = None
         self.app = QApplication(sys.argv)
         atexit.register(self.__cleanup)
-
-    def add_paths(self):
+        sys.excepthook = self.__except_hook
+    def add_paths(self) -> None:
         QDir.addSearchPath("res", "resources/")
 
-    def init_resources(self):
+    def init_resources(self) -> None:
         ResourceManager()
         MainStylesheetManager()
 
-    def init_fonts(self):
+    def init_fonts(self) -> None:
         """
             Initialize font to the application's resident QFontDatabase
         """
@@ -46,24 +53,32 @@ class App:
             QFontDatabase.addApplicationFont(path.as_posix())
             logging.info("Added font file: %s", path.as_posix())
         logging.debug("Font families: %s", ", ".join(QFontDatabase.families()))
-    def __cleanup(self):
+    def __cleanup(self) -> None:
         MultiprocessingManager().kill_all()
 
-    def run_main(self, pwi_file: pathlib.Path):
+    def run_main(self, pwi_file: pathlib.Path) -> None:
         """
             Runs the main windows.
         """
         try:
-        
-            match MultiprocessingManager().run_process(WebserverProcess(pwi_file.parent)):
-                case Failure(_):
-                    raise MultiprocessingException("Failed to start web server")
-            logging.info("Webserver started at %s", pwi_file.parent.as_posix())
+
             self.main_window = MainWindow(initcontext=InitContext(
                 path_to_pwi_file=pathlib.Path(pwi_file)
             ))
+
+            # app_state = to_pickleable(self.main_window.app_state())
+            # if not dill.pickles(app_state):
+            #     raise Exception("App state not pickleable")
+            # else:
+            #     logging.debug("App state is pickleable")
+
+            match MultiprocessingManager().run_process(WebserverProcess(to_pickleable(self.main_window.app_state()), lock=DatabaseLock().lock())):
+                case Failure(_):
+                    raise MultiprocessingException("Failed to start web server")
+            logging.info("Webserver started at %s", pwi_file.parent.as_posix())
             self.main_window.show() 
             self.main_window.on_close.connect(self.__cleanup)
+
         except Exception as e:
             self.__cleanup()
             raise e
@@ -71,7 +86,7 @@ class App:
     # def __cleanup(self):
     #     MultiprocessingManager().kill_all()
             
-    def run(self):
+    def run(self) -> NoReturn:
         """
             Runs the app
         """
@@ -88,5 +103,3 @@ class App:
         else:
             self.run_main(pathlib.Path(self.app.arguments()[1]).resolve())
         sys.exit(self.app.exec())
-
-             

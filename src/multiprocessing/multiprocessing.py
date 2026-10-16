@@ -2,17 +2,28 @@
 
 from enum import IntEnum, StrEnum, auto
 import logging
+import multiprocessing as mp
 from multiprocessing import Process
+from multiprocessing.synchronize import Lock as SyncLock
 from typing import Callable, Dict, Self
 from uuid import UUID, uuid7
 
 import attrs
 
+import dill
 from returns.result import Failure, Result, ResultE, Success, safe
 
 from src.multiprocessing.child_process import ChildProcess
 from src.utils.singleton import Singleton
 
+
+class DatabaseLock(metaclass=Singleton):
+
+    def __init__(self) -> None:
+        self.__lock: SyncLock = mp.Lock()
+
+    def lock(self) -> SyncLock:
+        return self.__lock
 class MultiprocessingException(BaseException):
     pass
 class ProcessStatus(IntEnum):
@@ -39,7 +50,7 @@ class MultiprocessingError(StrEnum):
 
 class MultiprocessingManager(metaclass=Singleton):
     # In this code, it is written i_d because it conflicts with id builtin function, though the latter is unused.
-    def __init__(self):
+    def __init__(self) -> None:
         self.__processes: Dict[UUID, ChildProcessInfo] = {}
 
     def ready_process(self, process: ChildProcess) -> UUID:
@@ -49,13 +60,13 @@ class MultiprocessingManager(metaclass=Singleton):
             Returns its UUID
         """
         while True:
-            i_d = uuid7()
+            i_d: UUID = uuid7()
             if i_d not in self.__processes:
                 break
         
         self.__processes[i_d] = ChildProcessInfo(
             close_function=process.close,
-            process=Process(target=process.run),
+            process=Process(target=process.run, ),
             status=ProcessStatus.READY
         )
         return i_d
@@ -69,6 +80,7 @@ class MultiprocessingManager(metaclass=Singleton):
         
         if (child_process_info := self.__processes.get(i_d, None)) is None:
             return Failure(MultiprocessingError.ProcessNotFound)
+  
         child_process_info.process.start()
 #child_process_info.process.join()
         if child_process_info.process.exitcode is not None:
@@ -79,31 +91,34 @@ class MultiprocessingManager(metaclass=Singleton):
         """
             Immediately run a process.
         """
-        i_d = self.ready_process(process)
+        i_d: UUID = self.ready_process(process)
         return self.run_readied_process(i_d).map(lambda _: i_d)
 
     def get_status(self, i_d: UUID) -> ProcessStatus:
         return self.__processes[i_d].status
 
     @safe
-    def close_process(self, i_d: UUID):
+    def close_process(self, i_d: UUID) -> None:
         """
             returns ResultE
         """
         logging.info("closing %s", i_d)
         self.__processes[i_d].close_function()
         self.__processes[i_d].process.terminate()
+        self.__processes[i_d].status = ProcessStatus.TERMINATED
         logging.info("closed %s", i_d)
 
     @safe
-    def close_all(self):
+    def close_all(self) -> None:
         for i_d in self.__processes.keys():
             self.close_process(i_d)
             
     @safe
-    def kill_all(self):
+    def kill_all(self) -> None:
         logging.info("Force closing processes")
         for i_d, process in self.__processes.items():
-            process.process.kill()
-            logging.info("Killed %s", i_d)
+            if process.status != ProcessStatus.TERMINATED and process.process.is_alive():
+                process.process.kill()
+                self.__processes[i_d].status = ProcessStatus.TERMINATED
+                logging.info("Killed %s", i_d)
         

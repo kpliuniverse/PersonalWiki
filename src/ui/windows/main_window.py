@@ -2,7 +2,7 @@ import datetime
 import logging
 import pathlib
 from importlib import resources
-from typing import Optional, override
+from typing import Optional, override, List
 
 from PyQt6.QtOpenGLWidgets import QOpenGLWidget
 from PyQt6 import sip
@@ -10,7 +10,10 @@ from PyQt6 import QtCore
 from PyQt6.QtWidgets import (
     QGridLayout,
     QMainWindow,
+    QMenu,
+    QMenuBar,
     QSplitter,
+    QStatusBar,
     # QTextEdit,
     QWidget,
 )
@@ -30,6 +33,7 @@ from PyQt6.QtCore import (
 
 from src.consts import ITEM_DATA_ROLE
 from src.ui.itemmodels.project_item import ItemInfo
+from src.multiprocessing.multiprocessing import DatabaseLock
 from src.ui.components.item_panel import ItemPanel, ViewType
 from src.ui.components.project_explorer import ProjectExplorer
 from src.exceptions import GUIException
@@ -39,12 +43,18 @@ from src.states.appstate import AppState
 from src.ui.components.entry_ribbon import EntryRibbon
 from src.ui.stylesheets.app_stylesheet import MainStylesheetManager
 from src.ui.utils.view_utils import guess_view_type
+from src.utils.item_actions import Action
 from src.utils.navigation_info import NavigationInfo
 from src.wiki.wiki import open_wiki
 class MainWindow(QMainWindow):
 
     on_close = pyqtSignal()
-    def __init__(self, initcontext: InitContext):
+
+    def __do_operations(self, operations: List[Action]):
+        with DatabaseLock().lock():
+            self.__app_state.cur_wiki.do_operations(operations)
+
+    def __init__(self, initcontext: InitContext) -> None:
         super().__init__()
 
         
@@ -70,10 +80,10 @@ class MainWindow(QMainWindow):
 
         self.__project_explorer = ProjectExplorer(editor_splitter)
         self.__project_explorer.file_double_clicked.connect(self.__on_project_item_double_clicked)
-        self.__project_explorer.item_operation_requested.connect(self.__app_state.cur_wiki.do_operations)
+        self.__project_explorer.item_operation_requested.connect(self.__do_operations)
         editor_splitter.addWidget(self.__project_explorer)
 
-        self.__item_panel = ItemPanel(editor_splitter, self.__app_state.cur_wiki.get_wiki_dir_path())
+        self.__item_panel = ItemPanel(editor_splitter, self.__app_state)
         editor_splitter.addWidget(self.__item_panel)
 
         editor_splitter.setHandleWidth(16)
@@ -94,13 +104,13 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(MainStylesheetManager().get_rule("*"))
 
 
-    def __init_menu_bar(self):
+    def __init_menu_bar(self) -> None:
         
-        menu_bar = self.menuBar()
+        menu_bar: QMenuBar | None = self.menuBar()
         if menu_bar is None:
             raise GUIException("Cannot fetch menu_bar of MainWindow, or is otherwise None")
             
-        file_menu = menu_bar.addMenu("File")
+        file_menu: QMenu | None = menu_bar.addMenu("File")
         if file_menu is None:
             raise GUIException("Cannot fetch file_menu of menu_bar, or is otherwise None")
             
@@ -112,23 +122,21 @@ class MainWindow(QMainWindow):
             action.triggered.connect(action_entry[1])
             file_menu.addAction(action)
 
-    def __load_item(self, item_path: pathlib.Path):
-        item_path_abs = self.__app_state.cur_wiki.get_wiki_proper_path() / item_path
+    def __load_item(self, item_path: pathlib.Path) -> None:
         self.__app_state.cur_wiki.set_cur_item(item_path)
-        self.__item_panel.load(guess_view_type(item_path_abs), item_path_abs)
+        self.__item_panel.refresh()
+        #self.__item_panel.load(guess_view_type(item_path), item_path)
 
-    def __on_project_item_double_clicked(self, val: QModelIndex):
+    def __on_project_item_double_clicked(self, val: QModelIndex) -> None:
         item_path: ItemInfo = val.data(ITEM_DATA_ROLE)
-        item_path_abs = self.__app_state.cur_wiki.get_wiki_proper_path() / item_path.path
-        logging.debug("Item double clicked to %s", item_path)
-        if item_path_abs.is_file():
+        logging.debug("Item double clicked to %s", item_path.path)
+        if self.__app_state.cur_wiki.is_file(item_path.path):
             self.__load_item(item_path.path)
   
-    def __refresh_project_tree(self):
-        proper_path = (self.__app_state.cur_wiki.get_wiki_dir_path() / "proper")
-        self.__project_explorer.load(proper_path)
+    def __refresh_project_tree(self) -> None:
+        self.__project_explorer.load(self.__app_state.cur_wiki)
         
-    def __update_status_bar(self, message: str, timeout_msec: int | None =None):
+    def __update_status_bar(self, message: str, timeout_msec: int | None = None) -> None:
         if (status_bar := self.statusBar()) is not None:
             if timeout_msec is None:
                 status_bar.showMessage(message)
@@ -137,11 +145,11 @@ class MainWindow(QMainWindow):
         else:
             raise GUIException("Error loading status bar")
     
-    def __save_cur_item(self):
-        if (item := self.__app_state.cur_wiki.get_cur_item_abs()) is None:
+    def __save_cur_item(self) -> None:
+        if (item := self.__app_state.cur_wiki.get_cur_item()) is None:
             return
         self.__item_panel.trigger_save()
-        time = datetime.time.isoformat(datetime.datetime.today().time(), "seconds")
+        time: str = datetime.time.isoformat(datetime.datetime.today().time(), "seconds")
         self.__update_status_bar(f"Saved {item.as_posix()} at {time}", 5000)
 
     # def __load_cur_item(self):
@@ -154,3 +162,6 @@ class MainWindow(QMainWindow):
     def closeEvent(self, a0: QCloseEvent | None) -> None:
         self.on_close.emit()
         return super().closeEvent(a0)
+
+    def app_state(self) -> AppState:
+        return self.__app_state

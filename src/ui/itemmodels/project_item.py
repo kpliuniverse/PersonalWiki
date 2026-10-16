@@ -17,7 +17,7 @@ class ItemInfo:
     item_type: ItemType
     
 class ProjectItem(QStandardItem):
-    def __init__(self, info: ItemInfo, name: Optional[str] = None):
+    def __init__(self, info: ItemInfo, name: Optional[str] = None) -> None:
         super().__init__()
         self.setEditable(False)
         if name is None:
@@ -26,7 +26,7 @@ class ProjectItem(QStandardItem):
             self.setText(name)
         self.setData(info, ITEM_DATA_ROLE)
         # Load icons lazily to avoid constructing QIcon/QPixmap before a QGuiApplication exists
-        if info.item_type == ItemType.FOLDER:
+        if info.item_type == ItemType.DIRECTORY:
             icon = ResourceManager().assert_get_res("icons/48px/folder.png", assert_type=QIcon)
         else:
             icon = get_icon_from_extension(info.path.suffix)

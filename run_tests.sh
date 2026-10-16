@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
-./setuptests.sh
+
+sh ./setuptests.sh
 uv run pytest

@@ -1,6 +1,8 @@
+from _csv import Reader
 import csv
 from enum import StrEnum, auto
 from importlib import resources as impresources
+from io import TextIOWrapper
 import logging
 import pathlib
 from typing import Any, Dict, List, Optional, TypeVar
@@ -41,13 +43,13 @@ class ResourceManager(metaclass=Singleton):
     """
     def __init__(self) -> None:
         self.__resources: Dict[str, Resource] = dict()
-        resource_csv = RESOURCE_PATH / "resources.csv"
+        resource_csv: pathlib.Path = RESOURCE_PATH / "resources.csv"
 
         with open(resource_csv, encoding="utf-8") as csvfile:
-            reader = csv.reader(csvfile, delimiter=",")
+            reader: Reader = csv.reader(csvfile, delimiter=",")
 
             for row in reader:
-                path = row[0]
+                path: str = row[0]
                 res_type = ResourceType(row[1])
 
                 if path in self.__resources:
@@ -83,7 +85,7 @@ class ResourceManager(metaclass=Singleton):
         return res.res
 
 
-    def get(self, path: str):
+    def get(self, path: str) -> Resource:
         try:
             res = self.__resources[path]
             # Lazy instantiate icons on direct get() as well

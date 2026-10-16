@@ -15,7 +15,8 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from attrs import define
 
 from src.ui.components.project_tree import ProjectTree, ProjectTreeArgs
-from src.utils.wiki_utils import walk_and_return_folder_item
+from src.utils.wiki_utils import walk_db_and_return_folder_item
+from src.wiki.wiki import Wiki
 
 @define
 class ProjectDialogArgs:
@@ -27,7 +28,7 @@ class ProjectDialog(QDialog):
 
     on_file_selected: pyqtSignal = pyqtSignal(pathlib.Path)
 
-    def __init__(self, parent: QWidget, wiki_dir: pathlib.Path, args: ProjectDialogArgs):
+    def __init__(self, parent: QWidget, wiki: Wiki, args: ProjectDialogArgs) -> None:
         self.__cur_file_selected: Optional[pathlib.Path] = None
         super().__init__(parent=parent)
         layout = QHBoxLayout()
@@ -37,7 +38,8 @@ class ProjectDialog(QDialog):
             add_root_as_folder=args.add_root_as_folder,
             read_only=True
         ))
-        self.__tree.load_folder(walk_and_return_folder_item(wiki_dir))
+        with wiki.get_engine() as e:
+            self.__tree.load_folder(walk_db_and_return_folder_item(e.connect()))
         self.__tree.item_clicked.connect(self.__on_tree_select)
         layout.addWidget(self.__tree)
 
@@ -48,10 +50,10 @@ class ProjectDialog(QDialog):
 
         self.accepted.connect(self.__on_accepted)
 
-    def __on_accepted(self):
+    def __on_accepted(self) -> None:
         if self.__cur_file_selected is not None:
             self.on_file_selected.emit(self.__cur_file_selected)
 
-    def __on_tree_select(self):
+    def __on_tree_select(self) -> None:
         self.__cur_file_selected = self.__tree.get_cur_selected_path()
         
