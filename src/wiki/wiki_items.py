@@ -28,22 +28,22 @@ class FlatItemEntry:
 
 class Item:
     _item_type: ItemType
-    def __init__(self, name: str):
-        self.__name = name
+    def __init__(self, name: str) -> None:
+        self.__name: str = name
 
-    def name(self):
+    def name(self) -> str:
         return self.__name
 
-    def item_type(self):
+    def item_type(self) -> ItemType:
         return self._item_type
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.__name)
 
 
 
 class FileItem(Item):
-    def __init__(self, name: str):
+    def __init__(self, name: str) -> None:
         super().__init__(name)
         self._item_type = ItemType.FILE
 
@@ -52,7 +52,7 @@ class FilterFolder:
     orig: FolderItem
     filtered: FolderItem
 
-def sort_alphabetically_key(n: Item):
+def sort_alphabetically_key(n: Item) -> str:
     return n.name()
 
 
@@ -60,10 +60,13 @@ class FolderItem(Item):
     """
         An item that contains child items that are stored in a list.
     """
-    def __init__(self, name: str, *items: Item):
+    def __init__(self, name: str, *items: Item) -> None:
         super().__init__(name)
         self._item_type = ItemType.DIRECTORY
-        self.__children: List[Item] = list(items)
+        self.__children: List[Item] = []
+
+        for item in items:
+            self.add_child(item)
 
     def add_child(self, child: Item) -> Result[None, WikiError]:
         if child in self.__children:
@@ -72,7 +75,7 @@ class FolderItem(Item):
         self.__children.append(child)
         return Success(None)
 
-    def to_flat_list(self, __dir: pathlib.Path = path_dot()):
+    def to_flat_list(self, __dir: pathlib.Path = path_dot()) -> List[FlatItemEntry]:
         """
         Converts to list of FlatItemEntry
         Is used for comparisons
@@ -80,7 +83,7 @@ class FolderItem(Item):
         Do not use the prefix argument, it's for internal purposes
         """
         # TODO: make this non-recursive
-        disp_path = __dir / self.name()
+        disp_path: pathlib.Path = __dir / self.name()
         out: List[FlatItemEntry] = []
 
         if not self.__children:
@@ -96,45 +99,48 @@ class FolderItem(Item):
                 out.extend(child.to_flat_list(disp_path))
         return out
 
-    def to_str_list(self):
-        return [item.path.as_posix() for item in self.to_flat_list()]
+    def to_str_list(self) -> List[str]:
+        def str_item(item: FlatItemEntry) -> str:
+            item_type: str = "FILE" if item.type == ItemType.FILE else "DIR"
+            return f"{item_type} {item.path.as_posix()}"
+        return [str_item(item) for item in self.to_flat_list()]
     
-    def __str__(self):
+    def __str__(self) -> str:
         return "\n".join(self.to_str_list())
         
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return isinstance(other, FolderItem) and self.to_flat_list() == other.to_flat_list()
     
     def children(self) -> List[Item]:
         return self.__children
 
-    def folder_filter(self, cond: Callable[[FolderItem], bool], *, include_files, dont_include_children_if_parent_is_filtered_out=False):
+    def folder_filter(self, cond: Callable[[FolderItem], bool], *, include_files, dont_include_children_if_parent_is_filtered_out=False) -> FolderItem:
         """
             Filters folders based on criteria.
 
             `include_files` determine if files should be included
         """
-        root = self.create_root()
+        root: FolderItem = self.create_root()
 
         for child in self.children():
             if isinstance(child, FileItem) and include_files:
                 root.add_child(FileItem(child.name()))
             if isinstance(child, FolderItem):
-                meets_cond = cond(child)
+                meets_cond: bool = cond(child)
                 if dont_include_children_if_parent_is_filtered_out and not meets_cond:
                     continue
                 elif not meets_cond and len([c for c in child.children() if isinstance(c, FolderItem)]) == 0:
                     continue
-                child_folder = child.folder_filter(cond, include_files=include_files, dont_include_children_if_parent_is_filtered_out=False)
+                child_folder: FolderItem = child.folder_filter(cond, include_files=include_files, dont_include_children_if_parent_is_filtered_out=False)
                 if len([c for c in child_folder.children() if isinstance(c, FolderItem)]) > 0 or meets_cond:
                     root.add_child(child_folder)
         return root
 
-    def filter_folders_only(self):
+    def filter_folders_only(self) -> FolderItem:
         return self.folder_filter(lambda _ : True, include_files=False)
 
-    def filter_out_empty_folders(self):
-        root = self.create_root()
+    def filter_out_empty_folders(self) -> FolderItem:
+        root: FolderItem = self.create_root()
         # TODO: maybe we can make this non-recursive?
         for child in self.children():
             if isinstance(child, FileItem):
@@ -142,22 +148,22 @@ class FolderItem(Item):
             if isinstance(child, FolderItem):
                 if len(child.children()) == 0:
                     continue
-                child_folder = child.filter_out_empty_folders()
+                child_folder: FolderItem = child.filter_out_empty_folders()
                 if len(child_folder.children()) > 0:
                     root.add_child(child_folder)
         return root
     
-    def file_filter(self, f: Callable[[FileItem], bool], *, filter_empty_folders=True):
+    def file_filter(self, f: Callable[[FileItem], bool], *, filter_empty_folders=True) -> FolderItem:
         """
             Filters files based on criteria.
 
             ORDERING NOT GUARANTEED
         """
-        root = self.create_root()
+        root: FolderItem = self.create_root()
 
-        queue = Deque([FilterFolder(self, root)])
+        queue: Deque[FilterFolder] = Deque([FilterFolder(self, root)])
         while queue:
-            folder = queue.popleft()
+            folder: FilterFolder = queue.popleft()
 
             for child in folder.orig.children():
                 if isinstance(child, FileItem) and f(child):
@@ -168,16 +174,16 @@ class FolderItem(Item):
                     queue.append(FilterFolder(child, child_folder))
         #print(root)
         if filter_empty_folders:
-            root = root.filter_out_empty_folders()
+            root: FolderItem = root.filter_out_empty_folders()
 
         return root
 
-    def sorted(self, key: Callable[[Item], Any], reverse=False):
-        root = self.create_root()
+    def sorted(self, key: Callable[[Item], Any], reverse=False) -> FolderItem:
+        root: FolderItem = self.create_root()
 
-        queue = Deque([FilterFolder(self, root)])
+        queue: Deque[FilterFolder] = Deque([FilterFolder(self, root)])
         while queue:
-            folder = queue.popleft()
+            folder: FilterFolder = queue.popleft()
 
             for child in sorted(folder.orig.children(), key=key, reverse=reverse):
                 if isinstance(child, FileItem):
@@ -189,10 +195,10 @@ class FolderItem(Item):
         return root
 
 
-    def create_root(self):
+    def create_root(self) -> FolderItem:
         return FolderItem(self.name())
 
-    def walk(self, fn: Callable[[Item]], file_fn: Optional[Callable[[FileItem]]]=None):
+    def walk(self, fn: Callable[[Item]], file_fn: Optional[Callable[[FileItem]]]=None) -> None:
         """
             Apply function to self, then for each children, if it's a file, apply function to file, if it's a folder, call this function on that folder
 
@@ -201,13 +207,10 @@ class FolderItem(Item):
         stack: List[FolderItem] = [self]
 
         while stack:
-            item = stack.pop()
+            item: FolderItem = stack.pop()
             fn(item)
             for child in reversed(item.children()):
                 if isinstance(child, FileItem):
                     (file_fn or fn)(child)
                 elif isinstance(child, FolderItem):
                     stack.append(child)
-
-
- 
