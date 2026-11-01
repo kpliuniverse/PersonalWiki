@@ -1,19 +1,36 @@
+import pathlib
 from datetime import datetime
 from enum import Enum
-import pathlib
 from typing import Optional, Protocol
 from uuid import UUID
 
 import pendulum
 from pydantic import BaseModel, ConfigDict, field_validator
-from sqlalchemy import CheckConstraint, Connection, DateTime, ForeignKey, String, event, func, literal, select
-from sqlalchemy import Uuid
-from sqlalchemy import UniqueConstraint
-from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, Mapper, mapped_column, relationship
 from pydantic_extra_types.pendulum_dt import DateTime as pd_DateTime
-from src.exceptions import DataIntegrityError, WikiDatabaseError, DataValidationError
-from src.utils.item_validity import is_valid_item_name
+from sqlalchemy import (
+    CheckConstraint,
+    Connection,
+    DateTime,
+    ForeignKey,
+    String,
+    UniqueConstraint,
+    Uuid,
+    event,
+    func,
+    literal,
+    select,
+)
+from sqlalchemy.orm import (
+    DeclarativeBase,
+    Mapped,
+    MappedAsDataclass,
+    Mapper,
+    mapped_column,
+    relationship,
+)
 
+from src.exceptions import DataIntegrityError, DataValidationError, WikiDatabaseError
+from src.utils.item_validity import is_valid_item_name
 
 ROOT_DIR_UUID = UUID(int=0)
 class WikiBase(MappedAsDataclass, DeclarativeBase):
@@ -50,8 +67,8 @@ class WikiDirectoryEntryModel(WikiItemModel):
 
 class WikiDirectoryEntry(WikiBase):
     __tablename__ = "wiki_dirs"
-    name: Mapped[str] = mapped_column(String(), autoincrement=False)
     uuid: Mapped[UUID] = mapped_column(Uuid(), primary_key=True)
+    name: Mapped[str] = mapped_column(String(), autoincrement=False)
     parent_uuid: Mapped[Optional[UUID]] = mapped_column(ForeignKey(f"wiki_dirs.uuid"), init=False, nullable=True) #null = root
     parent: Mapped[Optional[WikiDirectoryEntry]] = relationship("WikiDirectoryEntry", back_populates="dir_children", default=None, remote_side=[uuid])
     dir_children: Mapped[list["WikiDirectoryEntry"]] = relationship("WikiDirectoryEntry", back_populates="parent", default_factory=list, cascade="all, save-update, delete-orphan")
@@ -79,26 +96,22 @@ class WikiDirectoryEntry(WikiBase):
         #     raise DataValidationError(f"parent_uuid {self.parent_uuid} is not the same as parent.uuid {self.parent.uuid}")
         # super().__post_init__()
 
-
-
 class WikiFileEntryModel(WikiItemModel):
     type: WikiFileEntryType
     value: str
     directory_uuid: UUID
     last_modified: pd_DateTime #pendulum.DateTime has no pydantic schema.
-
-    
-
 class WikiFileEntry(WikiBase):
     __tablename__ = "wiki_files"
+
+    uuid: Mapped[UUID] = mapped_column(Uuid(), primary_key=True)
     name: Mapped[str] = mapped_column(String())
     type: Mapped[WikiFileEntryType]
     value: Mapped[str]
-    uuid: Mapped[UUID] = mapped_column(Uuid(), primary_key=True)
     directory: Mapped[WikiDirectoryEntry] = relationship(back_populates="file_children")
-    directory_uuid: Mapped[UUID] = mapped_column(ForeignKey(WikiDirectoryEntry.uuid), nullable=True, default=ROOT_DIR_UUID)
+    directory_uuid: Mapped[UUID] = mapped_column(ForeignKey(WikiDirectoryEntry.uuid), default=ROOT_DIR_UUID)
     last_modified: Mapped[pendulum.DateTime] = mapped_column(DateTime(timezone=True), default_factory=pendulum.now)
-
+    # revisions: Mapped[list["WikiRevision"]] = relationship("WikiRevision", back_populates="", default_factory=list)
     __table_args__ = (
         UniqueConstraint("name", "directory_uuid"),
     )
@@ -125,6 +138,11 @@ class WikiFileEntry(WikiBase):
     def rename(self, new_name) -> None:
         self.name = new_name
 
+# class WikiRevision(WikiBase):
+#     __table_name__ = "revisions"
+
+#     entry: Mapped[int] = mapped_column(primary_key=True)
+#     file_uuid: Mapped[WikiFileEntry] = mapped_column(ForeignKey)
 @event.listens_for(WikiDirectoryEntry, "after_insert")
 def validate_wikidirectoryentry(mapper: Mapper, connection: Connection, target: WikiDirectoryEntry) -> None:
     if target.uuid != ROOT_DIR_UUID and target.parent_uuid is None:
