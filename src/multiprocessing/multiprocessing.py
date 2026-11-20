@@ -5,24 +5,25 @@ import logging
 import multiprocessing as mp
 from multiprocessing import Process
 from multiprocessing.synchronize import Lock as SyncLock
-from typing import Callable, Dict, Self
+from typing import Callable, Dict, Self, override
 from uuid import UUID, uuid7
 
 import attrs
 
 import dill
+import pendulum
 from returns.result import Failure, Result, ResultE, Success, safe
 
 from src.multiprocessing.child_process import ChildProcess
 from src.utils.singleton import Singleton
-
-
+    
 class DatabaseLock(metaclass=Singleton):
 
     def __init__(self) -> None:
         self.__lock: SyncLock = mp.Lock()
 
     def lock(self) -> SyncLock:
+        logging.debug("Getting lock at %s", pendulum.now())
         return self.__lock
 class MultiprocessingException(BaseException):
     pass
