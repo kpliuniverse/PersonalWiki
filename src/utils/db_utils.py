@@ -10,16 +10,22 @@ from sqlalchemy.sql.base import ReadOnlyColumnCollection
 from sqlalchemy.sql.elements import KeyedColumnElement
 from sqlalchemy.sql.selectable import CTE
 
-from src.utils.path_utils import path_dot
-from src.wiki.datamodel import ROOT_DIR_UUID, WikiDirectoryEntry, WikiFileEntry, WikiBase
-
 from src.exceptions import WikiDatabaseError
+from src.utils.path_utils import path_dot
+from src.wiki.datamodel import (
+    ROOT_DIR_UUID,
+    ROOT_NAME,
+    WikiBase,
+    WikiDirectoryEntry,
+    WikiFileEntry,
+)
+
 
 class JustUUID:
     uuid: UUID
 
 
-def pathify_cte() -> CTE[ReadOnlyColumnCollection[str, KeyedColumnElement[Any]]]:
+def pathify_directories_cte() -> CTE[ReadOnlyColumnCollection[str, KeyedColumnElement[Any]]]:
     cte: CTE[ReadOnlyColumnCollection[str, KeyedColumnElement[Any]]] = (
         select(WikiDirectoryEntry.uuid, WikiDirectoryEntry.name.label("path"))
         # .where(WikiDirectoryEntry.parent_uuid.is_(None))
@@ -35,6 +41,7 @@ def pathify_cte() -> CTE[ReadOnlyColumnCollection[str, KeyedColumnElement[Any]]]
 
     return cte
 
+
 def get_directory_uuid_query(path: pathlib.Path) -> Select[UUID]:
     """
         Return a query to get the id of a certain path
@@ -49,19 +56,10 @@ def get_directory_uuid_query(path: pathlib.Path) -> Select[UUID]:
     #         SELECT h.id, CONCAT(hp.path, '/', h.name) FROM {WikiDirectoryEntry.__tablename__} h
     #             JOIN hierarchy_paths hp ON h.parent_id = hp.id
     # """).
-    cte: CTE[ReadOnlyColumnCollection[str, KeyedColumnElement[Any]]] = pathify_cte()
-    return select(cte.c.uuid).where(cte.c.path == (pathlib.Path("root") / path).as_posix())
+    cte: CTE[ReadOnlyColumnCollection[str, KeyedColumnElement[Any]]] = pathify_directories_cte()
+    return select(cte.c.uuid).where(cte.c.path == (pathlib.Path(ROOT_NAME) / path).as_posix())
 
 
-def get_wikifile_query(path: pathlib.Path) -> Select[Tuple[WikiFileEntry]]:
-    dir_uuid: ScalarSelect[UUID] = get_directory_uuid_query(path.parent).scalar_subquery()
-    final_query: Select[Tuple[WikiFileEntry]] = select(WikiFileEntry).where(WikiFileEntry.directory_uuid == dir_uuid).where(WikiFileEntry.name == path.name)
-    return final_query
-
-def get_wikidirectory_query(path: pathlib.Path) -> Select[Tuple[WikiDirectoryEntry]]:
-    dir_uuid: ScalarSelect[UUID] = get_directory_uuid_query(path).scalar_subquery()
-    final_query: Select[Tuple[WikiDirectoryEntry]] = select(WikiDirectoryEntry).where(WikiDirectoryEntry.uuid == dir_uuid)
-    return final_query  
 
 def query_directory_uuid(session: ORMSession, path: pathlib.Path) -> UUID:
     if path == path_dot():

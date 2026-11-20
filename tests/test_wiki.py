@@ -11,18 +11,20 @@ from deepdiff.helper import COLORED_VIEW
 from pydantic import ValidationError
 import pytest
 from sqlalchemy.orm import Session
+from diff_match_patch import patch_obj
 
 from src.consts import WIKI_ENCODING
 from src.exceptions import DataIntegrityError, InvalidNameException, WikiOperationError
 from src.utils.db_utils import WikiDatabaseError
+from src.utils.dmp import revision_dmp
 from src.utils.item_actions import CopyAction, MoveAction, DeleteAction, NewItemAction
 from src.utils.path_utils import path_dot
 from src.utils.wiki_utils import walk_and_return_folder_item, walk_db_and_return_folder_item
-from src.wiki.wiki import Wiki, create_wiki, open_wiki, WikiFileMode, WikiOpMode, WikiFileEntryType, ItemExistsError
+from src.wiki.wiki import DEFAULT_READ_MODE, DEFAULT_WRITE_MODE, Wiki, create_wiki, open_wiki, WikiFileMode, WikiOpMode, WikiFileEntryType, ItemExistsError
 from src.wiki.wiki_items import FileItem, FolderItem, Item, sort_alphabetically_key
 from tests.utils.path_utils import gen_available_name
 from tests.utils.wiki_utils import assert_same_folder_structure, populate_from_root_folder_item
-from src.wiki.datamodel import ROOT_DIR_UUID, WikiDirectoryEntry
+from src.wiki.datamodel import ROOT_DIR_UUID, ROOT_NAME, WikiDirectoryEntry
 
 def test_open_wiki(): 
 
@@ -38,7 +40,11 @@ def test_open_wiki():
 
 
 
-
+REVISION_SAMPLE = [  # noqa: RUF012 DO NOT MUTATE
+    "Hello word.",
+    "Hello world, I'm Didith Journal AMSR.",
+    "Hello, I am Didith Journal ASMR."
+]
 
 class TestWikiItem:
     class TestFilterOutEmptyFolders:
@@ -46,7 +52,7 @@ class TestWikiItem:
         @staticmethod
         def test_basic():
             # Test empty e
-            root = FolderItem("root")
+            root = FolderItem(ROOT_NAME)
             x = FolderItem("a")
             x.add_child(FileItem("b"))
             root.add_child(x)
@@ -56,7 +62,7 @@ class TestWikiItem:
             root.add_child(FolderItem("e"))
             inp = root
 
-            root = FolderItem("root")
+            root = FolderItem(ROOT_NAME)
             x = FolderItem("a")
             x.add_child(FileItem("b"))
             root.add_child(x)
@@ -69,7 +75,7 @@ class TestWikiItem:
 
         @staticmethod
         def test_empty():
-            root = FolderItem("root")
+            root = FolderItem(ROOT_NAME)
             x = FolderItem("a")
             root.add_child(x)
             x = FolderItem("c")
@@ -77,14 +83,14 @@ class TestWikiItem:
             root.add_child(FolderItem("e"))
             inp = root
 
-            root = FolderItem("root")
+            root = FolderItem(ROOT_NAME)
             exp_result = root
 
             assert inp.filter_out_empty_folders().sorted(sort_alphabetically_key) == exp_result
 
         @staticmethod
         def test_nested():
-            root = FolderItem("root")
+            root = FolderItem(ROOT_NAME)
             x = FolderItem("a")
             x.add_child(FileItem("b"))
             root.add_child(x)
@@ -94,7 +100,7 @@ class TestWikiItem:
             root.add_child(x)
             inp = root
 
-            root = FolderItem("root")
+            root = FolderItem(ROOT_NAME)
             x = FolderItem("a")
             x.add_child(FileItem("b"))
             root.add_child(x)
@@ -115,18 +121,18 @@ class TestWikiItem:
         # True case
         assert base.file_filter(lambda _ : True, filter_empty_folders=False).sorted(key=by_alphabet) == base
         # False case
-        assert base.file_filter(lambda _: False) == FolderItem("root")
+        assert base.file_filter(lambda _: False) == FolderItem(ROOT_NAME)
 
 
     @pytest.mark.dependency()
     @staticmethod
     def test_folderitem_with_child_arguments():
 
-        empty = FolderItem("root")
+        empty = FolderItem(ROOT_NAME)
         assert not empty.children()
 
         created = FolderItem(
-            "root",
+            ROOT_NAME,
             FileItem("a"),
             FileItem("b"),
             FolderItem(
@@ -143,7 +149,7 @@ class TestWikiItem:
             FileItem("i")
         )
 
-        compare_root = FolderItem("root")
+        compare_root = FolderItem(ROOT_NAME)
         compare_root.add_child(FileItem("a"))
         compare_root.add_child(FileItem("b"))
 
@@ -351,7 +357,7 @@ class TestWikiFunctions:
     @pytest.mark.dependency(depends=["TestWikiItem::test_folderitem_with_child_arguments", "TestWikiFunctions::test_create_item"])
     def test_populate_from_root_folder_item(wiki: Wiki):
         created = FolderItem(
-            "root",
+            ROOT_NAME,
             FileItem("a"),
             FolderItem(
                 "c",
@@ -382,7 +388,7 @@ class TestWikiFunctions:
     def test_wiki_walk(wiki: Wiki):
 
         created = FolderItem(
-            "root",
+            ROOT_NAME,
             FileItem("a"),
             FolderItem(
                 "c",
@@ -448,7 +454,7 @@ class TestWikiFunctions:
         @staticmethod
         @pytest.mark.dependency(depends=["TestWikiFunctions::test_wiki_walk"])
         def test_move_to_dir_simple(wiki: Wiki):
-            populate_from_root_folder_item(wiki, FolderItem("root",
+            populate_from_root_folder_item(wiki, FolderItem(ROOT_NAME,
                 FileItem("a"),
                 FolderItem("b",
                     FileItem("c")
@@ -459,7 +465,7 @@ class TestWikiFunctions:
                 MoveAction(Path("a"), Path("b"))
             ])
 
-            result = FolderItem("root", 
+            result = FolderItem(ROOT_NAME, 
                 FolderItem("b",
                     FileItem("a"),
                     FileItem("c")
@@ -482,7 +488,7 @@ class TestWikiFunctions:
                     FileItem("aeb")   
                 )
             )
-            populate_from_root_folder_item(wiki, FolderItem("root",
+            populate_from_root_folder_item(wiki, FolderItem(ROOT_NAME,
                 moved_folder,
                 FolderItem("b",
                     FileItem("c"),
@@ -490,7 +496,7 @@ class TestWikiFunctions:
                 )
             ))
 
-            expected = FolderItem("root", 
+            expected = FolderItem(ROOT_NAME, 
                 FolderItem("b",
                     FileItem("c"),
                     FolderItem("d", moved_folder)
@@ -509,7 +515,7 @@ class TestWikiFunctions:
 
             folder_d = FolderItem("d")
 
-            populate_from_root_folder_item(wiki, FolderItem("root", folder_d))
+            populate_from_root_folder_item(wiki, FolderItem(ROOT_NAME, folder_d))
 
             with wiki.open_wikifile(Path("a"), file_mode=WikiFileMode(
                 op_mode=WikiOpMode.WRITE,
@@ -518,7 +524,7 @@ class TestWikiFunctions:
             )) as f:
                 f.write("Hello world")
 
-            expected =  FolderItem("root", FileItem("a"), FolderItem("d"))
+            expected =  FolderItem(ROOT_NAME, FileItem("a"), FolderItem("d"))
 
             assert_same_folder_structure(wiki, expected)
             
@@ -533,7 +539,7 @@ class TestWikiFunctions:
                 MoveAction(Path("a"), Path("d"))
             ])
 
-            expected = FolderItem("root",
+            expected = FolderItem(ROOT_NAME,
                 FolderItem(folder_d.name(), FileItem("a"))
             )
 
@@ -555,7 +561,7 @@ class TestWikiFunctions:
                 FolderItem("b"),
             )
 
-            populate_from_root_folder_item(wiki, FolderItem("root",
+            populate_from_root_folder_item(wiki, FolderItem(ROOT_NAME,
                 folder_b,
                 folder_d
             ))
@@ -565,7 +571,7 @@ class TestWikiFunctions:
                 MoveAction(Path("b"), Path("d"))
             ])
 
-            expected = FolderItem("root",
+            expected = FolderItem(ROOT_NAME,
                 FolderItem(folder_d.name(), folder_b, *folder_d.children())
             )
 
@@ -579,7 +585,7 @@ class TestWikiFunctions:
                 FolderItem("b", FileItem("hello")),
             )
 
-            populate_from_root_folder_item(wiki, FolderItem("root",
+            populate_from_root_folder_item(wiki, FolderItem(ROOT_NAME,
                 folder_b,
                 folder_d
             ))
@@ -592,7 +598,7 @@ class TestWikiFunctions:
         @staticmethod
         def test_move_to_dir_override_type_mismatch(wiki: Wiki):
 
-            populate_from_root_folder_item(wiki, FolderItem("root",
+            populate_from_root_folder_item(wiki, FolderItem(ROOT_NAME,
                 FileItem("a"),
                 FolderItem("c"),
                 FolderItem("b",
@@ -615,7 +621,7 @@ class TestWikiFunctions:
         @staticmethod
         @pytest.mark.dependency(depends=["TestWikiFunctions::test_wiki_walk"])
         def test_invalid_move_dir_to_file(wiki: Wiki):
-            structure = FolderItem("root",
+            structure = FolderItem(ROOT_NAME,
                 FolderItem("a"),
                 FileItem('b')
             )
@@ -629,18 +635,18 @@ class TestWikiFunctions:
 
         @staticmethod
         def test_move_to_root(wiki: Wiki):
-            populate_from_root_folder_item(wiki, FolderItem("root", FolderItem("a", FileItem("b"))))
+            populate_from_root_folder_item(wiki, FolderItem(ROOT_NAME, FolderItem("a", FileItem("b"))))
 
             wiki.do_operations(
                 [MoveAction(Path("a/b"), path_dot())]
             )
 
-            assert_same_folder_structure(wiki, FolderItem("root", FolderItem("a"), FileItem("b")))
+            assert_same_folder_structure(wiki, FolderItem(ROOT_NAME, FolderItem("a"), FileItem("b")))
 
         @staticmethod
         def test_move_from_root(wiki: Wiki):
             
-            populate_from_root_folder_item(wiki, FolderItem("root", FileItem("a"), FolderItem("whatever")))
+            populate_from_root_folder_item(wiki, FolderItem(ROOT_NAME, FileItem("a"), FolderItem("whatever")))
             
             with pytest.raises(WikiOperationError, match="Cannot move a directory into itself."):
                 wiki.do_operations([
@@ -649,7 +655,7 @@ class TestWikiFunctions:
 
         @staticmethod
         def test_move_dir_into_itself(wiki: Wiki):
-            populate_from_root_folder_item(wiki, FolderItem("root", FolderItem("a", FolderItem("b"))))
+            populate_from_root_folder_item(wiki, FolderItem(ROOT_NAME, FolderItem("a", FolderItem("b"))))
 
             with pytest.raises(WikiOperationError, match="Cannot move a directory into itself."):
                 wiki.do_operations([
@@ -672,7 +678,7 @@ class TestWikiFunctions:
             )) as f:
                 f.write("Hello world.")
 
-            result = FolderItem("root", FileItem("a"), FileItem("b"))
+            result = FolderItem(ROOT_NAME, FileItem("a"), FileItem("b"))
 
             
             
@@ -737,7 +743,7 @@ class TestWikiFunctions:
 
         @staticmethod
         def test_file_to_dir_copy(wiki: Wiki):
-            populate_from_root_folder_item(wiki, FolderItem("root",
+            populate_from_root_folder_item(wiki, FolderItem(ROOT_NAME,
                 FolderItem("folder"),
                 FileItem("file")
             ))
@@ -746,7 +752,7 @@ class TestWikiFunctions:
                 [CopyAction(Path("file"), Path("folder"))]
             )
 
-            assert_same_folder_structure(wiki, FolderItem("root", FileItem("file"), FolderItem("folder", FileItem("file"))))
+            assert_same_folder_structure(wiki, FolderItem(ROOT_NAME, FileItem("file"), FolderItem("folder", FileItem("file"))))
 
         @staticmethod
         def test_dir_to_dir_copy(wiki: Wiki):
@@ -761,7 +767,7 @@ class TestWikiFunctions:
             )
 
             
-            populate_from_root_folder_item(wiki, FolderItem("root",
+            populate_from_root_folder_item(wiki, FolderItem(ROOT_NAME,
                 copied_folder,
                 FolderItem("b",
                     FileItem("c"),
@@ -776,7 +782,7 @@ class TestWikiFunctions:
             )) as f:
                 f.write("Hello world.")
 
-            expected = FolderItem("root",
+            expected = FolderItem(ROOT_NAME,
                 copied_folder,
                 FolderItem("b",
                     FileItem("c"),
@@ -801,7 +807,7 @@ class TestWikiFunctions:
         def test_dir_to_dir_merge(wiki: Wiki):
             copied_folder = FolderItem("a", FileItem("b"), FileItem("d"))
 
-            populate_from_root_folder_item(wiki, FolderItem("root",
+            populate_from_root_folder_item(wiki, FolderItem(ROOT_NAME,
                 copied_folder,
                 FolderItem("b",
                     FolderItem("a",
@@ -837,7 +843,7 @@ class TestWikiFunctions:
                 CopyAction(Path("a"), Path("b"))
             ])
 
-            expected = FolderItem("root",
+            expected = FolderItem(ROOT_NAME,
                 copied_folder,
                 FolderItem("b",
                     FolderItem("a",
@@ -876,7 +882,7 @@ class TestWikiFunctions:
         @staticmethod
         def test_copy_to_dir_override_type_mismatch(wiki: Wiki):
 
-            populate_from_root_folder_item(wiki, FolderItem("root",
+            populate_from_root_folder_item(wiki, FolderItem(ROOT_NAME,
                 FileItem("a"),
                 FolderItem("c"),
                 FolderItem("b",
@@ -897,20 +903,20 @@ class TestWikiFunctions:
     
         @staticmethod
         def test_copy_to_root(wiki: Wiki):
-            populate_from_root_folder_item(wiki, FolderItem("root", FolderItem("a", FileItem("b"))))
+            populate_from_root_folder_item(wiki, FolderItem(ROOT_NAME, FolderItem("a", FileItem("b"))))
 
             wiki.do_operations(
                 [CopyAction(Path("a/b"), path_dot())]
             )
 
-            assert_same_folder_structure(wiki, FolderItem("root", FolderItem("a", FileItem("b")), FileItem("b")))
+            assert_same_folder_structure(wiki, FolderItem(ROOT_NAME, FolderItem("a", FileItem("b")), FileItem("b")))
 
 
         @staticmethod
         def test_copy_from_root(wiki: Wiki):
             copied_folder = FolderItem("a", FileItem("b"), FileItem("d"))
 
-            populate_from_root_folder_item(wiki, FolderItem("root",
+            populate_from_root_folder_item(wiki, FolderItem(ROOT_NAME,
                 copied_folder,
                 FolderItem("b")
             ))
@@ -924,7 +930,7 @@ class TestWikiFunctions:
         
         @staticmethod
         def test_copy_dir_into_itself(wiki: Wiki):
-            populate_from_root_folder_item(wiki, FolderItem("root", FolderItem("a", FolderItem("b"))))
+            populate_from_root_folder_item(wiki, FolderItem(ROOT_NAME, FolderItem("a", FolderItem("b"))))
 
             with pytest.raises(WikiOperationError, match="Cannot copy a directory into itself."):
                 wiki.do_operations([
@@ -935,19 +941,19 @@ class TestWikiFunctions:
 
         @staticmethod
         def test_delete_file(wiki: Wiki):
-            populate_from_root_folder_item(wiki, FolderItem("root", FileItem("a"), FileItem("b")))
+            populate_from_root_folder_item(wiki, FolderItem(ROOT_NAME, FileItem("a"), FileItem("b")))
 
             wiki.do_operations([
                 DeleteAction(Path('b'))
             ])
 
-            assert_same_folder_structure(wiki, FolderItem("root", FileItem("a")))
+            assert_same_folder_structure(wiki, FolderItem(ROOT_NAME, FileItem("a")))
         
 
         @staticmethod
         def test_delete_directory(wiki: Wiki):
 
-            base = FolderItem("root",
+            base = FolderItem(ROOT_NAME,
                 FolderItem("a", FileItem("b"), FileItem("c")),
                 FileItem("b")                 
             )
@@ -957,11 +963,11 @@ class TestWikiFunctions:
                 DeleteAction(Path("a"))
             ])
             
-            assert_same_folder_structure(wiki, FolderItem("root", FileItem("b")))
+            assert_same_folder_structure(wiki, FolderItem(ROOT_NAME, FileItem("b")))
 
         @staticmethod
         def test_delete_recursive(wiki: Wiki):
-            base = FolderItem("root",
+            base = FolderItem(ROOT_NAME,
                 FolderItem("a",
                     FolderItem("b",
                         FileItem("c"),
@@ -975,12 +981,12 @@ class TestWikiFunctions:
                 DeleteAction(Path("a"))
             ])
 
-            assert_same_folder_structure(wiki, FolderItem("root", FileItem("remaining")))
+            assert_same_folder_structure(wiki, FolderItem(ROOT_NAME, FileItem("remaining")))
 
         @staticmethod
         def test_delete_root(wiki: Wiki):
 
-            base = FolderItem("root",
+            base = FolderItem(ROOT_NAME,
                 FolderItem("a",
                     FolderItem("b",
                         FileItem("c"),
@@ -995,7 +1001,7 @@ class TestWikiFunctions:
                 DeleteAction(path_dot())
             ])
 
-            assert_same_folder_structure(wiki, FolderItem("root"))
+            assert_same_folder_structure(wiki, FolderItem(ROOT_NAME))
 
     class TestNewItem:
 
@@ -1005,7 +1011,7 @@ class TestWikiFunctions:
                 NewItemAction(Path("a"), is_dir=False)
             ])
             
-            assert_same_folder_structure(wiki, FolderItem("root", FileItem("a")))
+            assert_same_folder_structure(wiki, FolderItem(ROOT_NAME, FileItem("a")))
 
             with wiki.open_wikifile(Path("a"), file_mode=WikiFileMode(
                 op_mode=WikiOpMode.READ,
@@ -1020,7 +1026,7 @@ class TestWikiFunctions:
                 NewItemAction(Path("a"), is_dir=True)
             ])
             
-            assert_same_folder_structure(wiki, FolderItem("root", FolderItem("a")))
+            assert_same_folder_structure(wiki, FolderItem(ROOT_NAME, FolderItem("a")))
 
         @staticmethod
         def test_create_root(wiki: Wiki):
@@ -1029,4 +1035,54 @@ class TestWikiFunctions:
                 wiki.do_operations([
                     NewItemAction(path_dot(), is_dir=True)
                 ])
+
+
+    class TestRevision:
+        
+        @staticmethod
+        def test_make_revision(wiki: Wiki):
+
+            path = Path("test")
+
+            for sample_text in REVISION_SAMPLE:
+                with wiki.open_wikifile(path, DEFAULT_WRITE_MODE) as f:
+                    f.write(sample_text) 
+                wiki.make_revision(path)
+            
+            revisions = sorted(wiki.get_revisions(path).unwrap(), key=lambda r: r.revision_date)
+
+            dmp = revision_dmp()
+            prev = ""
+            assert len(revisions) == len(REVISION_SAMPLE)
+
+            for revision, sample_text in zip(revisions, REVISION_SAMPLE):
+                diffs = dmp.diff_main(prev, sample_text)
+                dmp.diff_cleanupEfficiency(diffs)
+                patches: list[patch_obj] = dmp.patch_make(prev, diffs)
+                assert dmp.patch_toText(patches) == revision.content 
+                assert dmp.patch_apply(patches, prev)[0] == sample_text
+                prev = sample_text
+
+            prev = ""
+
+        @staticmethod
+        def test_soft_revert(wiki: Wiki):
+
+            path = Path("test")
+
+            for sample_text in REVISION_SAMPLE:
+                with wiki.open_wikifile(path, DEFAULT_WRITE_MODE) as f:
+                    f.write(sample_text) 
+                wiki.make_revision(path)
+            
+            revisions = sorted(wiki.get_revisions(path).unwrap(), key=lambda r: r.revision_date)
+
+            for i, revision in enumerate(revisions):
+                wiki.soft_revert_to_revision(revision.entry_id)
+                assert len(wiki.get_revisions(path).unwrap()) == len(revisions) + i + 1
+                with wiki.open_wikifile(path, DEFAULT_READ_MODE) as f:
+                    assert f.read() == REVISION_SAMPLE[i]
+
+
+
             

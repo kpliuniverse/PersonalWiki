@@ -2,27 +2,30 @@ import logging
 import os
 import pathlib
 from collections import deque
-from typing import Optional, List, Deque, Dict
+from typing import Deque, Dict, List, Optional
 from uuid import UUID
 
 import attrs
-from PyQt6.QtGui import QStandardItemModel, QStandardItem
 from pygments.lexers import q
+from PyQt6.QtGui import QStandardItem, QStandardItemModel
 from returns.result import Failure, Success
-from sqlalchemy import Connection, select
+from sqlalchemy import CTE, Connection, literal, select
 from sqlalchemy.orm import Session
+from sqlalchemy.sql.base import ReadOnlyColumnCollection
+from sqlalchemy.sql.elements import KeyedColumnElement
 
-from src.ui.itemmodels.project_item import ItemInfo, ProjectItem
-from src.utils.db_utils import get_directory_uuid_query, get_wikidirectory_query
-from src.wiki.datamodel import WikiDirectoryEntry, WikiFileEntry, ROOT_DIR_UUID
-from src.wiki.wiki_items import FolderItem, FileItem, Item, ItemType
-from src.wiki.wiki_items import WikiError
-from src.utils.path_utils import path_dot
 from src.exceptions import WikiDatabaseError
-
+from src.ui.itemmodels.project_item import ItemInfo, ProjectItem
+from src.utils.db_utils import (
+    get_directory_uuid_query,
+    pathify_directories_cte,
+)
+from src.utils.path_utils import path_dot
+from src.wiki.datamodel import ROOT_DIR_UUID, ROOT_NAME, WikiDirectoryEntry, WikiFileEntry
+from src.wiki.wiki_items import FileItem, FolderItem, Item, ItemType, WikiError
 
 # def walk_and_return_folder_item(root_path: pathlib.Path):
-#     root_folder_item = NamedFolderItem("root")
+#     root_folder_item = NamedFolderItem(ROOT_NAME)
 #     for (path, dirnames, filenames) in os.walk(root_path):
 #         path = pathlib.Path(path).relative_to(root_path)
 #         match root_folder_item.get_path(path):
@@ -49,7 +52,7 @@ def walk_and_return_folder_item(root_path: pathlib.Path):
     """
         Loads the widget with a specific path
     """
-    root_item = FolderItem("root")
+    root_item = FolderItem(ROOT_NAME)
 
     queue: Deque[FolderIterEntry] = deque()
     queue.append(FolderIterEntry(
@@ -76,7 +79,7 @@ def iterdir_db_dir_sess(session: Session, path: pathlib.Path):
     path_uuid = session.scalars(get_directory_uuid_query(path)).one()
     folders = session.query(WikiDirectoryEntry).where(WikiDirectoryEntry.parent_uuid == path_uuid).all()
     files = session.query(WikiFileEntry).where(WikiFileEntry.directory_uuid == path_uuid).all()
-    out : List[WikiDirectoryEntry | WikiFileEntry] = [*folders, *files]
+    out : list[WikiDirectoryEntry | WikiFileEntry] = [*folders, *files]
     return out
     
 def iterdir_db_dir(connection: Connection, path: pathlib.Path):
@@ -84,9 +87,9 @@ def iterdir_db_dir(connection: Connection, path: pathlib.Path):
         return iterdir_db_dir_sess(session, path)
 
 def walk_db_and_return_folder_item(connection: Connection):
-    root_item = FolderItem("root")
+    root_item = FolderItem(ROOT_NAME)
 
-    stack: Deque[FolderIterEntry] = deque([
+    stack: deque[FolderIterEntry] = deque([
         FolderIterEntry(
             path=path_dot(),
             folder=root_item
@@ -113,9 +116,9 @@ def to_model(folder: FolderItem):
     root_node = item_system_model.invisibleRootItem()
     if root_node is None:
         raise ValueError("item_system_model.invisibleRootItem() is None. This is not normal.")
-    dir_to_item: Dict[str, QStandardItem] = dict()
+    dir_to_item: dict[str, QStandardItem] = {}
     item_system_model.setHorizontalHeaderLabels([])
-    subdirs: Deque[FolderIterEntry] = deque([FolderIterEntry(path_dot(), folder)])
+    subdirs: deque[FolderIterEntry] = deque([FolderIterEntry(path_dot(), folder)])
     dot = path_dot().as_posix()
     dir_to_item[dot] = root_node
     while len(subdirs) > 0:
@@ -137,6 +140,18 @@ def to_model(folder: FolderItem):
             if isinstance(child, FileItem):
                 dir_to_item[rel_subdir.as_posix()].appendRow(project_item)
     return item_system_model
+
+def get_wikifile_path_from_uuid(session: Session, uuid: UUID) -> pathlib.Path:
+    dir_cte = pathify_directories_cte()
+    cte = (
+        select(WikiFileEntry.uuid, (dir_cte.c.path + literal("/") + WikiFileEntry.name).label("path"))
+        .join(dir_cte, WikiFileEntry.directory_uuid == dir_cte.c.uuid)
+    ).cte("pathified_files")
+
+    # cte = pathify_directories_cte()   
+    path_str = session.scalar(select(cte.c.path).where(cte.c.uuid == uuid))
+    assert isinstance(path_str, str)
+    return pathlib.Path(path_str).relative_to(pathlib.Path(ROOT_NAME)) # type: ignore
 
 def get_file_sess(session: Session, item: pathlib.Path):
     if item == path_dot():

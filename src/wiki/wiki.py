@@ -1,24 +1,32 @@
-from collections import deque
-from dataclasses import dataclass
 import dataclasses
-from enum import IntEnum, StrEnum, auto
-from io import TextIOWrapper
 import json
 import logging
-from optparse import make_option
 import os
 import pathlib
 import shutil
+from collections import deque
+from dataclasses import dataclass
+from enum import IntEnum, StrEnum, auto
+from io import TextIOWrapper
+from optparse import make_option
 from types import TracebackType
 from typing import IO, Any, List, Optional, Self, Tuple
-from uuid import uuid4, UUID
+from uuid import UUID, uuid4
 
-from attr import define, field, setters
 import attrs
 import pendulum
+from attr import define, field, setters
+from diff_match_patch import diff_match_patch
 from returns.maybe import Maybe, Nothing, Some
+from returns.primitives.exceptions import UnwrapFailedError
 from returns.result import Failure, Result, Success, attempt, safe
-from sqlalchemy import URL, Connection, Engine, ScalarResult, create_engine, func, insert, literal, select, text, update
+from sqlalchemy import (
+    Connection,
+    Engine,
+    create_engine,
+    delete,
+    select,
+)
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.orm import Session as ORMSession
 
@@ -26,13 +34,50 @@ from src.consts import WIKI_ENCODING
 from src.exceptions import InvalidNameException, WikiOperationError
 from src.multiprocessing.multiprocessing import DatabaseLock
 from src.states.wikistate import Session, Settings, WikiState
-from src.utils.file_utils import RAW_FILE_EXTENSIONS, FileNameRecommendation, create_empty_file, is_recommended_file_name
+from src.utils.db_utils import (
+    WikiDatabaseError,
+    gen_uuid,
+    pathify_directories_cte,
+)
+from src.utils.dmp import revision_dmp
+from src.utils.file_utils import (
+    RAW_FILE_EXTENSIONS,
+    FileNameRecommendation,
+    create_empty_file,
+    is_recommended_file_name,
+)
+from src.utils.item_actions import (
+    Action,
+    CopyAction,
+    DeleteAction,
+    MoveAction,
+    NewItemAction,
+)
 from src.utils.item_validity import is_valid_item_name
-from src.utils.item_actions import Action, CopyAction, MoveAction, DeleteAction, NewItemAction
-from src.utils.db_utils import get_directory_uuid_query, get_wikidirectory_query, get_wikifile_query, WikiDatabaseError, pathify_cte, query_directory_uuid, gen_uuid
 from src.utils.path_utils import path_dot
-from src.wiki.datamodel import WikiBase, WikiDirectoryEntry, WikiFileEntryType, WikiFileEntry, ROOT_DIR_UUID, WikiItem
-from src.utils.wiki_utils import ensure_get_item, ensure_get_item_sess, get_dir, get_dir_sess, get_file, get_item, get_file_sess, get_item_sess, iterdir_db_dir, iterdir_db_dir_sess
+from src.utils.wiki_utils import (
+    ensure_get_item,
+    ensure_get_item_sess,
+    get_dir,
+    get_dir_sess,
+    get_file,
+    get_file_sess,
+    get_item,
+    get_item_sess,
+    get_wikifile_path_from_uuid,
+    iterdir_db_dir,
+    iterdir_db_dir_sess,
+)
+from src.wiki.datamodel import (
+    ROOT_DIR_UUID,
+    ROOT_NAME,
+    WikiBase,
+    WikiDirectoryEntry,
+    WikiFileEntry,
+    WikiFileEntryType,
+    WikiItem,
+    WikiRevision,
+)
 from src.wiki.wiki_items import ItemType
 
 NAME_OF_DB_FILE = "wiki.db"
@@ -188,7 +233,7 @@ class WikiFile:
 
     def debug_pathified(self) -> None:
         with self.__engine.connect() as c, ORMSession(c) as session:
-            for path in session.execute(select(pathify_cte())).all():
+            for path in session.execute(select(pathify_directories_cte())).all():
                 logging.debug("Pathified entry: %s", path
                               )
 
@@ -264,6 +309,7 @@ class WikiFile:
             item: None | WikiFileEntry = get_file(c, self.__path)
             # logging.debug("Value: %s", item.value)
         logging.debug("Done writing %s", self.__path.as_posix())
+
             
 def gen_db_url(path_dir: pathlib.Path) -> str:
     db_loc: pathlib.Path = path_dir / NAME_OF_DB_FILE
@@ -409,7 +455,8 @@ class Wiki:
                             if isinstance(src_item, WikiDirectoryEntry):
                                 raise item_type_mismatch_exception(src, dst)
                             session.delete(src_item)
-                            dst_item.copy_from(src_item, copy_uuid=False)
+                            session.flush()
+                            dst_item.copy_from(src_item, copy_uuid=True)
                              
                 #     with DatabaseLock().lock(), WikiEngine(self.db_url) as e, e.connect() as c, ORMSession(c) as session, session.begin():
                 #         logging.debug("Moving from %s to %s", src.as_posix(), dst.as_posix())
@@ -452,13 +499,12 @@ class Wiki:
                         self.__copy_item_to_dir(session, src_item, dst_item)
                     elif isinstance(dst_item, WikiFileEntry):
                         if isinstance(src_item, WikiDirectoryEntry):
-                            raise item_type_mismatch_exception(src, dst)
-                        dst_item.copy_from(src_item, copy_uuid=False)
+                            raise item_type_mismatch_exception(src, dst)                        
+                        dst_item.copy_from(src_item, False)
                     
                     
                 # shutil.copy(self.get_wiki_proper_path() / src, self.get_wiki_proper_path() / dst)
             case [DeleteAction(target)]:
-
                 
                 logging.debug("Deleting %s", target.as_posix())
 
@@ -615,6 +661,76 @@ class Wiki:
         else:
             logging.warning("%s is not a file that is associated as raw, excluded (will be implemented soon)", file.as_posix())
 
+    def get_revisions(self, entry: pathlib.Path) -> Maybe[list[WikiRevision]]:
+        with self.get_engine() as e, e.connect() as c, ORMSession(c) as s:
+            return Maybe.from_optional(get_file_sess(s, entry)).map(lambda f: f.revisions)
+    
+    def make_revision(self, entry: pathlib.Path) -> None:
+        wiki_file_mode = WikiFileMode(
+            op_mode=WikiOpMode.READ,
+            byte_mode=False,
+            work_with_actual_db_value=True
+        )
+        try:
+            revisions = self.get_revisions(entry).unwrap()
+        except UnwrapFailedError as e:
+            raise WikiOperationError(f"{entry.as_posix} doesn't exist or is a folder")
+
+        revisions = sorted(revisions, key=lambda r: r.revision_date)
+
+        dmp = revision_dmp()
+
+        with self.open_wikifile(entry, wiki_file_mode) as f:
+            cur = f.read()
+        prev = ""
+
+        for revision in revisions:
+            patches = dmp.patch_fromText(revision.content)
+            prev: str = dmp.patch_apply(patches, prev)[0]
+        diff = dmp.diff_main(prev, cur)
+        dmp.diff_cleanupEfficiency(diff)
+        logging.debug("prev is type %s, diff is type %s", type(prev), type(diff))
+        patches = dmp.patch_make(prev, diff)
+        revision_content = dmp.patch_toText(patches)
+
+        with WikiEngine(self.__db_url) as e, e.connect() as c, ORMSession(c) as s, s.begin():
+            file = get_file_sess(s, entry)
+            assert file is not None
+            file.revisions.append(WikiRevision(
+                file,
+                revision_content
+            ))
+
+    def __reconstruct_from_revisions(self, revisions: list[WikiRevision]) -> str:
+        dmp = revision_dmp()
+        string = ""
+
+        for revision in sorted(revisions, key=lambda e: e.revision_date):
+            patches = dmp.patch_fromText(revision.content)
+            string: str = dmp.patch_apply(patches, string)[0]
+
+        return string
+    
+    def soft_revert_to_revision(self, entry_id) -> None:
+        """
+            Soft revert is where a new revision is generated that patches the file to be exactly the target revision.
+
+            `entry_id` : the revision entry id. Each revision entry id is unique, even among file entries.
+        """
+        
+        with WikiEngine(self.__db_url) as e, e.connect() as c, ORMSession(c) as s, s.begin():
+            revision = s.get_one(WikiRevision, entry_id)
+            revisions_on_before = s.query(WikiRevision).where(WikiRevision.file_uuid == revision.file_uuid).where(WikiRevision.revision_date <= revision.revision_date).all()
+            reconstructed_text = self.__reconstruct_from_revisions(revisions_on_before)
+            file_path = get_wikifile_path_from_uuid(s, revision.file.uuid)
+            # current = self.__reconstruct_from_revisions(revision.file.revisions)
+
+        with self.open_wikifile(file_path, DEFAULT_WRITE_MODE) as f:
+            f.write(reconstructed_text)
+
+        self.make_revision(file_path)
+
+
 def open_wiki(path_to_wiki_pwi_file: pathlib.Path) -> Wiki:
 
     """
@@ -682,7 +798,7 @@ def create_wiki(dir_path: pathlib.Path, name: str) -> Wiki:
 
         with ORMSession(c) as session, session.begin():
             session.add(WikiDirectoryEntry(
-                name="root",
+                name=ROOT_NAME,
                 uuid=ROOT_DIR_UUID,
                 parent=None
             ))

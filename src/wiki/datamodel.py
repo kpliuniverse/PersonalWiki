@@ -1,3 +1,4 @@
+import dataclasses
 import pathlib
 from datetime import datetime
 from enum import Enum
@@ -33,6 +34,8 @@ from src.exceptions import DataIntegrityError, DataValidationError, WikiDatabase
 from src.utils.item_validity import is_valid_item_name
 
 ROOT_DIR_UUID = UUID(int=0)
+ROOT_NAME = "root"
+
 class WikiBase(MappedAsDataclass, DeclarativeBase):
     pass
 
@@ -41,8 +44,7 @@ class WikiFileEntryType(Enum):
     RAW = "raw"
     POINTER = "pointer"
 
-
-    
+ 
 class WikiItem(Protocol):
     name: Mapped[str]
     uuid: Mapped[UUID]
@@ -111,7 +113,8 @@ class WikiFileEntry(WikiBase):
     directory: Mapped[WikiDirectoryEntry] = relationship(back_populates="file_children")
     directory_uuid: Mapped[UUID] = mapped_column(ForeignKey(WikiDirectoryEntry.uuid), default=ROOT_DIR_UUID)
     last_modified: Mapped[pendulum.DateTime] = mapped_column(DateTime(timezone=True), default_factory=pendulum.now)
-    # revisions: Mapped[list["WikiRevision"]] = relationship("WikiRevision", back_populates="", default_factory=list)
+    revisions: Mapped[list[WikiRevision]] = relationship("WikiRevision", back_populates="file", default_factory=list, cascade="all, delete-orphan")
+
     __table_args__ = (
         UniqueConstraint("name", "directory_uuid"),
     )
@@ -127,22 +130,30 @@ class WikiFileEntry(WikiBase):
             Copy attributes from another `WikiFileEntry`
     
             `file`: the entry to copy from
-            `copy_uuid`: copy the `file1` uuid, since uuid's are supposed to be unique, only use it on move
+            `copy_uuid`: copy the `file1` uuid (only use it on move)
         """
         self.type = file.type
         self.value = file.value
         if copy_uuid:
             self.uuid = file.uuid
         self.last_modified = file.last_modified
+        self.revisions.clear()
+
+        for revision in file.revisions:
+            self.revisions.append(dataclasses.replace(revision, file=self))
 
     def rename(self, new_name) -> None:
         self.name = new_name
 
-# class WikiRevision(WikiBase):
-#     __table_name__ = "revisions"
+class WikiRevision(WikiBase):
+    __tablename__ = "revisions"
 
-#     entry: Mapped[int] = mapped_column(primary_key=True)
-#     file_uuid: Mapped[WikiFileEntry] = mapped_column(ForeignKey)
+    entry_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True, init=False)
+    file: Mapped[WikiFileEntry] = relationship(back_populates="revisions")
+    file_uuid: Mapped[WikiFileEntry] = mapped_column(ForeignKey(WikiFileEntry.uuid), init=False)
+    content: Mapped[str]
+    revision_date: Mapped[pendulum.DateTime] = mapped_column(DateTime(timezone=True), default_factory=pendulum.now)
+
 @event.listens_for(WikiDirectoryEntry, "after_insert")
 def validate_wikidirectoryentry(mapper: Mapper, connection: Connection, target: WikiDirectoryEntry) -> None:
     if target.uuid != ROOT_DIR_UUID and target.parent_uuid is None:
@@ -156,4 +167,3 @@ def validate_wikidirectoryentry(mapper: Mapper, connection: Connection, target: 
 def validate_wikifileentry(mapper: Mapper, connection: Connection, target: WikiFileEntry) -> None:
     if connection.scalar(select(WikiDirectoryEntry).where(WikiDirectoryEntry.parent_uuid == target.directory_uuid).where(WikiDirectoryEntry.name == target.name)):
         raise DataIntegrityError(f"name '{target.name}' and parent/directory uuid '{target.directory_uuid}' already exists as a file/directory. (Attempted to insert WikiFileEntry that collides with WikiDirectoryEntry)")
-
