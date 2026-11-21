@@ -1,35 +1,41 @@
+import atexit
+import logging
+import pathlib
+import sys
 from copy import deepcopy
 from importlib import resources as impresources
-import sys
-import pathlib 
-import logging
-import atexit
 from typing import NoReturn, Optional
 
-
+import dill
+from attrs import define, frozen
 from PyQt6.QtCore import QCoreApplication, QDir, Qt
+from PyQt6.QtGui import QFontDatabase
 from PyQt6.QtQuick import QQuickWindow, QSGRendererInterface
 from PyQt6.QtWidgets import (
     QApplication,
 )
-
-from PyQt6.QtGui import QFontDatabase
-from attrs import define, frozen
-import dill
 from returns.result import Failure
+
 from src.consts import RESOURCE_PATH
 from src.initcontext import InitContext
-from src.multiprocessing.child_processes.webserver import WebserverProcess
-from src.multiprocessing.multiprocessing import DatabaseLock, MultiprocessingManager, MultiprocessingException
+from src.multiprocessing.child_processes.webserver.webserver import WebserverProcess
+from src.multiprocessing.multiprocessing import (
+    DatabaseLock,
+    MultiprocessingException,
+    MultiprocessingManager,
+)
 from src.resources import ResourceManager
 from src.states.appstate import to_pickleable
 from src.ui.stylesheets.app_stylesheet import MainStylesheetManager
 from src.ui.windows.main_window import MainWindow
 from src.ui.windows.wiki_window import WikiWindow
 
+# gui_logger = get_gui_logger(__name__)
+
 @frozen
 class AppArgs:
     project: str | None = None
+
 class App:
 
     def __except_hook(self, *args) -> None:
