@@ -4,7 +4,7 @@ import sys
 import pathlib 
 import logging
 import atexit
-from typing import NoReturn
+from typing import NoReturn, Optional
 
 
 from PyQt6.QtCore import QCoreApplication, QDir, Qt
@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import (
 )
 
 from PyQt6.QtGui import QFontDatabase
+from attrs import define, frozen
 import dill
 from returns.result import Failure
 from src.consts import RESOURCE_PATH
@@ -26,14 +27,16 @@ from src.ui.stylesheets.app_stylesheet import MainStylesheetManager
 from src.ui.windows.main_window import MainWindow
 from src.ui.windows.wiki_window import WikiWindow
 
-
-
+@frozen
+class AppArgs:
+    project: str | None = None
 class App:
 
     def __except_hook(self, *args) -> None:
         self.__cleanup()
         sys.__excepthook__(*args)
-    def __init__(self) -> None:
+    def __init__(self , args: AppArgs) -> None:
+        self.args = args
         self.main_window: MainWindow | None  = None
         self.app = QApplication(sys.argv)
         atexit.register(self.__cleanup)
@@ -96,10 +99,10 @@ class App:
         QQuickWindow.setGraphicsApi(QSGRendererInterface.GraphicsApi.OpenGL)
         QCoreApplication.setAttribute(Qt.ApplicationAttribute.AA_UseStyleSheetPropagationInWidgetStyles, True)
         
-        if len(self.app.arguments()) == 1:
+        if self.args.project is None:
             wiki_window = WikiWindow()
             wiki_window.wiki_opened.connect(self.run_main)
             wiki_window.show()
         else:
-            self.run_main(pathlib.Path(self.app.arguments()[1]).resolve())
+            self.run_main(pathlib.Path(self.args.project).resolve())
         sys.exit(self.app.exec())
